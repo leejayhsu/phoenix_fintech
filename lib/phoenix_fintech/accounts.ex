@@ -17,14 +17,21 @@ defmodule PhoenixFintech.Accounts do
   def update_user_profile(user, attrs), do: user |> User.profile_changeset(attrs) |> Repo.update()
 
   def change_user_password(user, attrs \\ %{}), do: User.password_changeset(user, attrs)
-  def update_user_password(user, attrs), do: user |> User.password_changeset(attrs) |> Repo.update()
+
+  def update_user_password(user, attrs),
+    do: user |> User.password_changeset(attrs) |> Repo.update()
 
   def generate_session_token(user) do
     token = :crypto.strong_rand_bytes(32)
     expires_at = DateTime.add(DateTime.utc_now(), 60 * 60 * 24 * 14, :second)
 
     %UserToken{}
-    |> Ecto.Changeset.change(%{token: token, context: "session", user_id: user.id, expires_at: expires_at})
+    |> Ecto.Changeset.change(%{
+      token: token,
+      context: "session",
+      user_id: user.id,
+      expires_at: expires_at
+    })
     |> Repo.insert!()
 
     token
@@ -34,11 +41,13 @@ defmodule PhoenixFintech.Accounts do
     query =
       from ut in UserToken,
         join: u in assoc(ut, :user),
-        where: ut.context == "session" and ut.token == ^token and ut.expires_at > ^DateTime.utc_now(),
+        where:
+          ut.context == "session" and ut.token == ^token and ut.expires_at > ^DateTime.utc_now(),
         select: u
 
     Repo.one(query)
   end
 
-  def delete_session_token(token), do: Repo.delete_all(from ut in UserToken, where: ut.token == ^token)
+  def delete_session_token(token),
+    do: Repo.delete_all(from ut in UserToken, where: ut.token == ^token)
 end

@@ -1,13 +1,20 @@
 <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
-  <div class="space-y-4">
+  <div id="home-page" class="space-y-4">
     <h1 class="text-3xl font-semibold tracking-tight">Phoenix Fintech</h1>
-    <p class="text-zinc-600 dark:text-zinc-300">Tablestakes authenticated shell is ready. Start building product features here.</p>
+    <p class="text-zinc-600 dark:text-zinc-300">
+      Tablestakes authenticated shell is ready. Start building product features here.
+    </p>
     <%= if @current_user do %>
       <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200">
         Signed in as {@current_user.email}
       </div>
     <% else %>
-      <.link navigate={~p"/users/log_in"} class="inline-flex rounded-xl bg-zinc-900 px-4 py-2 text-white transition hover:bg-zinc-700">Go to login</.link>
+      <.link
+        navigate={~p"/users/log_in"}
+        class="inline-flex rounded-xl bg-zinc-900 px-4 py-2 text-white transition hover:bg-zinc-700"
+      >
+        Go to login
+      </.link>
     <% end %>
   </div>
 </Layouts.app>

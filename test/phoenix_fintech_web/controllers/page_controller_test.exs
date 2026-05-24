@@ -3,6 +3,7 @@ defmodule PhoenixFintechWeb.PageControllerTest do
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
-    assert html_response(conn, 200) =~ "Peace of mind from prototype to production"
+    document = conn |> html_response(200) |> LazyHTML.from_document()
+    assert document |> LazyHTML.query_by_id("home-page") |> Enum.any?()
   end
 end

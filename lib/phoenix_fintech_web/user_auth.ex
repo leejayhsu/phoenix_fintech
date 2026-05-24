@@ -4,13 +4,17 @@ defmodule PhoenixFintechWeb.UserAuth do
 
   alias PhoenixFintech.Accounts
 
+  use PhoenixFintechWeb, :verified_routes
+
   def fetch_current_user(conn, _opts) do
     user =
       with token when is_binary(token) <- get_session(conn, :user_token) do
         Accounts.get_user_by_session_token(token)
       end
 
-    assign(conn, :current_user, user)
+    conn
+    |> assign(:current_user, user)
+    |> assign(:current_scope, current_scope(user))
   end
 
   def require_authenticated_user(conn, _opts) do
@@ -40,4 +44,7 @@ defmodule PhoenixFintechWeb.UserAuth do
     |> configure_session(drop: true)
     |> put_flash(:info, "Signed out successfully.")
   end
+
+  defp current_scope(nil), do: nil
+  defp current_scope(user), do: %{user: user}
 end
