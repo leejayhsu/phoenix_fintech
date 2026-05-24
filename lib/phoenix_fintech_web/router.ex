@@ -1,6 +1,8 @@
 defmodule PhoenixFintechWeb.Router do
   use PhoenixFintechWeb, :router
 
+  import PhoenixFintechWeb.UserAuth
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,6 +10,11 @@ defmodule PhoenixFintechWeb.Router do
     plug :put_root_layout, html: {PhoenixFintechWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_user
+  end
+
+  pipeline :require_authenticated_user do
+    plug :require_authenticated_user
   end
 
   pipeline :api do
@@ -18,6 +25,21 @@ defmodule PhoenixFintechWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+
+    get "/users/log_in", UserSessionController, :new
+    post "/users/log_in", UserSessionController, :create
+    delete "/users/log_out", UserSessionController, :delete
+
+    get "/users/settings", UserSettingsController, :edit
+    put "/users/settings/profile", UserSettingsController, :update_profile
+    put "/users/settings/password", UserSettingsController, :update_password
+  end
+
+
+  scope "/", PhoenixFintechWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    get "/app", PageController, :home
   end
 
   # Other scopes may use custom stacks.
@@ -35,7 +57,7 @@ defmodule PhoenixFintechWeb.Router do
     import Phoenix.LiveDashboard.Router
 
     scope "/dev" do
-      pipe_through :browser
+      pipe_through [:browser, :require_authenticated_user]
 
       live_dashboard "/dashboard", metrics: PhoenixFintechWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview

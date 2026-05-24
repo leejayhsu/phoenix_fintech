@@ -58,12 +58,12 @@ config :phoenix_fintech, PhoenixFintechWeb.Endpoint,
     web_console_logger: true,
     patterns: [
       # Static assets, except user uploads
-      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$"E,
+      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$",
       # Gettext translations
-      ~r"priv/gettext/.*\.po$"E,
+      ~r"priv/gettext/.*\.po$",
       # Router, Controllers, LiveViews and LiveComponents
-      ~r"lib/phoenix_fintech_web/router\.ex$"E,
-      ~r"lib/phoenix_fintech_web/(controllers|live|components)/.*\.(ex|heex)$"E
+      ~r"lib/phoenix_fintech_web/router\.ex$",
+      ~r"lib/phoenix_fintech_web/(controllers|live|components)/.*\.(ex|heex)$"
     ]
   ]
 
