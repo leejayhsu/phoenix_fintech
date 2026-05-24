@@ -1,0 +1,26 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <section class="space-y-8">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Settings</h1>
+      <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">Manage your profile and account security.</p>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+      <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <h2 class="text-lg font-semibold">Profile</h2>
+        <.form for={@profile_form} id="profile-form" action={~p"/users/settings/profile"} method="put" class="mt-4 space-y-4">
+          <.input field={@profile_form[:name]} type="text" label="Display name" required />
+          <button class="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">Save profile</button>
+        </.form>
+      </div>
+
+      <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <h2 class="text-lg font-semibold">Password</h2>
+        <.form for={@password_form} id="password-form" action={~p"/users/settings/password"} method="put" class="mt-4 space-y-4">
+          <.input field={@password_form[:password]} type="password" label="New password" required />
+          <button class="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900">Update password</button>
+        </.form>
+      </div>
+    </div>
+  </section>
+</Layouts.app>

@@ -30,45 +30,42 @@ defmodule PhoenixFintechWeb.Layouts do
   attr :current_scope, :map,
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
+  attr :current_user, :map, default: nil
 
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8">
-      <div class="flex-1">
-        <a href="/" class="flex-1 flex w-fit items-center gap-2">
-          <img src={~p"/images/logo.svg"} width="36" />
-          <span class="text-sm font-semibold">v{Application.spec(:phoenix, :vsn)}</span>
-        </a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex flex-column px-1 space-x-4 items-center">
-          <li>
-            <a href="https://phoenixframework.org/" class="btn btn-ghost">Website</a>
-          </li>
-          <li>
-            <a href="https://github.com/phoenixframework/phoenix" class="btn btn-ghost">GitHub</a>
-          </li>
-          <li>
-            <.theme_toggle />
-          </li>
-          <li>
-            <a href="https://hexdocs.pm/phoenix/overview.html" class="btn btn-primary">
-              Get Started <span aria-hidden="true">&rarr;</span>
+    <div class="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <%= if @current_user do %>
+        <div class="flex min-h-screen">
+          <aside class="hidden w-72 border-r border-zinc-200 bg-white/80 p-6 backdrop-blur lg:flex lg:flex-col dark:border-zinc-800 dark:bg-zinc-900/80">
+            <a href={~p"/app"} class="mb-10 flex items-center gap-2 text-lg font-semibold">
+              <.icon name="hero-banknotes" class="size-5 text-emerald-600" />
+              Phoenix Fintech
             </a>
-          </li>
-        </ul>
-      </div>
-    </header>
+            <nav class="space-y-2 text-sm">
+              <.link navigate={~p"/app"} class="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <.icon name="hero-home" class="size-4" /> Dashboard
+              </.link>
+              <.link navigate={~p"/users/settings"} class="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+              </.link>
+            </nav>
+            <div class="mt-auto text-xs text-zinc-500">
+              Signed in as <span class="font-medium text-zinc-700 dark:text-zinc-200">{@current_user.email}</span>
+            </div>
+          </aside>
+          <main class="flex-1 p-6 lg:p-10">{render_slot(@inner_block)}</main>
+        </div>
+      <% else %>
+        <main class="px-4 py-16 sm:px-6 lg:px-8">
+          <div class="mx-auto max-w-2xl">{render_slot(@inner_block)}</div>
+        </main>
+      <% end %>
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
-      </div>
-    </main>
-
-    <.flash_group flash={@flash} />
+      <.flash_group flash={@flash} />
+    </div>
     """
   end
 
