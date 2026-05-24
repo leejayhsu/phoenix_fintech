@@ -1,5 +1,6 @@
 defmodule PhoenixFintechWeb.UserSessionController do
   use PhoenixFintechWeb, :controller
+  import Phoenix.Component, only: [to_form: 2]
 
   alias PhoenixFintech.Accounts
   alias PhoenixFintechWeb.UserAuth
