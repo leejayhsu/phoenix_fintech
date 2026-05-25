@@ -16,7 +16,13 @@ defmodule PhoenixFintech.Ledger.AccountBalance do
 
   def changeset(balance, attrs) do
     balance
-    |> cast(attrs, [:ledger_account_id, :currency_code, :pending_balance, :available_balance, :posted_balance])
+    |> cast(attrs, [
+      :ledger_account_id,
+      :currency_code,
+      :pending_balance,
+      :available_balance,
+      :posted_balance
+    ])
     |> update_change(:currency_code, &String.upcase/1)
     |> validate_required([:ledger_account_id, :currency_code])
     |> validate_length(:currency_code, is: 3)
