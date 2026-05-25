@@ -9,8 +9,13 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
       socket
       |> assign_new(:current_scope, fn -> nil end)
       |> assign_current_user()
+
+    current_user = socket.assigns.current_user
+
+    socket =
+      socket
       |> assign(:page_title, "All parties")
-      |> assign(:parties, list_parties_for_current_user(socket.assigns.current_user))
+      |> assign(:parties, list_parties_for_current_user(current_user))
 
     {:ok, socket}
   end
@@ -49,7 +54,9 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
               </tr>
               <tr :for={party <- @parties} id={"party-#{party.id}"}>
                 <td class="px-4 py-3 font-medium text-zinc-950 dark:text-white">
-                  {party.legal_name}
+                  <.link navigate={~p"/app/parties/#{party.id}"} class="hover:text-emerald-700">
+                    {party.legal_name}
+                  </.link>
                 </td>
                 <td class="px-4 py-3 text-zinc-600 dark:text-zinc-300">{party.tax_id}</td>
                 <td class="px-4 py-3 text-zinc-600 dark:text-zinc-300">{party.country_code}</td>
@@ -69,6 +76,8 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
     assign(socket, :current_user, current_user(socket.assigns[:current_scope]))
   end
 
-  defp list_parties_for_current_user(%{id: user_id}), do: Parties.list_parties_onboarded_by_user(user_id)
+  defp list_parties_for_current_user(%{id: user_id}),
+    do: Parties.list_parties_onboarded_by_user(user_id)
+
   defp list_parties_for_current_user(_), do: []
 end

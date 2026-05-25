@@ -2,7 +2,7 @@ defmodule PhoenixFintech.Parties.Party do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias PhoenixFintech.Parties.{GovernmentID, PartyMember}
+  alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, PartyMember}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -19,7 +19,10 @@ defmodule PhoenixFintech.Parties.Party do
 
     has_many :members, PartyMember
     has_many :government_ids, GovernmentID
-    has_many :originator_transfers, PhoenixFintech.Transfers.Transfer, foreign_key: :originator_party_id
+    has_many :compliance_documents, ComplianceDocument
+
+    has_many :originator_transfers, PhoenixFintech.Transfers.Transfer,
+      foreign_key: :originator_party_id
 
     timestamps(type: :utc_datetime)
   end
