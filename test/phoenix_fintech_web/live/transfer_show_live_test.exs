@@ -7,7 +7,8 @@ defmodule PhoenixFintechWeb.TransferShowLiveTest do
 
   describe "GET /app/transfers/:id" do
     test "requires authentication", %{conn: conn} do
-      assert {:error, {:redirect, %{to: "/users/log_in"}}} = live(conn, ~p"/app/transfers/test-id")
+      assert {:error, {:redirect, %{to: "/users/log_in"}}} =
+               live(conn, ~p"/app/transfers/test-id")
     end
 
     test "shows transfer details and status timeline", %{conn: conn} do
@@ -29,6 +30,9 @@ defmodule PhoenixFintechWeb.TransferShowLiveTest do
           "fx_quote" => %{
             "provider" => "Manual Desk",
             "provider_quote_reference" => "Q-001",
+            "base_currency_code" => "usd",
+            "quote_currency_code" => "cad",
+            "quoted_at" => "2026-05-25T12:00:00Z",
             "rate" => "1.35"
           },
           "status" => "quoted"
@@ -93,7 +97,7 @@ defmodule PhoenixFintechWeb.TransferShowLiveTest do
   end
 
   defp currency_fixture(code, name) do
-    {:ok, currency} = Ledger.create_currency(%{"code" => code, "name" => name})
+    {:ok, currency} = Ledger.create_currency(%{"code" => code, "name" => name, "minor_unit" => 2})
     currency
   end
 

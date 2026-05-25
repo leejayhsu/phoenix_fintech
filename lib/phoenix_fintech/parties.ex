@@ -13,8 +13,8 @@ defmodule PhoenixFintech.Parties do
   def list_parties_onboarded_by_user(user_id) do
     Repo.all(
       from p in Party,
-        join: t in assoc(p, :originator_transfers),
-        where: t.created_by_user_id == ^user_id,
+        left_join: t in assoc(p, :originator_transfers),
+        where: p.created_by_user_id == ^user_id or t.created_by_user_id == ^user_id,
         distinct: p.id,
         order_by: [desc: p.inserted_at]
     )
@@ -79,14 +79,19 @@ defmodule PhoenixFintech.Parties do
     end
   end
 
-  def create_originator(attrs) do
+  def create_originator(attrs), do: create_originator(nil, attrs)
+
+  def create_originator(created_by_user_id, attrs) do
     party_attrs = Map.get(attrs, "party", %{})
     party_government_id_attrs = Map.get(attrs, "party_government_id", %{})
     representative_attrs = Map.get(attrs, "representative", %{})
     representative_government_id_attrs = Map.get(attrs, "representative_government_id", %{})
 
     Multi.new()
-    |> Multi.insert(:party, Party.changeset(%Party{}, party_attrs))
+    |> Multi.insert(
+      :party,
+      Party.changeset(%Party{created_by_user_id: created_by_user_id}, party_attrs)
+    )
     |> Multi.insert(:party_government_id, fn %{party: party} ->
       GovernmentID.changeset(%GovernmentID{party_id: party.id}, party_government_id_attrs)
     end)

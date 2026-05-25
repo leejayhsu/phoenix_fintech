@@ -17,6 +17,8 @@ defmodule PhoenixFintech.Parties.Party do
     field :postal_code, :string
     field :country_code, :string
 
+    belongs_to :created_by_user, PhoenixFintech.Accounts.User
+
     has_many :members, PartyMember
     has_many :government_ids, GovernmentID
     has_many :compliance_documents, ComplianceDocument

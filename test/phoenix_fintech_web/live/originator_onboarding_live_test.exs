@@ -64,6 +64,9 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLiveTest do
 
       assert party = Parties.get_party_by_tax_id("12-3456789")
       assert party.legal_name == "Northstar Imports LLC"
+
+      {:ok, index_view, _html} = live(conn, ~p"/app/parties")
+      assert has_element?(index_view, "#party-#{party.id}")
     end
   end
 

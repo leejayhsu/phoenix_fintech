@@ -74,7 +74,11 @@ defmodule PhoenixFintech.PartiesTest do
           "postal_code" => "94105",
           "country_code" => "US"
         },
-        "party_government_id" => %{"type" => "ein", "country_code" => "US", "value" => "42-4242424"},
+        "party_government_id" => %{
+          "type" => "ein",
+          "country_code" => "US",
+          "value" => "42-4242424"
+        },
         "representative" => %{},
         "representative_government_id" => %{}
       }

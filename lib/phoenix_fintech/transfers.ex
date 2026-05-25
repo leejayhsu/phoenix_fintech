@@ -34,10 +34,9 @@ defmodule PhoenixFintech.Transfers do
     |> Multi.insert(:transfer, fn changes ->
       transfer_params =
         transfer_attrs
-        |> Map.put("created_by_user_id", user_id)
         |> maybe_put_fx_quote_id(changes)
 
-      Transfer.changeset(%Transfer{}, transfer_params)
+      Transfer.changeset(%Transfer{created_by_user_id: user_id}, transfer_params)
     end)
     |> Repo.transaction()
     |> case do

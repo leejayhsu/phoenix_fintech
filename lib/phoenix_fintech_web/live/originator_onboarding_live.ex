@@ -78,7 +78,7 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
       "representative_government_id" => socket.assigns.representative_government_id_params
     }
 
-    case Parties.create_originator(attrs) do
+    case Parties.create_originator(socket.assigns.current_user.id, attrs) do
       {:ok, _party} ->
         {:noreply,
          socket
