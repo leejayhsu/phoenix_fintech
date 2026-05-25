@@ -49,7 +49,7 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
               </tr>
               <tr :for={party <- @parties} id={"party-#{party.id}"}>
                 <td class="px-4 py-3 font-medium text-zinc-950 dark:text-white">
-                  {party.legal_name}
+                  <.link navigate={~p"/app/parties/#{party.id}"} class="hover:text-emerald-700">{party.legal_name}</.link>
                 </td>
                 <td class="px-4 py-3 text-zinc-600 dark:text-zinc-300">{party.tax_id}</td>
                 <td class="px-4 py-3 text-zinc-600 dark:text-zinc-300">{party.country_code}</td>

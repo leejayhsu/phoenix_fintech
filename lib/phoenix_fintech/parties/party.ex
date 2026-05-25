@@ -2,7 +2,7 @@ defmodule PhoenixFintech.Parties.Party do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias PhoenixFintech.Parties.{GovernmentID, PartyMember}
+  alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, PartyMember}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -19,6 +19,7 @@ defmodule PhoenixFintech.Parties.Party do
 
     has_many :members, PartyMember
     has_many :government_ids, GovernmentID
+    has_many :compliance_documents, ComplianceDocument
 
     timestamps(type: :utc_datetime)
   end

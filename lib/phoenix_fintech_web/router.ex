@@ -41,6 +41,7 @@ defmodule PhoenixFintechWeb.Router do
     live_session :authenticated,
       on_mount: [{PhoenixFintechWeb.UserAuth, :mount_current_scope}] do
       live "/app/parties", PartyIndexLive
+      live "/app/parties/:id", PartyShowLive
       live "/app/parties/new", OriginatorOnboardingLive
       live "/app/transfers", TransferIndexLive
       live "/app/transfers/new", TransferNewLive
@@ -53,9 +54,11 @@ defmodule PhoenixFintechWeb.Router do
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", PhoenixFintechWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", PhoenixFintechWeb do
+    pipe_through :api
+
+    put "/mock_s3/objects", MockS3Controller, :put_object
+  end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:phoenix_fintech, :dev_routes) do
