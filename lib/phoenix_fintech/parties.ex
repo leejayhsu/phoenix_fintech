@@ -10,7 +10,7 @@ defmodule PhoenixFintech.Parties do
   def get_party_by_tax_id(tax_id), do: Repo.get_by(Party, tax_id: tax_id)
 
   def get_party_with_details!(id) do
-    members_query = from m in PartyMember, order_by: [asc: m.inserted_at]
+    members_query = from m in PartyMember, order_by: [asc: m.parent_party_member_id, asc: m.inserted_at]
     docs_query = from d in ComplianceDocument, order_by: [desc: d.inserted_at]
 
     Party
@@ -22,10 +22,10 @@ defmodule PhoenixFintech.Parties do
   def change_party(attrs \\ %{}), do: Party.changeset(%Party{}, attrs)
   def change_representative(attrs \\ %{}), do: PartyMember.form_changeset(%PartyMember{}, attrs)
   def change_government_id(attrs \\ %{}), do: GovernmentID.form_changeset(%GovernmentID{}, attrs)
-
   def change_party_member(member, attrs \\ %{}), do: PartyMember.changeset(member, attrs)
 
-  def get_member!(id), do: Repo.get!(PartyMember, id)
+  def get_member_for_party!(party_id, member_id),
+    do: Repo.get_by!(PartyMember, id: member_id, party_id: party_id)
 
   def create_party_member(party_id, attrs) do
     %PartyMember{party_id: party_id}
@@ -36,17 +36,20 @@ defmodule PhoenixFintech.Parties do
   def delete_party_member(%PartyMember{} = member), do: Repo.delete(member)
 
   def set_member_role(%PartyMember{} = member, role, enabled?) when role in [:is_legal_rep, :is_ubo] do
-    member |> PartyMember.changeset(%{role => enabled?}) |> Repo.update()
+    member
+    |> PartyMember.changeset(%{role => enabled?})
+    |> Repo.update()
   end
 
-  def create_compliance_document(party_id, user_id, attrs, upload) do
-    with {:ok, upload_result} <- MockS3.upload_file(upload.path, upload.client_name, upload.client_type) do
+  def create_compliance_document(party_id, user_id, attrs, upload_meta, upload_entry) do
+    with {:ok, upload_result} <-
+           MockS3.upload_file(upload_meta.path, upload_entry.client_name, upload_entry.client_type) do
       %ComplianceDocument{}
       |> ComplianceDocument.changeset(%{
         party_id: party_id,
         uploaded_by_user_id: user_id,
         doc_type: Map.get(attrs, "doc_type", "other"),
-        filename: upload.client_name,
+        filename: upload_entry.client_name,
         storage_key: upload_result.key,
         storage_url: upload_result.url
       })
@@ -75,7 +78,10 @@ defmodule PhoenixFintech.Parties do
       PartyMember.changeset(%PartyMember{party_id: party.id}, representative_attrs)
     end)
     |> Multi.insert(:representative_government_id, fn %{representative: representative} ->
-      GovernmentID.changeset(%GovernmentID{party_member_id: representative.id}, representative_government_id_attrs)
+      GovernmentID.changeset(
+        %GovernmentID{party_member_id: representative.id},
+        representative_government_id_attrs
+      )
     end)
     |> Repo.transaction()
     |> case do

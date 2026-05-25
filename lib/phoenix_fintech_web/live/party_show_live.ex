@@ -36,13 +36,13 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   end
 
   def handle_event("delete_member", %{"id" => id}, socket) do
-    member = Parties.get_member!(id)
+    member = Parties.get_member_for_party!(socket.assigns.party.id, id)
     {:ok, _} = Parties.delete_party_member(member)
     {:noreply, stream_delete(socket, :members, member)}
   end
 
   def handle_event("toggle_role", %{"id" => id, "role" => role}, socket) do
-    member = Parties.get_member!(id)
+    member = Parties.get_member_for_party!(socket.assigns.party.id, id)
     field = if role == "legal_rep", do: :is_legal_rep, else: :is_ubo
     enabled = not Map.get(member, field)
     {:ok, member} = Parties.set_member_role(member, field, enabled)
@@ -53,7 +53,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     user_id = if socket.assigns.current_user, do: socket.assigns.current_user.id, else: nil
 
     consume_uploaded_entries(socket, :compliance_document, fn meta, entry ->
-      case Parties.create_compliance_document(socket.assigns.party.id, user_id, document_params, entry) do
+      case Parties.create_compliance_document(socket.assigns.party.id, user_id, document_params, meta, entry) do
         {:ok, document} -> {:ok, document}
         {:error, _} = error -> error
       end
@@ -78,6 +78,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
             <.form for={@member_form} id="party-member-form" phx-submit="create_member" class="grid gap-3">
               <.input field={@member_form[:legal_name]} label="Legal name" />
               <.input field={@member_form[:type]} type="select" label="Type" options={[{"Individual", "individual"}, {"Business", "business"}]} />
+              <.input field={@member_form[:parent_party_member_id]} label="Parent member id" />
               <.input field={@member_form[:title]} label="Title" />
               <.input field={@member_form[:address_line1]} label="Address line 1" />
               <.input field={@member_form[:locality]} label="City" />
@@ -122,7 +123,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   end
 
   defp assign_member_form(socket) do
-    member_attrs = %{"type" => "individual", "country_code" => "US"}
+    member_attrs = %{"type" => "individual", "country_code" => "US", "parent_party_member_id" => ""}
     changeset = Parties.change_party_member(%PartyMember{party_id: socket.assigns.party.id}, member_attrs)
     assign(socket, :member_form, to_form(changeset, as: :party_member))
   end
