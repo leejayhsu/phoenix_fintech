@@ -17,6 +17,19 @@ defmodule PhoenixFintechWeb.UserAuth do
     |> assign(:current_scope, current_scope(user))
   end
 
+  def on_mount(:mount_current_scope, _params, session, socket) do
+    user =
+      with token when is_binary(token) <- session["user_token"] do
+        Accounts.get_user_by_session_token(token)
+      end
+
+    {:cont,
+     Phoenix.Component.assign(socket,
+       current_user: user,
+       current_scope: current_scope(user)
+     )}
+  end
+
   def require_authenticated_user(conn, _opts) do
     if conn.assigns[:current_user] do
       conn

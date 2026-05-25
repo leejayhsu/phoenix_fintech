@@ -37,6 +37,13 @@ defmodule PhoenixFintechWeb.Router do
     pipe_through [:browser, :authenticated]
 
     get "/app", PageController, :home
+
+    live_session :authenticated,
+      on_mount: [{PhoenixFintechWeb.UserAuth, :mount_current_scope}] do
+      live "/app/parties", PartyIndexLive
+      live "/app/parties/new", OriginatorOnboardingLive
+    end
+
     get "/users/settings", UserSettingsController, :edit
     put "/users/settings/profile", UserSettingsController, :update_profile
     put "/users/settings/password", UserSettingsController, :update_password

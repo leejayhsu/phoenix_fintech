@@ -52,6 +52,12 @@ defmodule PhoenixFintechWeb.Layouts do
                 <.icon name="hero-home" class="size-4" /> Dashboard
               </.link>
               <.link
+                navigate={~p"/app/parties"}
+                class="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              >
+                <.icon name="hero-building-office-2" class="size-4" /> Parties
+              </.link>
+              <.link
                 navigate={~p"/users/settings"}
                 class="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
               >
