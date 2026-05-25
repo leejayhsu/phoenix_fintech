@@ -54,23 +54,12 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
         },
         socket
       ) do
-    representative_changeset = Parties.change_representative(representative_params)
-    government_id_changeset = Parties.change_government_id(government_id_params)
-
-    if representative_changeset.valid? and government_id_changeset.valid? do
-      {:noreply,
-       socket
-       |> assign(:step, :review)
-       |> assign(:representative_params, representative_params)
-       |> assign(:representative_government_id_params, government_id_params)
-       |> assign_representative_forms()}
-    else
-      {:noreply,
-       socket
-       |> assign(:representative_params, representative_params)
-       |> assign(:representative_government_id_params, government_id_params)
-       |> assign_representative_forms(:validate)}
-    end
+    {:noreply,
+     socket
+     |> assign(:step, :review)
+     |> assign(:representative_params, representative_params)
+     |> assign(:representative_government_id_params, government_id_params)
+     |> assign_representative_forms()}
   end
 
   def handle_event("back_to_party", _params, socket) do
@@ -310,6 +299,10 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
           Review <.icon name="hero-arrow-right" class="size-4" />
         </.button>
       </div>
+
+      <p class="mt-3 text-xs text-zinc-500">
+        Party members are optional during onboarding. You can add one or many members later from the party details page.
+      </p>
     </.form>
     """
   end

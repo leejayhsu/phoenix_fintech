@@ -53,7 +53,7 @@ defmodule PhoenixFintech.PartiesTest do
       assert [%GovernmentID{type: :ssn, value: "111-22-3333"}] = representative.government_ids
     end
 
-    test "requires a valid party and representative" do
+    test "requires a valid party" do
       assert {:error, :party, changeset, %{}} =
                Parties.create_originator(%{
                  "party" => %{"legal_name" => ""},
@@ -61,6 +61,27 @@ defmodule PhoenixFintech.PartiesTest do
                })
 
       assert %{tax_id: ["can't be blank"], legal_name: ["can't be blank"]} = errors_on(changeset)
+    end
+
+    test "allows creating a party without onboarding representative" do
+      attrs = %{
+        "party" => %{
+          "legal_name" => "No Rep LLC",
+          "tax_id" => "42-4242424",
+          "address_line1" => "100 Market Street",
+          "locality" => "San Francisco",
+          "region" => "CA",
+          "postal_code" => "94105",
+          "country_code" => "US"
+        },
+        "party_government_id" => %{"type" => "ein", "country_code" => "US", "value" => "42-4242424"},
+        "representative" => %{},
+        "representative_government_id" => %{}
+      }
+
+      assert {:ok, %Party{} = party} = Parties.create_originator(attrs)
+      loaded = Parties.get_party_with_member_tree!(party.id)
+      assert loaded.members == []
     end
   end
 

@@ -90,25 +90,57 @@ defmodule PhoenixFintech.Parties do
     |> Multi.insert(:party_government_id, fn %{party: party} ->
       GovernmentID.changeset(%GovernmentID{party_id: party.id}, party_government_id_attrs)
     end)
-    |> Multi.insert(:representative, fn %{party: party} ->
-      representative_attrs =
-        representative_attrs
-        |> Map.put("type", "individual")
-        |> Map.put("is_legal_rep", true)
-        |> Map.put("is_ubo", true)
-
-      PartyMember.changeset(%PartyMember{party_id: party.id}, representative_attrs)
-    end)
-    |> Multi.insert(:representative_government_id, fn %{representative: representative} ->
-      GovernmentID.changeset(
-        %GovernmentID{party_member_id: representative.id},
-        representative_government_id_attrs
-      )
-    end)
+    |> maybe_insert_representative(representative_attrs)
+    |> maybe_insert_representative_government_id(representative_government_id_attrs)
     |> Repo.transaction()
     |> case do
       {:ok, %{party: party}} -> {:ok, party}
       {:error, step, changeset, changes} -> {:error, step, changeset, changes}
     end
+  end
+
+  defp maybe_insert_representative(multi, representative_attrs) do
+    if present_attrs?(representative_attrs) do
+      Multi.insert(multi, :representative, fn %{party: party} ->
+        representative_attrs =
+          representative_attrs
+          |> Map.put("type", Map.get(representative_attrs, "type", "individual"))
+          |> Map.put("is_legal_rep", true)
+          |> Map.put("is_ubo", true)
+
+        PartyMember.changeset(%PartyMember{party_id: party.id}, representative_attrs)
+      end)
+    else
+      multi
+    end
+  end
+
+  defp maybe_insert_representative_government_id(multi, representative_government_id_attrs) do
+    if present_attrs?(representative_government_id_attrs) do
+      Multi.insert(multi, :representative_government_id, fn changes ->
+        case Map.get(changes, :representative) do
+          %PartyMember{} = representative ->
+            GovernmentID.changeset(
+              %GovernmentID{party_member_id: representative.id},
+              representative_government_id_attrs
+            )
+
+          _missing_representative ->
+            GovernmentID.changeset(
+              %GovernmentID{},
+              representative_government_id_attrs
+            )
+            |> Ecto.Changeset.add_error(:party_member_id, "can't be blank")
+        end
+      end)
+    else
+      multi
+    end
+  end
+
+  defp present_attrs?(attrs) do
+    attrs
+    |> Map.drop(["type", "country_code"])
+    |> Enum.any?(fn {_key, value} -> value not in [nil, ""] end)
   end
 end
