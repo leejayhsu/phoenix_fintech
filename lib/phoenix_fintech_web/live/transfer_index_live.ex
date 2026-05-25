@@ -9,8 +9,8 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
       socket
       |> assign_new(:current_scope, fn -> nil end)
       |> assign_current_user()
-      |> assign(:page_title, "Transfers")
-      |> assign(:transfers, Transfers.list_transfers())
+      |> assign(:page_title, "All transfers")
+      |> assign(:transfers, list_transfers_for_current_user(socket.assigns.current_user))
 
     {:ok, socket}
   end
@@ -22,13 +22,13 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
       <section id="transfers-index" class="mx-auto max-w-6xl">
         <div class="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h1 class="text-2xl font-semibold text-zinc-950 dark:text-white">Transfers</h1>
+            <h1 class="text-2xl font-semibold text-zinc-950 dark:text-white">All transfers for user</h1>
             <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
               Cross-border movement requests and FX details.
             </p>
           </div>
           <.button navigate={~p"/app/transfers/new"} variant="primary" id="new-transfer-link">
-            <.icon name="hero-arrows-right-left" class="size-4" /> New transfer
+            <.icon name="hero-arrows-right-left" class="size-4" /> Create transfer
           </.button>
         </div>
 
@@ -76,4 +76,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
 
   defp assign_current_user(socket),
     do: assign(socket, :current_user, current_user(socket.assigns[:current_scope]))
+
+  defp list_transfers_for_current_user(%{id: user_id}), do: Transfers.list_transfers_for_user(user_id)
+  defp list_transfers_for_current_user(_), do: []
 end

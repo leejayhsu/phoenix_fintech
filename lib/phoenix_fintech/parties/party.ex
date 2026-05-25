@@ -19,6 +19,7 @@ defmodule PhoenixFintech.Parties.Party do
 
     has_many :members, PartyMember
     has_many :government_ids, GovernmentID
+    has_many :originator_transfers, PhoenixFintech.Transfers.Transfer, foreign_key: :originator_party_id
 
     timestamps(type: :utc_datetime)
   end

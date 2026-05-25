@@ -6,10 +6,13 @@ defmodule PhoenixFintech.Transfers do
   alias PhoenixFintech.Transfers.{FXQuote, Transfer}
 
   def list_transfers do
+    Repo.all(base_transfer_query())
+  end
+
+  def list_transfers_for_user(user_id) do
     Repo.all(
-      from t in Transfer,
-        order_by: [desc: t.inserted_at],
-        preload: [:originator_party, :counterparty_party, :created_by_user, :fx_quote]
+      from t in base_transfer_query(),
+        where: t.created_by_user_id == ^user_id
     )
   end
 
@@ -89,6 +92,12 @@ defmodule PhoenixFintech.Transfers do
           attrs
       end
     end
+  end
+
+  defp base_transfer_query do
+    from t in Transfer,
+      order_by: [desc: t.inserted_at],
+      preload: [:originator_party, :counterparty_party, :created_by_user, :fx_quote]
   end
 
   defp blank_to_nil(nil), do: nil

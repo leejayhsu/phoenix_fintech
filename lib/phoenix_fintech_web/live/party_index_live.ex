@@ -9,8 +9,8 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
       socket
       |> assign_new(:current_scope, fn -> nil end)
       |> assign_current_user()
-      |> assign(:page_title, "Parties")
-      |> assign(:parties, Parties.list_parties())
+      |> assign(:page_title, "All parties")
+      |> assign(:parties, list_parties_for_current_user(socket.assigns.current_user))
 
     {:ok, socket}
   end
@@ -22,13 +22,13 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
       <section id="parties-index" class="mx-auto max-w-5xl">
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 class="text-2xl font-semibold text-zinc-950 dark:text-white">Parties</h1>
+            <h1 class="text-2xl font-semibold text-zinc-950 dark:text-white">All parties for user</h1>
             <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-              Businesses onboarded as originators for transfer workflows.
+              Businesses onboarded by this user for transfer workflows.
             </p>
           </div>
           <.button navigate={~p"/app/parties/new"} variant="primary" id="new-originator-link">
-            <.icon name="hero-plus" class="size-4" /> New originator
+            <.icon name="hero-plus" class="size-4" /> Create party
           </.button>
         </div>
 
@@ -68,4 +68,7 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
   defp assign_current_user(socket) do
     assign(socket, :current_user, current_user(socket.assigns[:current_scope]))
   end
+
+  defp list_parties_for_current_user(%{id: user_id}), do: Parties.list_parties_onboarded_by_user(user_id)
+  defp list_parties_for_current_user(_), do: []
 end

@@ -9,6 +9,16 @@ defmodule PhoenixFintech.Parties do
     Repo.all(from p in Party, order_by: [desc: p.inserted_at])
   end
 
+  def list_parties_onboarded_by_user(user_id) do
+    Repo.all(
+      from p in Party,
+        join: t in assoc(p, :originator_transfers),
+        where: t.created_by_user_id == ^user_id,
+        distinct: p.id,
+        order_by: [desc: p.inserted_at]
+    )
+  end
+
   def get_party_by_tax_id(tax_id), do: Repo.get_by(Party, tax_id: tax_id)
 
   def get_party_with_member_tree!(id) do
