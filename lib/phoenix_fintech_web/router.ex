@@ -42,6 +42,9 @@ defmodule PhoenixFintechWeb.Router do
       on_mount: [{PhoenixFintechWeb.UserAuth, :mount_current_scope}] do
       live "/app/parties", PartyIndexLive
       live "/app/parties/new", OriginatorOnboardingLive
+      live "/app/transfers", TransferIndexLive
+      live "/app/transfers/new", TransferNewLive
+      live "/app/transfers/:id", TransferShowLive
     end
 
     get "/users/settings", UserSettingsController, :edit
