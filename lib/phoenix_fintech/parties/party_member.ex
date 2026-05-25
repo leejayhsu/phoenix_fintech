@@ -45,16 +45,7 @@ defmodule PhoenixFintech.Parties.PartyMember do
       :country_code
     ])
     |> normalize_country_code()
-    |> validate_required([
-      :party_id,
-      :legal_name,
-      :type,
-      :address_line1,
-      :locality,
-      :region,
-      :postal_code,
-      :country_code
-    ])
+    |> validate_required([:party_id, :type])
     |> validate_length(:legal_name, max: 160)
     |> validate_length(:country_code, is: 2)
     |> foreign_key_constraint(:party_id)
@@ -65,6 +56,8 @@ defmodule PhoenixFintech.Parties.PartyMember do
     member
     |> cast(attrs, [
       :legal_name,
+      :type,
+      :parent_party_member_id,
       :title,
       :address_line1,
       :address_line2,
@@ -74,14 +67,6 @@ defmodule PhoenixFintech.Parties.PartyMember do
       :country_code
     ])
     |> normalize_country_code()
-    |> validate_required([
-      :legal_name,
-      :address_line1,
-      :locality,
-      :region,
-      :postal_code,
-      :country_code
-    ])
     |> validate_length(:legal_name, max: 160)
     |> validate_length(:country_code, is: 2)
   end

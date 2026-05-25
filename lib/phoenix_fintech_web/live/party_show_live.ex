@@ -15,6 +15,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       |> assign(:page_title, party.legal_name)
       |> assign_current_user()
       |> assign_member_form()
+      |> assign(:member_parent_options, member_parent_options(party.members))
       |> assign_doc_form()
       |> allow_upload(:compliance_document, accept: ~w(.pdf .png .jpg .jpeg), max_entries: 1)
       |> stream(:members, party.members)
@@ -29,7 +30,13 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
     case Parties.create_party_member(socket.assigns.party.id, attrs) do
       {:ok, member} ->
-        {:noreply, socket |> stream_insert(:members, member) |> assign_member_form()}
+        members = [member | stream_members(socket)]
+
+        {:noreply,
+         socket
+         |> stream_insert(:members, member)
+         |> assign(:member_parent_options, member_parent_options(members))
+         |> assign_member_form()}
 
       {:error, changeset} ->
         {:noreply,
@@ -44,7 +51,13 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   def handle_event("delete_member", %{"id" => id}, socket) do
     member = Parties.get_member_for_party!(socket.assigns.party.id, id)
     {:ok, _} = Parties.delete_party_member(member)
-    {:noreply, stream_delete(socket, :members, member)}
+
+    members = Enum.reject(stream_members(socket), &(&1.id == member.id))
+
+    {:noreply,
+     socket
+     |> stream_delete(:members, member)
+     |> assign(:member_parent_options, member_parent_options(members))}
   end
 
   def handle_event("toggle_role", %{"id" => id, "role" => role}, socket) do
@@ -100,7 +113,12 @@ defmodule PhoenixFintechWeb.PartyShowLive do
                 label="Type"
                 options={[{"Individual", "individual"}, {"Business", "business"}]}
               />
-              <.input field={@member_form[:parent_party_member_id]} label="Parent member id" />
+              <.input
+                field={@member_form[:parent_party_member_id]}
+                type="select"
+                label="Parent member"
+                options={@member_parent_options}
+              />
               <.input field={@member_form[:title]} label="Title" />
               <.input field={@member_form[:address_line1]} label="Address line 1" />
               <.input field={@member_form[:locality]} label="City" />
@@ -116,8 +134,11 @@ defmodule PhoenixFintechWeb.PartyShowLive do
                 id={dom_id}
                 class="rounded-lg border p-3"
               >
-                <p class="font-medium">{member.legal_name}</p>
+                <p class="font-medium">{member.legal_name || "Unnamed member"}</p>
                 <p class="text-xs text-zinc-600">{member.type} · {member.title || "-"}</p>
+                <p :if={member.parent_party_member_id} class="text-xs text-zinc-500">
+                  Child of: {member.parent_party_member_id}
+                </p>
                 <div class="mt-2 flex gap-2">
                   <button
                     phx-click="toggle_role"
@@ -206,6 +227,43 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
   defp assign_doc_form(socket),
     do: assign(socket, :document_form, to_form(%{"doc_type" => "other"}, as: :document))
+
+  defp stream_members(socket) do
+    socket.assigns.streams.members.inserts
+    |> Enum.map(fn {_id, member, _at, _limit} -> member end)
+  end
+
+  defp member_parent_options(members) do
+    base_option = [{"No parent (top-level)", ""}]
+
+    nested_options =
+      members
+      |> build_member_children()
+      |> flatten_member_tree()
+      |> Enum.map(fn {member, depth} ->
+        indent = String.duplicate("— ", depth)
+        label = "#{indent}#{member.legal_name || "Unnamed member"}"
+        {label, member.id}
+      end)
+
+    base_option ++ nested_options
+  end
+
+  defp build_member_children(members) do
+    Enum.group_by(members, & &1.parent_party_member_id)
+  end
+
+  defp flatten_member_tree(children_by_parent) do
+    walk_member_tree(children_by_parent, nil, 0)
+  end
+
+  defp walk_member_tree(children_by_parent, parent_id, depth) do
+    children = Map.get(children_by_parent, parent_id, [])
+
+    Enum.flat_map(children, fn member ->
+      [{member, depth} | walk_member_tree(children_by_parent, member.id, depth + 1)]
+    end)
+  end
 
   defp current_user(%{user: user}), do: user
   defp current_user(_), do: nil
