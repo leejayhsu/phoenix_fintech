@@ -54,7 +54,11 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
           "postal_code" => "94105",
           "country_code" => "US"
         },
-        "representative_government_id" => %{"type" => "ssn", "country_code" => "US", "value" => "2"}
+        "representative_government_id" => %{
+          "type" => "ssn",
+          "country_code" => "US",
+          "value" => "2"
+        }
       })
 
     party

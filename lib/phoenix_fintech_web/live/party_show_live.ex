@@ -23,6 +23,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     {:ok, socket}
   end
 
+  @impl true
   def handle_event("create_member", %{"party_member" => member_params}, socket) do
     attrs = Map.put(member_params, "type", Map.get(member_params, "type", "individual"))
 
@@ -31,7 +32,12 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         {:noreply, socket |> stream_insert(:members, member) |> assign_member_form()}
 
       {:error, changeset} ->
-        {:noreply, assign(socket, :member_form, to_form(%{changeset | action: :validate}, as: :party_member))}
+        {:noreply,
+         assign(
+           socket,
+           :member_form,
+           to_form(%{changeset | action: :validate}, as: :party_member)
+         )}
     end
   end
 
@@ -53,7 +59,13 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     user_id = if socket.assigns.current_user, do: socket.assigns.current_user.id, else: nil
 
     consume_uploaded_entries(socket, :compliance_document, fn meta, entry ->
-      case Parties.create_compliance_document(socket.assigns.party.id, user_id, document_params, meta, entry) do
+      case Parties.create_compliance_document(
+             socket.assigns.party.id,
+             user_id,
+             document_params,
+             meta,
+             entry
+           ) do
         {:ok, document} -> {:ok, document}
         {:error, _} = error -> error
       end
@@ -75,9 +87,19 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         <div class="grid gap-6 lg:grid-cols-2">
           <div class="rounded-xl border p-5">
             <h2 class="mb-4 text-lg font-semibold">Party members</h2>
-            <.form for={@member_form} id="party-member-form" phx-submit="create_member" class="grid gap-3">
+            <.form
+              for={@member_form}
+              id="party-member-form"
+              phx-submit="create_member"
+              class="grid gap-3"
+            >
               <.input field={@member_form[:legal_name]} label="Legal name" />
-              <.input field={@member_form[:type]} type="select" label="Type" options={[{"Individual", "individual"}, {"Business", "business"}]} />
+              <.input
+                field={@member_form[:type]}
+                type="select"
+                label="Type"
+                options={[{"Individual", "individual"}, {"Business", "business"}]}
+              />
               <.input field={@member_form[:parent_party_member_id]} label="Parent member id" />
               <.input field={@member_form[:title]} label="Title" />
               <.input field={@member_form[:address_line1]} label="Address line 1" />
@@ -89,13 +111,37 @@ defmodule PhoenixFintechWeb.PartyShowLive do
             </.form>
 
             <div id="members" phx-update="stream" class="mt-4 space-y-3">
-              <div :for={{dom_id, member} <- @streams.members} id={dom_id} class="rounded-lg border p-3">
+              <div
+                :for={{dom_id, member} <- @streams.members}
+                id={dom_id}
+                class="rounded-lg border p-3"
+              >
                 <p class="font-medium">{member.legal_name}</p>
                 <p class="text-xs text-zinc-600">{member.type} · {member.title || "-"}</p>
                 <div class="mt-2 flex gap-2">
-                  <button phx-click="toggle_role" phx-value-id={member.id} phx-value-role="legal_rep" class="rounded-md border px-2 py-1 text-xs">Legal rep: {member.is_legal_rep}</button>
-                  <button phx-click="toggle_role" phx-value-id={member.id} phx-value-role="ubo" class="rounded-md border px-2 py-1 text-xs">Beneficiary: {member.is_ubo}</button>
-                  <button phx-click="delete_member" phx-value-id={member.id} class="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700">Delete</button>
+                  <button
+                    phx-click="toggle_role"
+                    phx-value-id={member.id}
+                    phx-value-role="legal_rep"
+                    class="rounded-md border px-2 py-1 text-xs"
+                  >
+                    Legal rep: {member.is_legal_rep}
+                  </button>
+                  <button
+                    phx-click="toggle_role"
+                    phx-value-id={member.id}
+                    phx-value-role="ubo"
+                    class="rounded-md border px-2 py-1 text-xs"
+                  >
+                    Beneficiary: {member.is_ubo}
+                  </button>
+                  <button
+                    phx-click="delete_member"
+                    phx-value-id={member.id}
+                    class="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
@@ -103,15 +149,38 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
           <div class="rounded-xl border p-5">
             <h2 class="mb-4 text-lg font-semibold">Compliance documents</h2>
-            <.form for={@document_form} id="party-document-form" phx-submit="upload_document" class="space-y-3">
-              <.input field={@document_form[:doc_type]} type="select" label="Document type" options={[{"Certificate of incorporation", "incorporation_certificate"}, {"Ownership structure", "ownership_structure"}, {"Other", "other"}]} />
-              <.live_file_input upload={@uploads.compliance_document} class="block w-full rounded-lg border p-2" />
+            <.form
+              for={@document_form}
+              id="party-document-form"
+              phx-submit="upload_document"
+              class="space-y-3"
+            >
+              <.input
+                field={@document_form[:doc_type]}
+                type="select"
+                label="Document type"
+                options={[
+                  {"Certificate of incorporation", "incorporation_certificate"},
+                  {"Ownership structure", "ownership_structure"},
+                  {"Other", "other"}
+                ]}
+              />
+              <.live_file_input
+                upload={@uploads.compliance_document}
+                class="block w-full rounded-lg border p-2"
+              />
               <.button id="upload-document-button" type="submit">Upload document</.button>
             </.form>
 
             <div id="documents" phx-update="stream" class="mt-4 space-y-2">
-              <div :for={{dom_id, doc} <- @streams.documents} id={dom_id} class="rounded-md border p-2 text-sm">
-                <a href={doc.storage_url} class="font-medium text-emerald-700 hover:underline">{doc.filename}</a>
+              <div
+                :for={{dom_id, doc} <- @streams.documents}
+                id={dom_id}
+                class="rounded-md border p-2 text-sm"
+              >
+                <a href={doc.storage_url} class="font-medium text-emerald-700 hover:underline">
+                  {doc.filename}
+                </a>
                 <p class="text-xs text-zinc-500">{doc.doc_type}</p>
               </div>
             </div>
@@ -123,13 +192,24 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   end
 
   defp assign_member_form(socket) do
-    member_attrs = %{"type" => "individual", "country_code" => "US", "parent_party_member_id" => ""}
-    changeset = Parties.change_party_member(%PartyMember{party_id: socket.assigns.party.id}, member_attrs)
+    member_attrs = %{
+      "type" => "individual",
+      "country_code" => "US",
+      "parent_party_member_id" => ""
+    }
+
+    changeset =
+      Parties.change_party_member(%PartyMember{party_id: socket.assigns.party.id}, member_attrs)
+
     assign(socket, :member_form, to_form(changeset, as: :party_member))
   end
 
-  defp assign_doc_form(socket), do: assign(socket, :document_form, to_form(%{"doc_type" => "other"}, as: :document))
+  defp assign_doc_form(socket),
+    do: assign(socket, :document_form, to_form(%{"doc_type" => "other"}, as: :document))
+
   defp current_user(%{user: user}), do: user
   defp current_user(_), do: nil
-  defp assign_current_user(socket), do: assign(socket, :current_user, current_user(socket.assigns[:current_scope]))
+
+  defp assign_current_user(socket),
+    do: assign(socket, :current_user, current_user(socket.assigns[:current_scope]))
 end

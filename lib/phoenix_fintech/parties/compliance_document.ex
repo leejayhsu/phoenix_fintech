@@ -22,7 +22,14 @@ defmodule PhoenixFintech.Parties.ComplianceDocument do
 
   def changeset(document, attrs) do
     document
-    |> cast(attrs, [:party_id, :uploaded_by_user_id, :doc_type, :filename, :storage_key, :storage_url])
+    |> cast(attrs, [
+      :party_id,
+      :uploaded_by_user_id,
+      :doc_type,
+      :filename,
+      :storage_key,
+      :storage_url
+    ])
     |> validate_required([:party_id, :doc_type, :filename, :storage_key, :storage_url])
     |> foreign_key_constraint(:party_id)
     |> foreign_key_constraint(:uploaded_by_user_id)

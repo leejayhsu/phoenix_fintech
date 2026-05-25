@@ -6,11 +6,28 @@ defmodule PhoenixFintech.Parties do
   alias PhoenixFintech.Repo
   alias PhoenixFintech.Storage.MockS3
 
-  def list_parties, do: Repo.all(from p in Party, order_by: [desc: p.inserted_at])
+  def list_parties do
+    Repo.all(from p in Party, order_by: [desc: p.inserted_at])
+  end
+
+  def list_parties_onboarded_by_user(user_id) do
+    Repo.all(
+      from p in Party,
+        join: t in assoc(p, :originator_transfers),
+        where: t.created_by_user_id == ^user_id,
+        distinct: p.id,
+        order_by: [desc: p.inserted_at]
+    )
+  end
+
   def get_party_by_tax_id(tax_id), do: Repo.get_by(Party, tax_id: tax_id)
 
   def get_party_with_details!(id) do
-    members_query = from m in PartyMember, order_by: [asc: m.parent_party_member_id, asc: m.inserted_at]
+    members_query =
+      from m in PartyMember,
+        order_by: [asc: m.parent_party_member_id, asc: m.inserted_at],
+        preload: [:government_ids]
+
     docs_query = from d in ComplianceDocument, order_by: [desc: d.inserted_at]
 
     Party
@@ -35,7 +52,8 @@ defmodule PhoenixFintech.Parties do
 
   def delete_party_member(%PartyMember{} = member), do: Repo.delete(member)
 
-  def set_member_role(%PartyMember{} = member, role, enabled?) when role in [:is_legal_rep, :is_ubo] do
+  def set_member_role(%PartyMember{} = member, role, enabled?)
+      when role in [:is_legal_rep, :is_ubo] do
     member
     |> PartyMember.changeset(%{role => enabled?})
     |> Repo.update()
@@ -43,7 +61,11 @@ defmodule PhoenixFintech.Parties do
 
   def create_compliance_document(party_id, user_id, attrs, upload_meta, upload_entry) do
     with {:ok, upload_result} <-
-           MockS3.upload_file(upload_meta.path, upload_entry.client_name, upload_entry.client_type) do
+           MockS3.upload_file(
+             upload_meta.path,
+             upload_entry.client_name,
+             upload_entry.client_type
+           ) do
       %ComplianceDocument{}
       |> ComplianceDocument.changeset(%{
         party_id: party_id,
