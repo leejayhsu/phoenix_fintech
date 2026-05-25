@@ -27,14 +27,7 @@ defmodule PhoenixFintechWeb.TransferShowLiveTest do
           "originator_currency_code" => "usd",
           "counterparty_currency_code" => "cad",
           "amount_in_originator_currency" => "1000.00",
-          "fx_quote" => %{
-            "provider" => "Manual Desk",
-            "provider_quote_reference" => "Q-001",
-            "base_currency_code" => "usd",
-            "quote_currency_code" => "cad",
-            "quoted_at" => "2026-05-25T12:00:00Z",
-            "rate" => "1.35"
-          },
+          "fx_rate" => "1.35",
           "status" => "quoted"
         })
 
@@ -45,7 +38,7 @@ defmodule PhoenixFintechWeb.TransferShowLiveTest do
       assert has_element?(view, "#transfer-status-badge", "Quoted")
       assert has_element?(view, "#transfer-parties")
       assert has_element?(view, "#transfer-amounts")
-      assert has_element?(view, "#fx-quote-details")
+      assert has_element?(view, "#transfer-quote-details")
       assert has_element?(view, "#transfer-status-timeline")
       assert has_element?(view, "#status-step-draft")
       assert has_element?(view, "#status-step-quoted")

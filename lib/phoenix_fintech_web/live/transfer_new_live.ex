@@ -6,7 +6,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   @impl true
   def mount(_params, _session, socket) do
     form = Transfers.change_transfer() |> to_form(as: :transfer)
-    quote_form = to_form(%{"provider" => "manual"}, as: :fx_quote)
+    quote_form = to_form(%{}, as: :quote)
 
     socket =
       socket
@@ -29,7 +29,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
     if cs.valid? do
       {:noreply,
        socket
-       |> assign(:step, :fx_quote)
+       |> assign(:step, :quote)
        |> assign(:transfer_form, to_form(cs, as: :transfer))}
     else
       {:noreply,
@@ -37,8 +37,8 @@ defmodule PhoenixFintechWeb.TransferNewLive do
     end
   end
 
-  def handle_event("save_transfer", %{"transfer" => transfer, "fx_quote" => quote}, socket) do
-    attrs = Map.put(transfer, "fx_quote", quote)
+  def handle_event("save_transfer", %{"transfer" => transfer, "quote" => quote}, socket) do
+    attrs = Map.put(transfer, "fx_rate", Map.get(quote, "fx_rate"))
 
     case Transfers.create_transfer(socket.assigns.current_user.id, attrs) do
       {:ok, created} ->
@@ -47,8 +47,11 @@ defmodule PhoenixFintechWeb.TransferNewLive do
          |> put_flash(:info, "Transfer created.")
          |> push_navigate(to: ~p"/app/transfers/#{created.id}")}
 
-      {:error, :fx_quote, cs, _} ->
-        {:noreply, assign(socket, :quote_form, to_form(%{cs | action: :validate}, as: :fx_quote))}
+      {:error, :quote, reason, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Unable to create quote: #{inspect(reason)}")
+         |> assign(:quote_form, to_form(quote, as: :quote))}
 
       {:error, :transfer, cs, _} ->
         {:noreply,
@@ -115,7 +118,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
             </div>
           </.form>
         <% else %>
-          <.form for={@quote_form} id="fx-quote-form" phx-submit="save_transfer">
+          <.form for={@quote_form} id="transfer-quote-form" phx-submit="save_transfer">
             <input
               type="hidden"
               name="transfer[originator_party_id]"
@@ -148,11 +151,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
             />
 
             <div class="grid gap-4 sm:grid-cols-2">
-              <.input field={@quote_form[:provider]} label="Quote provider" />
-              <.input field={@quote_form[:provider_quote_reference]} label="Provider quote reference" />
-              <.input field={@quote_form[:rate]} type="number" step="0.0000001" label="FX rate" />
-              <.input field={@quote_form[:quoted_at]} type="datetime-local" label="Quoted at" />
-              <.input field={@quote_form[:expires_at]} type="datetime-local" label="Expires at" />
+              <.input field={@quote_form[:fx_rate]} type="number" step="0.0000001" label="FX rate" />
             </div>
 
             <div class="mt-6 flex justify-between">

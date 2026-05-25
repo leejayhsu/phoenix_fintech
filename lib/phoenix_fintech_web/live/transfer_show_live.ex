@@ -101,25 +101,38 @@ defmodule PhoenixFintechWeb.TransferShowLive do
               </div>
 
               <div
-                :if={@transfer.fx_quote}
-                id="fx-quote-details"
+                :if={@transfer.transfer_quote}
+                id="transfer-quote-details"
                 class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
               >
-                <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">FX quote</h2>
+                <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  Transfer quote
+                </h2>
                 <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
                   <div>
-                    <dt class="text-zinc-500">Provider</dt>
+                    <dt class="text-zinc-500">FX rate</dt>
                     <dd class="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
-                      {@transfer.fx_quote.provider}
+                      {@transfer.transfer_quote.calculation_snapshot["facts"]["fx_rate"]}
                     </dd>
                   </div>
                   <div>
-                    <dt class="text-zinc-500">Rate</dt>
+                    <dt class="text-zinc-500">Quote reference</dt>
                     <dd class="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
-                      {@transfer.fx_quote.rate}
+                      {@transfer.transfer_quote.id}
                     </dd>
                   </div>
                 </dl>
+                <div class="mt-4 space-y-2 text-sm">
+                  <div
+                    :for={line <- @transfer.transfer_quote.calculation_snapshot["lines"]}
+                    class="flex items-center justify-between gap-4 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-900"
+                  >
+                    <span class="font-medium text-zinc-700 dark:text-zinc-200">{line["label"]}</span>
+                    <span class="text-zinc-500">
+                      {line["amount"]} {line["currency_code"]}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 

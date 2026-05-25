@@ -3,7 +3,9 @@ defmodule PhoenixFintech.Transfers do
 
   alias Ecto.Multi
   alias PhoenixFintech.Repo
-  alias PhoenixFintech.Transfers.{FXQuote, Transfer}
+  alias PhoenixFintech.Transfers.{Transfer, TransferQuote}
+  alias PhoenixFintech.Transfers.Quotes.{Pipeline, QuoteContext}
+  alias PhoenixFintech.Transfers.Quotes.Items
 
   def list_transfers do
     Repo.all(base_transfer_query())
@@ -18,7 +20,7 @@ defmodule PhoenixFintech.Transfers do
 
   def get_transfer!(id) do
     Repo.get!(Transfer, id)
-    |> Repo.preload([:originator_party, :counterparty_party, :created_by_user, :fx_quote])
+    |> Repo.preload([:originator_party, :counterparty_party, :created_by_user, :transfer_quote])
   end
 
   def change_transfer(attrs \\ %{}) do
@@ -26,35 +28,72 @@ defmodule PhoenixFintech.Transfers do
   end
 
   def create_transfer(user_id, attrs) do
-    transfer_attrs = derive_amounts(attrs)
-    quote_attrs = Map.get(attrs, "fx_quote", %{})
+    if quote_attrs?(attrs) do
+      with {:ok, quote} <- quote_transfer(user_id, normalize_legacy_quote_attrs(attrs)) do
+        create_transfer_from_quote(user_id, quote.id, %{
+          "status" => Map.get(attrs, "status", "quoted")
+        })
+      end
+    else
+      transfer_attrs = derive_amounts(attrs)
+
+      %Transfer{created_by_user_id: user_id}
+      |> Transfer.changeset(transfer_attrs)
+      |> Repo.insert()
+      |> case do
+        {:ok, transfer} -> {:ok, get_transfer!(transfer.id)}
+        {:error, changeset} -> {:error, :transfer, changeset, %{}}
+      end
+    end
+  end
+
+  def quote_transfer(user_id, attrs) do
+    input = normalize_quote_input(attrs)
+
+    input
+    |> QuoteContext.new()
+    |> Pipeline.run(default_quote_items())
+    |> case do
+      {:ok, ctx} -> insert_transfer_quote(user_id, ctx)
+      {:error, reason} -> {:error, :quote, reason, %{}}
+    end
+  end
+
+  def get_transfer_quote!(id) do
+    Repo.get!(TransferQuote, id)
+    |> Repo.preload([:created_by_user, :originator_party, :counterparty_party])
+  end
+
+  def requote_transfer_quote(user_id, quote_id) do
+    quote = get_transfer_quote!(quote_id)
+    quote_transfer(user_id, quote.input_snapshot)
+  end
+
+  def create_transfer_from_quote(user_id, quote_id, attrs \\ %{}) do
+    quote = get_transfer_quote!(quote_id)
+
+    transfer_attrs =
+      attrs
+      |> Map.put("originator_party_id", quote.originator_party_id)
+      |> Map.put("counterparty_party_id", quote.counterparty_party_id)
+      |> Map.put("originator_currency_code", quote.originator_currency_code)
+      |> Map.put("counterparty_currency_code", quote.counterparty_currency_code)
+      |> Map.put("amount_in_originator_currency", quote.amount_in_originator_currency)
+      |> Map.put("amount_in_counterparty_currency", quote.amount_in_counterparty_currency)
+      |> Map.put("transfer_quote_id", quote.id)
 
     Multi.new()
-    |> maybe_insert_fx_quote(quote_attrs)
-    |> Multi.insert(:transfer, fn changes ->
-      transfer_params =
-        transfer_attrs
-        |> maybe_put_fx_quote_id(changes)
-
-      Transfer.changeset(%Transfer{created_by_user_id: user_id}, transfer_params)
-    end)
+    |> Multi.update(:quote, Ecto.Changeset.change(quote, accepted_at: DateTime.utc_now(:second)))
+    |> Multi.insert(
+      :transfer,
+      Transfer.changeset(%Transfer{created_by_user_id: user_id}, transfer_attrs)
+    )
     |> Repo.transaction()
     |> case do
       {:ok, %{transfer: transfer}} -> {:ok, get_transfer!(transfer.id)}
       {:error, step, changeset, changes} -> {:error, step, changeset, changes}
     end
   end
-
-  defp maybe_insert_fx_quote(multi, %{} = attrs) when attrs == %{}, do: multi
-
-  defp maybe_insert_fx_quote(multi, attrs) do
-    Multi.insert(multi, :fx_quote, FXQuote.changeset(%FXQuote{}, attrs))
-  end
-
-  defp maybe_put_fx_quote_id(attrs, %{fx_quote: fx_quote}),
-    do: Map.put(attrs, "fx_quote_id", fx_quote.id)
-
-  defp maybe_put_fx_quote_id(attrs, _changes), do: attrs
 
   defp derive_amounts(attrs) do
     originator_amount = blank_to_nil(Map.get(attrs, "amount_in_originator_currency"))
@@ -96,10 +135,87 @@ defmodule PhoenixFintech.Transfers do
   defp base_transfer_query do
     from t in Transfer,
       order_by: [desc: t.inserted_at],
-      preload: [:originator_party, :counterparty_party, :created_by_user, :fx_quote]
+      preload: [:originator_party, :counterparty_party, :created_by_user, :transfer_quote]
   end
+
+  defp insert_transfer_quote(user_id, %QuoteContext{} = ctx) do
+    attrs = %{
+      "originator_party_id" => ctx.input.originator_party_id,
+      "counterparty_party_id" => ctx.input.counterparty_party_id,
+      "originator_currency_code" => ctx.input.originator_currency_code,
+      "counterparty_currency_code" => ctx.input.counterparty_currency_code,
+      "amount_in_originator_currency" => ctx.input.amount_in_originator_currency,
+      "amount_in_counterparty_currency" => ctx.facts.amount_in_counterparty_currency,
+      "input_snapshot" => snapshot(ctx.input),
+      "calculation_snapshot" =>
+        snapshot(%{
+          facts: ctx.facts,
+          lines: ctx.lines,
+          totals: ctx.totals,
+          metadata: ctx.metadata
+        })
+    }
+
+    %TransferQuote{created_by_user_id: user_id}
+    |> TransferQuote.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  defp default_quote_items do
+    [
+      Items.FXRate,
+      Items.TransactionFee,
+      Items.FXFee,
+      Items.Discount,
+      Items.PlatformFee
+    ]
+  end
+
+  defp normalize_quote_input(attrs) do
+    %{
+      originator_party_id: Map.get(attrs, "originator_party_id"),
+      counterparty_party_id: Map.get(attrs, "counterparty_party_id"),
+      originator_currency_code: attrs |> Map.get("originator_currency_code") |> String.upcase(),
+      counterparty_currency_code:
+        attrs |> Map.get("counterparty_currency_code") |> String.upcase(),
+      amount_in_originator_currency:
+        attrs |> Map.get("amount_in_originator_currency") |> Decimal.new(),
+      fx_rate: attrs |> Map.get("fx_rate") |> blank_to_nil() |> maybe_decimal()
+    }
+  end
+
+  defp normalize_legacy_quote_attrs(attrs) do
+    fx_quote = Map.get(attrs, "fx_quote", %{})
+
+    attrs
+    |> Map.put_new("fx_rate", Map.get(fx_quote, "rate"))
+  end
+
+  defp quote_attrs?(attrs) do
+    Map.has_key?(attrs, "fx_rate") or Map.has_key?(attrs, "fx_quote")
+  end
+
+  defp snapshot(value) when is_struct(value, Decimal), do: Decimal.to_string(value, :normal)
+  defp snapshot(value) when is_atom(value), do: Atom.to_string(value)
+
+  defp snapshot(value) when is_list(value) do
+    Enum.map(value, &snapshot/1)
+  end
+
+  defp snapshot(value) when is_map(value) do
+    Map.new(value, fn {key, value} -> {snapshot_key(key), snapshot(value)} end)
+  end
+
+  defp snapshot(value), do: value
+
+  defp snapshot_key(key) when is_atom(key), do: Atom.to_string(key)
+  defp snapshot_key(key), do: key
 
   defp blank_to_nil(nil), do: nil
   defp blank_to_nil(""), do: nil
   defp blank_to_nil(value), do: value
+
+  defp maybe_decimal(nil), do: nil
+  defp maybe_decimal(%Decimal{} = value), do: value
+  defp maybe_decimal(value), do: Decimal.new(value)
 end
