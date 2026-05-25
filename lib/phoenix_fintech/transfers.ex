@@ -49,7 +49,9 @@ defmodule PhoenixFintech.Transfers do
     Multi.insert(multi, :fx_quote, FXQuote.changeset(%FXQuote{}, attrs))
   end
 
-  defp maybe_put_fx_quote_id(attrs, %{fx_quote: fx_quote}), do: Map.put(attrs, "fx_quote_id", fx_quote.id)
+  defp maybe_put_fx_quote_id(attrs, %{fx_quote: fx_quote}),
+    do: Map.put(attrs, "fx_quote_id", fx_quote.id)
+
   defp maybe_put_fx_quote_id(attrs, _changes), do: attrs
 
   defp derive_amounts(attrs) do
@@ -70,10 +72,18 @@ defmodule PhoenixFintech.Transfers do
           attrs
 
         not is_nil(originator_amount) ->
-          Map.put(attrs, "amount_in_counterparty_currency", Decimal.mult(Decimal.new(originator_amount), Decimal.new(rate)))
+          Map.put(
+            attrs,
+            "amount_in_counterparty_currency",
+            Decimal.mult(Decimal.new(originator_amount), Decimal.new(rate))
+          )
 
         not is_nil(counterparty_amount) ->
-          Map.put(attrs, "amount_in_originator_currency", Decimal.div(Decimal.new(counterparty_amount), Decimal.new(rate)))
+          Map.put(
+            attrs,
+            "amount_in_originator_currency",
+            Decimal.div(Decimal.new(counterparty_amount), Decimal.new(rate))
+          )
 
         true ->
           attrs

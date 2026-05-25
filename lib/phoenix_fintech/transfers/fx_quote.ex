@@ -19,10 +19,24 @@ defmodule PhoenixFintech.Transfers.FXQuote do
 
   def changeset(fx_quote, attrs) do
     fx_quote
-    |> cast(attrs, [:provider, :provider_quote_reference, :base_currency_code, :quote_currency_code, :rate, :expires_at, :quoted_at])
+    |> cast(attrs, [
+      :provider,
+      :provider_quote_reference,
+      :base_currency_code,
+      :quote_currency_code,
+      :rate,
+      :expires_at,
+      :quoted_at
+    ])
     |> update_change(:base_currency_code, &String.upcase/1)
     |> update_change(:quote_currency_code, &String.upcase/1)
-    |> validate_required([:provider, :base_currency_code, :quote_currency_code, :rate, :quoted_at])
+    |> validate_required([
+      :provider,
+      :base_currency_code,
+      :quote_currency_code,
+      :rate,
+      :quoted_at
+    ])
     |> validate_length(:base_currency_code, is: 3)
     |> validate_length(:quote_currency_code, is: 3)
     |> validate_number(:rate, greater_than: 0)

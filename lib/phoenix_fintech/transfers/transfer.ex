@@ -34,7 +34,14 @@ defmodule PhoenixFintech.Transfers.Transfer do
     ])
     |> update_change(:originator_currency_code, &String.upcase/1)
     |> update_change(:counterparty_currency_code, &String.upcase/1)
-    |> validate_required([:originator_party_id, :counterparty_party_id, :originator_currency_code, :counterparty_currency_code, :amount_in_originator_currency, :amount_in_counterparty_currency])
+    |> validate_required([
+      :originator_party_id,
+      :counterparty_party_id,
+      :originator_currency_code,
+      :counterparty_currency_code,
+      :amount_in_originator_currency,
+      :amount_in_counterparty_currency
+    ])
     |> validate_number(:amount_in_originator_currency, greater_than: 0)
     |> validate_number(:amount_in_counterparty_currency, greater_than: 0)
     |> validate_length(:originator_currency_code, is: 3)
