@@ -26,6 +26,8 @@ defmodule PhoenixFintechWeb.Router do
 
     get "/", PageController, :home
 
+    get "/users/sign_up", UserRegistrationController, :new
+    post "/users/sign_up", UserRegistrationController, :create
     get "/users/log_in", UserSessionController, :new
     post "/users/log_in", UserSessionController, :create
     delete "/users/log_out", UserSessionController, :delete

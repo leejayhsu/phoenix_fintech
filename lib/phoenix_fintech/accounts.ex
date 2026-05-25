@@ -8,6 +8,8 @@ defmodule PhoenixFintech.Accounts do
 
   def register_user(attrs), do: %User{} |> User.registration_changeset(attrs) |> Repo.insert()
 
+  def change_user_registration(attrs \\ %{}), do: User.registration_changeset(%User{}, attrs)
+
   def authenticate_user(email, password) do
     user = get_user_by_email(email)
     if User.valid_password?(user, password), do: {:ok, user}, else: {:error, :invalid_credentials}
@@ -23,7 +25,11 @@ defmodule PhoenixFintech.Accounts do
 
   def generate_session_token(user) do
     token = :crypto.strong_rand_bytes(32)
-    expires_at = DateTime.add(DateTime.utc_now(), 60 * 60 * 24 * 14, :second)
+
+    expires_at =
+      DateTime.utc_now()
+      |> DateTime.add(60 * 60 * 24 * 14, :second)
+      |> DateTime.truncate(:second)
 
     %UserToken{}
     |> Ecto.Changeset.change(%{
