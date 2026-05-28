@@ -13,6 +13,8 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
 
     {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
 
+    view |> element("#add-top-level-member-button") |> render_click()
+
     assert has_element?(view, "#party-details")
 
     view
@@ -31,6 +33,64 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
     |> render_submit()
 
     assert has_element?(view, "#members")
+  end
+
+  test "opens member modal for top-level and child members", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_conn(conn, user)
+    party = party_fixture()
+
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
+
+    view |> element("#add-top-level-member-button") |> render_click()
+
+    assert has_element?(view, "#party-member-modal")
+    assert has_element?(view, "#party-member-form")
+    assert has_element?(view, "#party_member_parent_party_member_id option[selected][value='']")
+
+    representative = List.first(Parties.get_party_with_details!(party.id).members)
+
+    view |> element("#add-child-member-#{representative.id}") |> render_click()
+
+    assert has_element?(
+             view,
+             "#party_member_parent_party_member_id option[selected][value='#{representative.id}']"
+           )
+  end
+
+  test "creates and renders a child member under its parent", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_conn(conn, user)
+    party = party_fixture()
+    representative = List.first(Parties.get_party_with_details!(party.id).members)
+
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
+
+    view |> element("#add-child-member-#{representative.id}") |> render_click()
+
+    view
+    |> form("#party-member-form",
+      party_member: %{
+        parent_party_member_id: representative.id,
+        legal_name: "Child Holding LLC",
+        type: "business",
+        title: "Subsidiary",
+        address_line1: "200 Market",
+        locality: "Austin",
+        region: "TX",
+        postal_code: "78701",
+        country_code: "US"
+      }
+    )
+    |> render_submit()
+
+    assert has_element?(
+             view,
+             "#member-children-#{representative.id} .member-node",
+             "Child Holding LLC"
+           )
+
+    refute has_element?(view, "#party-member-modal")
   end
 
   defp party_fixture do
