@@ -24,7 +24,7 @@
 @plugin "../vendor/daisyui-theme" {
   name: "dark";
   default: false;
-  prefersdark: true;
+  prefersdark: false;
   color-scheme: "dark";
   --color-base-100: oklch(30.33% 0.016 252.42);
   --color-base-200: oklch(25.26% 0.014 253.1);
@@ -103,3 +103,24 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+@layer components {
+  .input,
+  .select,
+  .textarea,
+  .checkbox {
+    color-scheme: light;
+  }
+
+  .input,
+  .select,
+  .textarea {
+    background-color: white;
+    color: oklch(21% 0.006 285.885);
+    border-color: oklch(88% 0.006 286.286);
+  }
+
+  .input::placeholder,
+  .textarea::placeholder {
+    color: oklch(55% 0.027 264.364);
+  }
+}
