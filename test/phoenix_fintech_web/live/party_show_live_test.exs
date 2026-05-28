@@ -35,6 +35,38 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
     assert has_element?(view, "#members")
   end
 
+  test "renders party members as a vertical LiveFlow tree", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_conn(conn, user)
+    party = party_fixture()
+
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
+    representative = List.first(Parties.get_party_with_details!(party.id).members)
+
+    assert has_element?(view, "#party-member-flow")
+    assert has_element?(view, "#party-member-flow-node-party-root")
+    assert has_element?(view, "#party-member-flow-node-#{representative.id}")
+    assert has_element?(view, "#party-member-flow-node-#{representative.id}.member-node")
+    refute has_element?(view, "#member-children-#{representative.id}")
+  end
+
+  test "accepts LiveFlow node measurement events", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_conn(conn, user)
+    party = party_fixture()
+    representative = List.first(Parties.get_party_with_details!(party.id).members)
+
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
+
+    render_hook(view, "lf:node_change", %{
+      "changes" => [
+        %{"id" => representative.id, "type" => "dimensions", "width" => 272, "height" => 156}
+      ]
+    })
+
+    assert has_element?(view, "#party-member-flow-node-#{representative.id}.member-node")
+  end
+
   test "opens member modal for top-level and child members", %{conn: conn} do
     user = user_fixture()
     conn = log_in_conn(conn, user)
@@ -86,7 +118,7 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
 
     assert has_element?(
              view,
-             "#member-children-#{representative.id} .member-node",
+             "#party-member-flow .member-node",
              "Child Holding LLC"
            )
 

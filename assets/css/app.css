@@ -5,6 +5,7 @@
 @source "../css";
 @source "../js";
 @source "../../lib/phoenix_fintech_web";
+@import "../../deps/live_flow/assets/css/live_flow.css";
 
 /* A Tailwind plugin that makes "hero-#{ICON}" classes available.
    The heroicons installation itself is managed by your mix.exs */

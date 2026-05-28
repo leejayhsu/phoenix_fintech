@@ -3,6 +3,8 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
   alias PhoenixFintech.Parties
   alias PhoenixFintech.Parties.PartyMember
+  alias LiveFlow.{Edge, Handle, Node, State}
+  alias LiveFlow.Changes.{EdgeChange, NodeChange}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -15,7 +17,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       |> assign(:page_title, party.legal_name)
       |> assign_current_user()
       |> assign(:members, party.members)
-      |> assign_member_tree(party.members)
+      |> assign_member_flow(party, party.members)
       |> assign(:member_modal_open?, false)
       |> assign(:member_modal_title, "Add member")
       |> assign_member_form()
@@ -38,7 +40,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         {:noreply,
          socket
          |> assign(:members, members)
-         |> assign_member_tree(members)
+         |> assign_member_flow(socket.assigns.party, members)
          |> assign(:member_parent_options, member_parent_options(members))
          |> assign(:member_modal_open?, false)
          |> assign_member_form()}
@@ -80,7 +82,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     {:noreply,
      socket
      |> assign(:members, members)
-     |> assign_member_tree(members)
+     |> assign_member_flow(socket.assigns.party, members)
      |> assign(:member_parent_options, member_parent_options(members))}
   end
 
@@ -98,7 +100,25 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     {:noreply,
      socket
      |> assign(:members, members)
-     |> assign_member_tree(members)}
+     |> assign_member_flow(socket.assigns.party, members)}
+  end
+
+  def handle_event("lf:node_change", %{"changes" => changes}, socket) do
+    flow = NodeChange.apply_changes(socket.assigns.member_flow, changes)
+
+    {:noreply, assign(socket, :member_flow, flow)}
+  end
+
+  def handle_event("lf:edge_change", %{"changes" => changes}, socket) do
+    flow = EdgeChange.apply_changes(socket.assigns.member_flow, changes)
+
+    {:noreply, assign(socket, :member_flow, flow)}
+  end
+
+  def handle_event("lf:viewport_change", params, socket) do
+    flow = State.update_viewport(socket.assigns.member_flow, params)
+
+    {:noreply, assign(socket, :member_flow, flow)}
   end
 
   def handle_event("upload_document", %{"document" => document_params}, socket) do
@@ -151,10 +171,30 @@ defmodule PhoenixFintechWeb.PartyShowLive do
               >
                 No party members yet.
               </div>
-              <.member_tree
-                members={Map.get(@member_children_by_parent, nil, [])}
-                children_by_parent={@member_children_by_parent}
-              />
+              <div
+                :if={@members != []}
+                class="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
+                style={"height: #{flow_height(@members)}"}
+              >
+                <.live_component
+                  module={LiveFlow.Components.Flow}
+                  id="party-member-flow"
+                  flow={@member_flow}
+                  node_types={%{party: &party_flow_node/1, member: &member_flow_node/1}}
+                  opts={
+                    %{
+                      background: :dots,
+                      controls: true,
+                      fit_view_on_init: true,
+                      nodes_draggable: false,
+                      nodes_connectable: false,
+                      elements_selectable: false,
+                      pan_on_drag: true,
+                      zoom_on_scroll: true
+                    }
+                  }
+                />
+              </div>
             </div>
           </div>
 
@@ -255,100 +295,161 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     """
   end
 
-  attr :members, :list, required: true
-  attr :children_by_parent, :map, required: true
-  attr :depth, :integer, default: 0
+  attr :node, :map, required: true
 
-  defp member_tree(assigns) do
+  defp party_flow_node(assigns) do
     ~H"""
-    <div class={[
-      "space-y-3",
-      @depth > 0 && "mt-3 border-l border-zinc-200 pl-4 dark:border-zinc-700"
-    ]}>
-      <div
-        :for={member <- @members}
-        id={"member-node-#{member.id}"}
-        class="member-node rounded-lg border border-zinc-200 bg-white p-3 shadow-sm transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-700"
-      >
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="font-medium">{member.legal_name || "Unnamed member"}</p>
-            <p class="text-xs text-zinc-600 dark:text-zinc-400">
-              {member.type} · {member.title || "-"}
-            </p>
-          </div>
-          <button
-            id={"add-child-member-#{member.id}"}
-            type="button"
-            phx-click="open_member_modal"
-            phx-value-parent-id={member.id}
-            class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
-            aria-label={"Add child member to #{member.legal_name || "unnamed member"}"}
-          >
-            <.icon name="hero-plus" class="size-4" />
-          </button>
-        </div>
+    <div
+      id="party-member-flow-node-party-root"
+      class="min-w-48 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+    >
+      <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+        Party
+      </p>
+      <p class="mt-1 font-semibold text-zinc-900 dark:text-zinc-50">
+        {@node.data.party.legal_name}
+      </p>
+      <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+        Tax ID: {@node.data.party.tax_id}
+      </p>
+    </div>
+    """
+  end
 
-        <div class="mt-2 flex flex-wrap gap-2">
-          <button
-            phx-click="toggle_role"
-            phx-value-id={member.id}
-            phx-value-role="legal_rep"
-            class="rounded-md border border-zinc-200 px-2 py-1 text-xs transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            Legal rep: {member.is_legal_rep}
-          </button>
-          <button
-            phx-click="toggle_role"
-            phx-value-id={member.id}
-            phx-value-role="ubo"
-            class="rounded-md border border-zinc-200 px-2 py-1 text-xs transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            Beneficiary: {member.is_ubo}
-          </button>
-          <button
-            phx-click="delete_member"
-            phx-value-id={member.id}
-            class="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-          >
-            Delete
-          </button>
-        </div>
+  attr :node, :map, required: true
 
-        <div id={"member-children-#{member.id}"}>
-          <.member_tree
-            members={Map.get(@children_by_parent, member.id, [])}
-            children_by_parent={@children_by_parent}
-            depth={@depth + 1}
-          />
+  defp member_flow_node(assigns) do
+    ~H"""
+    <div
+      id={"party-member-flow-node-#{@node.id}"}
+      class="member-node min-w-60 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-700"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="font-medium">{@node.data.member.legal_name || "Unnamed member"}</p>
+          <p class="text-xs text-zinc-600 dark:text-zinc-400">
+            {@node.data.member.type} · {@node.data.member.title || "-"}
+          </p>
         </div>
+        <button
+          id={"add-child-member-#{@node.id}"}
+          type="button"
+          phx-click="open_member_modal"
+          phx-value-parent-id={@node.id}
+          class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
+          aria-label={"Add child member to #{@node.data.member.legal_name || "unnamed member"}"}
+        >
+          <.icon name="hero-plus" class="size-4" />
+        </button>
+      </div>
+
+      <div class="mt-2 flex flex-wrap gap-2">
+        <button
+          phx-click="toggle_role"
+          phx-value-id={@node.id}
+          phx-value-role="legal_rep"
+          class="rounded-md border border-zinc-200 px-2 py-1 text-xs transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+        >
+          Legal rep: {@node.data.member.is_legal_rep}
+        </button>
+        <button
+          phx-click="toggle_role"
+          phx-value-id={@node.id}
+          phx-value-role="ubo"
+          class="rounded-md border border-zinc-200 px-2 py-1 text-xs transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+        >
+          Beneficiary: {@node.data.member.is_ubo}
+        </button>
+        <button
+          phx-click="delete_member"
+          phx-value-id={@node.id}
+          class="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
+        >
+          Delete
+        </button>
       </div>
     </div>
     """
   end
 
-  defp assign_member_form(socket, overrides \\ %{}) do
-    member_attrs =
-      Map.merge(
-        %{
-          "type" => "individual",
-          "country_code" => "US",
-          "parent_party_member_id" => ""
-        },
-        overrides
-      )
+  defp assign_member_flow(socket, party, members),
+    do: assign(socket, :member_flow, build_member_flow(party, members))
 
-    changeset =
-      Parties.change_party_member(%PartyMember{party_id: socket.assigns.party.id}, member_attrs)
+  defp build_member_flow(party, members) do
+    children_by_parent = build_member_children(members)
+    level_members = members_by_level(children_by_parent)
 
-    assign(socket, :member_form, to_form(changeset, as: :party_member))
+    nodes =
+      [
+        Node.new(
+          "party-root",
+          %{x: 360, y: 0},
+          %{party: party},
+          type: :party,
+          draggable: false,
+          connectable: false,
+          selectable: false,
+          deletable: false,
+          handles: [Handle.source(:bottom, id: "children")]
+        )
+      ] ++ member_flow_nodes(level_members)
+
+    edges =
+      members
+      |> Enum.map(fn member ->
+        parent_id = member.parent_party_member_id || "party-root"
+
+        Edge.new(
+          "member-edge-#{parent_id}-#{member.id}",
+          parent_id,
+          member.id,
+          source_handle: "children",
+          target_handle: "parent",
+          type: :smoothstep,
+          selectable: false,
+          deletable: false,
+          style: %{"stroke" => "#10b981", "stroke-width" => "2.5px"},
+          marker_end: %{type: :arrow, color: "#10b981"}
+        )
+      end)
+
+    State.new(nodes: nodes, edges: edges)
   end
 
-  defp assign_doc_form(socket),
-    do: assign(socket, :document_form, to_form(%{"doc_type" => "other"}, as: :document))
+  defp member_flow_nodes(level_members) do
+    Enum.flat_map(level_members, fn {depth, members_at_depth} ->
+      total_width = max((length(members_at_depth) - 1) * 300, 0)
 
-  defp assign_member_tree(socket, members),
-    do: assign(socket, :member_children_by_parent, build_member_children(members))
+      members_at_depth
+      |> Enum.with_index()
+      |> Enum.map(fn {member, index} ->
+        x = 360 - total_width / 2 + index * 300
+        y = 150 + depth * 170
+
+        Node.new(
+          member.id,
+          %{x: x, y: y},
+          %{member: member},
+          type: :member,
+          draggable: false,
+          connectable: false,
+          selectable: false,
+          deletable: false,
+          handles: [
+            Handle.target(:top, id: "parent"),
+            Handle.source(:bottom, id: "children")
+          ]
+        )
+      end)
+    end)
+  end
+
+  defp members_by_level(children_by_parent) do
+    children_by_parent
+    |> flatten_member_tree()
+    |> Enum.group_by(fn {_member, depth} -> depth end, fn {member, _depth} -> member end)
+    |> Enum.sort_by(fn {depth, _members} -> depth end)
+  end
 
   defp member_parent_options(members) do
     base_option = [{"No parent (top-level)", ""}]
@@ -381,6 +482,37 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       [{member, depth} | walk_member_tree(children_by_parent, member.id, depth + 1)]
     end)
   end
+
+  defp flow_height(members) do
+    max_depth =
+      members
+      |> build_member_children()
+      |> flatten_member_tree()
+      |> Enum.map(fn {_member, depth} -> depth end)
+      |> Enum.max(fn -> 0 end)
+
+    "#{max(420, 300 + max_depth * 170)}px"
+  end
+
+  defp assign_member_form(socket, overrides \\ %{}) do
+    member_attrs =
+      Map.merge(
+        %{
+          "type" => "individual",
+          "country_code" => "US",
+          "parent_party_member_id" => ""
+        },
+        overrides
+      )
+
+    changeset =
+      Parties.change_party_member(%PartyMember{party_id: socket.assigns.party.id}, member_attrs)
+
+    assign(socket, :member_form, to_form(changeset, as: :party_member))
+  end
+
+  defp assign_doc_form(socket),
+    do: assign(socket, :document_form, to_form(%{"doc_type" => "other"}, as: :document))
 
   defp current_user(%{user: user}), do: user
   defp current_user(_), do: nil
