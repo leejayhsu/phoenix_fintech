@@ -69,10 +69,18 @@ defmodule PhoenixFintechWeb.Layouts do
               <span class="font-medium text-zinc-700 dark:text-zinc-200">{@current_user.email}</span>
             </div>
           </aside>
-          <main class="flex-1 p-6 lg:p-10">{render_slot(@inner_block)}</main>
+          <main class="flex-1 p-6 lg:p-10">
+            <div class="mb-6 flex justify-end">
+              <.theme_toggle />
+            </div>
+            {render_slot(@inner_block)}
+          </main>
         </div>
       <% else %>
         <main class="px-4 py-16 sm:px-6 lg:px-8">
+          <div class="mx-auto mb-6 flex max-w-2xl justify-end">
+            <.theme_toggle />
+          </div>
           <div class="mx-auto max-w-2xl">{render_slot(@inner_block)}</div>
         </main>
       <% end %>
