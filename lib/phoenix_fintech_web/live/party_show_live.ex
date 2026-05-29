@@ -17,6 +17,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       |> assign(:page_title, party.legal_name)
       |> assign_current_user()
       |> assign(:members, party.members)
+      |> assign(:active_tab, socket.assigns[:live_action] || :overview)
       |> assign_member_flow(party, party.members)
       |> assign(:member_modal_open?, false)
       |> assign(:member_modal_title, "Add member")
@@ -27,6 +28,11 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       |> stream(:documents, party.compliance_documents)
 
     {:ok, socket}
+  end
+
+  @impl true
+  def handle_params(_params, _uri, socket) do
+    {:noreply, assign(socket, :active_tab, socket.assigns.live_action || :overview)}
   end
 
   @impl true
@@ -146,97 +152,29 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
-      <section class="mx-auto max-w-6xl space-y-6" id="party-details">
-        <h1 class="text-3xl font-semibold">{@party.legal_name}</h1>
-        <p class="text-sm text-zinc-600">Tax ID: {@party.tax_id}</p>
-
-        <div class="grid gap-6 lg:grid-cols-2">
-          <div class="rounded-xl border p-5">
-            <div class="flex items-center justify-between gap-4">
-              <h2 class="text-lg font-semibold">Party members</h2>
-              <.button
-                id="add-top-level-member-button"
-                type="button"
-                phx-click="open_member_modal"
-                phx-value-parent-id=""
-              >
-                <.icon name="hero-plus" class="size-4" /> Add top-level
-              </.button>
-            </div>
-
-            <div id="members" class="mt-4">
-              <div
-                :if={@members == []}
-                class="rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-              >
-                No party members yet.
-              </div>
-              <div
-                :if={@members != []}
-                class="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
-                style={"height: #{flow_height(@members)}"}
-              >
-                <.live_component
-                  module={LiveFlow.Components.Flow}
-                  id="party-member-flow"
-                  flow={@member_flow}
-                  node_types={%{party: &party_flow_node/1, member: &member_flow_node/1}}
-                  opts={
-                    %{
-                      background: :dots,
-                      controls: true,
-                      fit_view_on_init: true,
-                      nodes_draggable: false,
-                      nodes_connectable: false,
-                      elements_selectable: false,
-                      pan_on_drag: true,
-                      zoom_on_scroll: true
-                    }
-                  }
-                />
-              </div>
-            </div>
+      <section class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8" id="party-details">
+        <div class="space-y-4 border-b border-zinc-200 pb-5 dark:border-zinc-800">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+              Party profile
+            </p>
+            <h1 class="mt-1 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
+              {@party.legal_name}
+            </h1>
+            <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Tax ID: {@party.tax_id}</p>
           </div>
 
-          <div class="rounded-xl border p-5">
-            <h2 class="mb-4 text-lg font-semibold">Compliance documents</h2>
-            <.form
-              for={@document_form}
-              id="party-document-form"
-              phx-submit="upload_document"
-              class="space-y-3"
-            >
-              <.input
-                field={@document_form[:doc_type]}
-                type="select"
-                label="Document type"
-                options={[
-                  {"Certificate of incorporation", "incorporation_certificate"},
-                  {"Ownership structure", "ownership_structure"},
-                  {"Other", "other"}
-                ]}
-              />
-              <.live_file_input
-                upload={@uploads.compliance_document}
-                class="block w-full rounded-lg border p-2"
-              />
-              <.button id="upload-document-button" type="submit">Upload document</.button>
-            </.form>
-
-            <div id="documents" phx-update="stream" class="mt-4 space-y-2">
-              <div
-                :for={{dom_id, doc} <- @streams.documents}
-                id={dom_id}
-                class="rounded-md border p-2 text-sm"
-              >
-                <a href={doc.storage_url} class="font-medium text-emerald-700 hover:underline">
-                  {doc.filename}
-                </a>
-                <p class="text-xs text-zinc-500">{doc.doc_type}</p>
-              </div>
-            </div>
-          </div>
+          <.party_tabs party={@party} active_tab={@active_tab} />
         </div>
+
+        <.overview_panel :if={@active_tab == :overview} party={@party} members={@members} />
+        <.members_panel :if={@active_tab == :members} members={@members} member_flow={@member_flow} />
+        <.documents_panel
+          :if={@active_tab == :documents}
+          document_form={@document_form}
+          uploads={@uploads}
+          streams={@streams}
+        />
       </section>
 
       <div :if={@member_modal_open?} id="party-member-modal" class="fixed inset-0 z-50">
@@ -292,6 +230,307 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         </div>
       </div>
     </Layouts.app>
+    """
+  end
+
+  attr :party, :map, required: true
+  attr :active_tab, :atom, required: true
+
+  defp party_tabs(assigns) do
+    ~H"""
+    <nav class="tabs tabs-box w-fit bg-zinc-100 p-1 dark:bg-zinc-900" aria-label="Party sections">
+      <.link
+        id="party-overview-tab"
+        navigate={~p"/app/parties/#{@party.id}"}
+        class={[
+          "tab h-9 px-4 text-sm transition",
+          @active_tab == :overview && "tab-active"
+        ]}
+      >
+        Overview
+      </.link>
+      <.link
+        id="party-members-tab"
+        navigate={~p"/app/parties/#{@party.id}/members"}
+        class={[
+          "tab h-9 px-4 text-sm transition",
+          @active_tab == :members && "tab-active"
+        ]}
+      >
+        Members
+      </.link>
+      <.link
+        id="party-documents-tab"
+        navigate={~p"/app/parties/#{@party.id}/documents"}
+        class={[
+          "tab h-9 px-4 text-sm transition",
+          @active_tab == :documents && "tab-active"
+        ]}
+      >
+        Documents
+      </.link>
+    </nav>
+    """
+  end
+
+  attr :party, :map, required: true
+  attr :members, :list, required: true
+
+  defp overview_panel(assigns) do
+    ~H"""
+    <div id="party-overview" class="space-y-6">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <.summary_card
+          label="Onboarding status"
+          value="In review"
+          detail="EDD checklist 72% complete"
+        />
+        <.summary_card label="Risk rating" value="Moderate" detail="Updated after ownership review" />
+        <.summary_card label="Relationship manager" value="Maya Chen" detail="Fintech growth desk" />
+        <.summary_card
+          label="Expected monthly volume"
+          value="$480K"
+          detail="Across card and ACH rails"
+        />
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <section class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Business profile</h2>
+          <dl class="mt-5 grid gap-4 sm:grid-cols-3">
+            <div>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Industry</dt>
+              <dd class="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                Embedded payments platform
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Operating regions
+              </dt>
+              <dd class="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                United States, Canada
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Primary currency
+              </dt>
+              <dd class="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">USD</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Recent activity</h2>
+          <div class="mt-4 space-y-3">
+            <.activity_item
+              title="Representative verified"
+              detail="Identity match completed this morning"
+            />
+            <.activity_item
+              title="Ownership document requested"
+              detail="Awaiting updated cap table from operations"
+            />
+            <.activity_item
+              title="Risk review queued"
+              detail="Compliance review scheduled for Friday"
+            />
+          </div>
+        </section>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <.overview_link_card
+          id="party-members-overview-link"
+          href={~p"/app/parties/#{@party.id}/members"}
+          title="Party members"
+          count={length(@members)}
+          detail="Review ownership, representatives, and beneficial owners."
+        />
+        <.overview_link_card
+          id="party-documents-overview-link"
+          href={~p"/app/parties/#{@party.id}/documents"}
+          title="Compliance documents"
+          count={length(@party.compliance_documents)}
+          detail="Upload and inspect onboarding evidence."
+        />
+      </div>
+    </div>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :value, :string, required: true
+  attr :detail, :string, required: true
+
+  defp summary_card(assigns) do
+    ~H"""
+    <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950">
+      <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">{@label}</p>
+      <p class="mt-2 text-xl font-semibold text-zinc-950 dark:text-zinc-50">{@value}</p>
+      <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{@detail}</p>
+    </div>
+    """
+  end
+
+  attr :title, :string, required: true
+  attr :detail, :string, required: true
+
+  defp activity_item(assigns) do
+    ~H"""
+    <div class="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
+      <p class="text-sm font-medium text-zinc-950 dark:text-zinc-50">{@title}</p>
+      <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{@detail}</p>
+    </div>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :href, :string, required: true
+  attr :title, :string, required: true
+  attr :count, :integer, required: true
+  attr :detail, :string, required: true
+
+  defp overview_link_card(assigns) do
+    ~H"""
+    <.link
+      id={@id}
+      navigate={@href}
+      class="group rounded-lg border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-emerald-700"
+    >
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{@title}</h2>
+          <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{@detail}</p>
+        </div>
+        <span class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+          {@count}
+        </span>
+      </div>
+    </.link>
+    """
+  end
+
+  attr :members, :list, required: true
+  attr :member_flow, :map, required: true
+
+  defp members_panel(assigns) do
+    ~H"""
+    <div
+      id="party-members-panel"
+      class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+    >
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Party members</h2>
+          <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            Map representatives, ownership, and subsidiaries in the member tree.
+          </p>
+        </div>
+        <.button
+          id="add-top-level-member-button"
+          type="button"
+          phx-click="open_member_modal"
+          phx-value-parent-id=""
+        >
+          <.icon name="hero-plus" class="size-4" /> Add top-level
+        </.button>
+      </div>
+
+      <div id="members" class="mt-5">
+        <div
+          :if={@members == []}
+          class="rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
+        >
+          No party members yet.
+        </div>
+        <div
+          :if={@members != []}
+          class="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
+          style={"height: #{flow_height(@members)}"}
+        >
+          <.live_component
+            module={LiveFlow.Components.Flow}
+            id="party-member-flow"
+            flow={@member_flow}
+            node_types={%{party: &party_flow_node/1, member: &member_flow_node/1}}
+            opts={
+              %{
+                background: :dots,
+                controls: true,
+                fit_view_on_init: true,
+                nodes_draggable: false,
+                nodes_connectable: false,
+                elements_selectable: false,
+                pan_on_drag: true,
+                zoom_on_scroll: true
+              }
+            }
+          />
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  attr :document_form, :map, required: true
+  attr :uploads, :map, required: true
+  attr :streams, :map, required: true
+
+  defp documents_panel(assigns) do
+    ~H"""
+    <div id="party-documents-panel" class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+      <section class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Upload document</h2>
+        <.form
+          for={@document_form}
+          id="party-document-form"
+          phx-submit="upload_document"
+          class="mt-4 space-y-3"
+        >
+          <.input
+            field={@document_form[:doc_type]}
+            type="select"
+            label="Document type"
+            options={[
+              {"Certificate of incorporation", "incorporation_certificate"},
+              {"Ownership structure", "ownership_structure"},
+              {"Other", "other"}
+            ]}
+          />
+          <.live_file_input
+            upload={@uploads.compliance_document}
+            class="block w-full rounded-lg border border-zinc-200 p-2 text-sm transition file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:border-emerald-300 dark:border-zinc-700 dark:file:bg-emerald-950 dark:file:text-emerald-300"
+          />
+          <.button id="upload-document-button" type="submit">Upload document</.button>
+        </.form>
+      </section>
+
+      <section class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+          Compliance documents
+        </h2>
+        <div id="documents" phx-update="stream" class="mt-4 space-y-2">
+          <div
+            id="documents-empty"
+            class="hidden rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 only:block dark:border-zinc-700 dark:text-zinc-400"
+          >
+            No compliance documents uploaded yet.
+          </div>
+          <div
+            :for={{dom_id, doc} <- @streams.documents}
+            id={dom_id}
+            class="rounded-md border border-zinc-200 p-3 text-sm transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-zinc-800 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/20"
+          >
+            <a href={doc.storage_url} class="font-medium text-emerald-700 hover:underline">
+              {doc.filename}
+            </a>
+            <p class="mt-1 text-xs text-zinc-500">{doc.doc_type}</p>
+          </div>
+        </div>
+      </section>
+    </div>
     """
   end
 

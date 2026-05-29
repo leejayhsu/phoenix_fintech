@@ -6,16 +6,44 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
   alias PhoenixFintech.Accounts
   alias PhoenixFintech.Parties
 
-  test "renders details and allows member mutation", %{conn: conn} do
+  test "overview route renders party details and tab links", %{conn: conn} do
     user = user_fixture()
     conn = log_in_conn(conn, user)
     party = party_fixture()
 
     {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
 
-    view |> element("#add-top-level-member-button") |> render_click()
+    assert has_element?(view, "#party-details")
+    assert has_element?(view, "#party-overview")
+    assert has_element?(view, "#party-overview-tab.tab-active")
+    assert has_element?(view, "#party-members-tab")
+    assert has_element?(view, "#party-documents-tab")
+
+    assert element(view, "#party-overview-tab") |> render() =~ ~s(href="/app/parties/#{party.id}")
+
+    assert element(view, "#party-members-tab") |> render() =~
+             ~s(href="/app/parties/#{party.id}/members")
+
+    assert element(view, "#party-documents-tab") |> render() =~
+             ~s(href="/app/parties/#{party.id}/documents")
+
+    refute has_element?(view, "#party-member-flow")
+    refute has_element?(view, "#party-document-form")
+  end
+
+  test "members route renders member panel and allows member mutation", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_conn(conn, user)
+    party = party_fixture()
+
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}/members")
 
     assert has_element?(view, "#party-details")
+    assert has_element?(view, "#party-members-panel")
+    assert has_element?(view, "#party-members-tab.tab-active")
+    assert has_element?(view, "#party-member-flow")
+
+    view |> element("#add-top-level-member-button") |> render_click()
 
     view
     |> form("#party-member-form",
@@ -35,14 +63,30 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
     assert has_element?(view, "#members")
   end
 
+  test "documents route renders document panel", %{conn: conn} do
+    user = user_fixture()
+    conn = log_in_conn(conn, user)
+    party = party_fixture()
+
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}/documents")
+
+    assert has_element?(view, "#party-details")
+    assert has_element?(view, "#party-documents-panel")
+    assert has_element?(view, "#party-documents-tab.tab-active")
+    assert has_element?(view, "#party-document-form")
+    assert has_element?(view, "#upload-document-button")
+    assert has_element?(view, "#documents")
+  end
+
   test "renders party members as a vertical LiveFlow tree", %{conn: conn} do
     user = user_fixture()
     conn = log_in_conn(conn, user)
     party = party_fixture()
 
-    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}/members")
     representative = List.first(Parties.get_party_with_details!(party.id).members)
 
+    assert has_element?(view, "#party-members-panel")
     assert has_element?(view, "#party-member-flow")
     assert has_element?(view, "#party-member-flow-node-party-root")
     assert has_element?(view, "#party-member-flow-node-#{representative.id}")
@@ -56,7 +100,7 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
     party = party_fixture()
     representative = List.first(Parties.get_party_with_details!(party.id).members)
 
-    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}/members")
 
     render_hook(view, "lf:node_change", %{
       "changes" => [
@@ -72,7 +116,7 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
     conn = log_in_conn(conn, user)
     party = party_fixture()
 
-    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}/members")
 
     view |> element("#add-top-level-member-button") |> render_click()
 
@@ -96,7 +140,7 @@ defmodule PhoenixFintechWeb.PartyShowLiveTest do
     party = party_fixture()
     representative = List.first(Parties.get_party_with_details!(party.id).members)
 
-    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}")
+    {:ok, view, _html} = live(conn, ~p"/app/parties/#{party.id}/members")
 
     view |> element("#add-child-member-#{representative.id}") |> render_click()
 
