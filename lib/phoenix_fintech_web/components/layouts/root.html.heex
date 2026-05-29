@@ -10,7 +10,10 @@
     </script>
     <script>
       (() => {
+        const themeMap = { light: "retro", dark: "dracula" };
         const setTheme = (theme) => {
+          theme = themeMap[theme] || theme;
+
           if (theme === "system") {
             localStorage.removeItem("phx:theme");
             document.documentElement.removeAttribute("data-theme");
