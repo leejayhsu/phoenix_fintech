@@ -16,7 +16,7 @@
    Make sure to look at the daisyUI changelog: https://daisyui.com/docs/changelog/ */
 @plugin "../vendor/daisyui" {
     themes:
-        retro --default,
+        corporate --default,
         dracula --prefersdark;
 }
 
