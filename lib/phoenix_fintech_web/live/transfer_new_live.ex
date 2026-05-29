@@ -69,100 +69,113 @@ defmodule PhoenixFintechWeb.TransferNewLive do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
       <section id="new-transfer" class="mx-auto max-w-5xl">
-        <h1 class="mb-6 text-3xl font-semibold text-zinc-950 dark:text-white">Create transfer</h1>
+        <h1 class="mb-6 text-3xl font-semibold">Create transfer</h1>
 
         <%= if @step == :details do %>
-          <.form for={@transfer_form} id="transfer-details-form" phx-submit="save_details">
-            <div class="grid gap-4 sm:grid-cols-2">
-              <.input
-                field={@transfer_form[:originator_party_id]}
-                type="select"
-                label="Originator party"
-                options={for p <- @parties, do: {p.legal_name, p.id}}
-              />
-              <.input
-                field={@transfer_form[:counterparty_party_id]}
-                type="select"
-                label="Counterparty party"
-                options={for p <- @parties, do: {p.legal_name, p.id}}
-              />
-              <.input
-                field={@transfer_form[:originator_currency_code]}
-                type="select"
-                label="Originator currency"
-                options={for c <- @currencies, do: {"#{c.code} · #{c.name}", c.code}}
-              />
-              <.input
-                field={@transfer_form[:counterparty_currency_code]}
-                type="select"
-                label="Counterparty currency"
-                options={for c <- @currencies, do: {"#{c.code} · #{c.name}", c.code}}
-              />
-              <.input
-                field={@transfer_form[:amount_in_originator_currency]}
-                type="number"
-                step="0.0001"
-                label="Amount in originator currency"
-              />
-              <.input
-                field={@transfer_form[:amount_in_counterparty_currency]}
-                type="number"
-                step="0.0001"
-                label="Amount in counterparty currency"
-              />
+          <div class="card card-border bg-base-100 shadow-sm">
+            <div class="card-body">
+              <.form for={@transfer_form} id="transfer-details-form" phx-submit="save_details">
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <.input
+                    field={@transfer_form[:originator_party_id]}
+                    type="select"
+                    label="Originator party"
+                    options={for p <- @parties, do: {p.legal_name, p.id}}
+                  />
+                  <.input
+                    field={@transfer_form[:counterparty_party_id]}
+                    type="select"
+                    label="Counterparty party"
+                    options={for p <- @parties, do: {p.legal_name, p.id}}
+                  />
+                  <.input
+                    field={@transfer_form[:originator_currency_code]}
+                    type="select"
+                    label="Originator currency"
+                    options={for c <- @currencies, do: {"#{c.code} · #{c.name}", c.code}}
+                  />
+                  <.input
+                    field={@transfer_form[:counterparty_currency_code]}
+                    type="select"
+                    label="Counterparty currency"
+                    options={for c <- @currencies, do: {"#{c.code} · #{c.name}", c.code}}
+                  />
+                  <.input
+                    field={@transfer_form[:amount_in_originator_currency]}
+                    type="number"
+                    step="0.0001"
+                    label="Amount in originator currency"
+                  />
+                  <.input
+                    field={@transfer_form[:amount_in_counterparty_currency]}
+                    type="number"
+                    step="0.0001"
+                    label="Amount in counterparty currency"
+                  />
+                </div>
+                <div class="card-actions mt-6 justify-end">
+                  <.button variant="primary" type="submit" id="continue-to-quote-button">
+                    Continue <.icon name="hero-arrow-right" class="size-4" />
+                  </.button>
+                </div>
+              </.form>
             </div>
-            <div class="mt-6 flex justify-end">
-              <.button variant="primary" type="submit" id="continue-to-quote-button">
-                Continue <.icon name="hero-arrow-right" class="size-4" />
-              </.button>
-            </div>
-          </.form>
+          </div>
         <% else %>
-          <.form for={@quote_form} id="transfer-quote-form" phx-submit="save_transfer">
-            <input
-              type="hidden"
-              name="transfer[originator_party_id]"
-              value={@transfer_form.params["originator_party_id"]}
-            />
-            <input
-              type="hidden"
-              name="transfer[counterparty_party_id]"
-              value={@transfer_form.params["counterparty_party_id"]}
-            />
-            <input
-              type="hidden"
-              name="transfer[originator_currency_code]"
-              value={@transfer_form.params["originator_currency_code"]}
-            />
-            <input
-              type="hidden"
-              name="transfer[counterparty_currency_code]"
-              value={@transfer_form.params["counterparty_currency_code"]}
-            />
-            <input
-              type="hidden"
-              name="transfer[amount_in_originator_currency]"
-              value={@transfer_form.params["amount_in_originator_currency"]}
-            />
-            <input
-              type="hidden"
-              name="transfer[amount_in_counterparty_currency]"
-              value={@transfer_form.params["amount_in_counterparty_currency"]}
-            />
+          <div class="card card-border bg-base-100 shadow-sm">
+            <div class="card-body">
+              <.form for={@quote_form} id="transfer-quote-form" phx-submit="save_transfer">
+                <input
+                  type="hidden"
+                  name="transfer[originator_party_id]"
+                  value={@transfer_form.params["originator_party_id"]}
+                />
+                <input
+                  type="hidden"
+                  name="transfer[counterparty_party_id]"
+                  value={@transfer_form.params["counterparty_party_id"]}
+                />
+                <input
+                  type="hidden"
+                  name="transfer[originator_currency_code]"
+                  value={@transfer_form.params["originator_currency_code"]}
+                />
+                <input
+                  type="hidden"
+                  name="transfer[counterparty_currency_code]"
+                  value={@transfer_form.params["counterparty_currency_code"]}
+                />
+                <input
+                  type="hidden"
+                  name="transfer[amount_in_originator_currency]"
+                  value={@transfer_form.params["amount_in_originator_currency"]}
+                />
+                <input
+                  type="hidden"
+                  name="transfer[amount_in_counterparty_currency]"
+                  value={@transfer_form.params["amount_in_counterparty_currency"]}
+                />
 
-            <div class="grid gap-4 sm:grid-cols-2">
-              <.input field={@quote_form[:fx_rate]} type="number" step="0.0000001" label="FX rate" />
-            </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <.input
+                    field={@quote_form[:fx_rate]}
+                    type="number"
+                    step="0.0000001"
+                    label="FX rate"
+                  />
+                </div>
 
-            <div class="mt-6 flex justify-between">
-              <.button type="button" id="back-to-details-button" phx-click="back_to_details">
-                Back
-              </.button>
-              <.button type="submit" variant="primary" id="create-transfer-button">
-                Create transfer
-              </.button>
+                <div class="card-actions mt-6 justify-between">
+                  <.button type="button" id="back-to-details-button" phx-click="back_to_details">
+                    Back
+                  </.button>
+                  <.button type="submit" variant="primary" id="create-transfer-button">
+                    Create transfer
+                  </.button>
+                </div>
+              </.form>
             </div>
-          </.form>
+          </div>
         <% end %>
       </section>
     </Layouts.app>

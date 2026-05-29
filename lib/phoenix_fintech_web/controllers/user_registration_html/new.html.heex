@@ -1,52 +1,54 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
-  <section class="mx-auto max-w-md rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm transition-all duration-200 hover:shadow-md dark:border-zinc-700 dark:bg-zinc-900">
-    <div class="flex items-start justify-between gap-6">
-      <div>
-        <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Phoenix Fintech</p>
-        <h1 class="mt-2 text-2xl font-semibold tracking-tight">Create your account</h1>
+  <section class="card card-border mx-auto max-w-md bg-base-100 shadow-sm transition-all duration-200 hover:shadow-md">
+    <div class="card-body">
+      <div class="flex items-start justify-between gap-6">
+        <div>
+          <p class="text-sm font-medium text-base-content/60">Phoenix Fintech</p>
+          <h1 class="card-title mt-2 text-2xl">Create your account</h1>
+        </div>
+        <div class="badge badge-primary size-12 rounded-full p-0">
+          <.icon name="hero-user-plus" class="size-6" />
+        </div>
       </div>
-      <div class="rounded-full bg-emerald-100 p-3 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300">
-        <.icon name="hero-user-plus" class="size-6" />
-      </div>
+
+      <p class="mt-3 text-sm text-base-content/70">
+        Start tracking your finances with a secure workspace.
+      </p>
+
+      <.form
+        for={@form}
+        id="signup-form"
+        action={~p"/users/sign_up"}
+        method="post"
+        class="mt-6 space-y-4"
+      >
+        <.input field={@form[:name]} type="text" label="Name" autocomplete="name" required />
+        <.input field={@form[:email]} type="email" label="Email" autocomplete="email" required />
+        <.input
+          field={@form[:password]}
+          type="password"
+          label="Password"
+          autocomplete="new-password"
+          required
+        />
+        <button
+          id="signup-submit"
+          class="btn btn-primary btn-block transition hover:-translate-y-0.5"
+        >
+          Create account
+        </button>
+      </.form>
+
+      <p class="mt-6 text-center text-sm text-base-content/70">
+        Already have an account?
+        <.link
+          id="login-link"
+          navigate={~p"/users/log_in"}
+          class="link link-primary font-semibold"
+        >
+          Sign in
+        </.link>
+      </p>
     </div>
-
-    <p class="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
-      Start tracking your finances with a secure workspace.
-    </p>
-
-    <.form
-      for={@form}
-      id="signup-form"
-      action={~p"/users/sign_up"}
-      method="post"
-      class="mt-6 space-y-4"
-    >
-      <.input field={@form[:name]} type="text" label="Name" autocomplete="name" required />
-      <.input field={@form[:email]} type="email" label="Email" autocomplete="email" required />
-      <.input
-        field={@form[:password]}
-        type="password"
-        label="Password"
-        autocomplete="new-password"
-        required
-      />
-      <button
-        id="signup-submit"
-        class="w-full rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-      >
-        Create account
-      </button>
-    </.form>
-
-    <p class="mt-6 text-center text-sm text-zinc-600 dark:text-zinc-300">
-      Already have an account?
-      <.link
-        id="login-link"
-        navigate={~p"/users/log_in"}
-        class="font-semibold text-zinc-900 transition hover:text-emerald-700 dark:text-zinc-100 dark:hover:text-emerald-300"
-      >
-        Sign in
-      </.link>
-    </p>
   </section>
 </Layouts.app>

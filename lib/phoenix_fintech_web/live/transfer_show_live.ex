@@ -33,19 +33,19 @@ defmodule PhoenixFintechWeb.TransferShowLive do
       <section id="transfer-show" class="mx-auto max-w-5xl space-y-6">
         <.link
           navigate={~p"/app/transfers"}
-          class="inline-flex items-center gap-1 text-sm text-emerald-700 transition hover:text-emerald-800"
+          class="btn btn-ghost btn-sm"
         >
           <.icon name="hero-arrow-left" class="size-4" /> Back to transfers
         </.link>
 
-        <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div class="border-b border-zinc-100 bg-zinc-50/50 px-6 py-5 dark:border-zinc-800 dark:bg-zinc-950/50">
+        <div class="card card-border bg-base-100 shadow-sm">
+          <div class="border-b border-base-300 bg-base-200/50 px-6 py-5">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h1 class="text-2xl font-semibold text-zinc-950 dark:text-white">Transfer details</h1>
-                <p class="mt-1 text-sm text-zinc-500">
+                <h1 class="text-2xl font-semibold">Transfer details</h1>
+                <p class="mt-1 text-sm text-base-content/60">
                   Transfer reference:
-                  <span id="transfer-reference" class="font-mono text-zinc-700 dark:text-zinc-200">
+                  <span id="transfer-reference" class="font-mono text-base-content">
                     {@transfer.id}
                   </span>
                 </p>
@@ -59,78 +59,82 @@ defmodule PhoenixFintechWeb.TransferShowLive do
           <div class="grid gap-6 px-6 py-6 lg:grid-cols-[2fr_1fr]">
             <div class="space-y-6">
               <div id="transfer-parties" class="grid gap-4 sm:grid-cols-2">
-                <article class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-                  <h2 class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                    Originator
-                  </h2>
-                  <p class="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {@transfer.originator_party.legal_name}
-                  </p>
+                <article class="card card-border bg-base-100">
+                  <div class="card-body p-4">
+                    <h2 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                      Originator
+                    </h2>
+                    <p class="mt-2 text-sm font-medium">
+                      {@transfer.originator_party.legal_name}
+                    </p>
+                  </div>
                 </article>
-                <article class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-                  <h2 class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                    Counterparty
-                  </h2>
-                  <p class="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                    {@transfer.counterparty_party.legal_name}
-                  </p>
+                <article class="card card-border bg-base-100">
+                  <div class="card-body p-4">
+                    <h2 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                      Counterparty
+                    </h2>
+                    <p class="mt-2 text-sm font-medium">
+                      {@transfer.counterparty_party.legal_name}
+                    </p>
+                  </div>
                 </article>
               </div>
 
               <div
                 id="transfer-amounts"
-                class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+                class="card card-border bg-base-100"
               >
-                <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  Transfer amounts
-                </h2>
-                <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt class="text-zinc-500">Originator amount</dt>
-                    <dd class="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
-                      {@transfer.amount_in_originator_currency} {@transfer.originator_currency_code}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt class="text-zinc-500">Counterparty amount</dt>
-                    <dd class="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
-                      {@transfer.amount_in_counterparty_currency} {@transfer.counterparty_currency_code}
-                    </dd>
-                  </div>
-                </dl>
+                <div class="card-body p-4">
+                  <h2 class="card-title text-sm">Transfer amounts</h2>
+                  <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt class="text-base-content/60">Originator amount</dt>
+                      <dd class="mt-1 font-medium">
+                        {@transfer.amount_in_originator_currency} {@transfer.originator_currency_code}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="text-base-content/60">Counterparty amount</dt>
+                      <dd class="mt-1 font-medium">
+                        {@transfer.amount_in_counterparty_currency} {@transfer.counterparty_currency_code}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
               </div>
 
               <div
                 :if={@transfer.transfer_quote}
                 id="transfer-quote-details"
-                class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+                class="card card-border bg-base-100"
               >
-                <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  Transfer quote
-                </h2>
-                <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt class="text-zinc-500">FX rate</dt>
-                    <dd class="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
-                      {@transfer.transfer_quote.calculation_snapshot["facts"]["fx_rate"]}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt class="text-zinc-500">Quote reference</dt>
-                    <dd class="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
-                      {@transfer.transfer_quote.id}
-                    </dd>
-                  </div>
-                </dl>
-                <div class="mt-4 space-y-2 text-sm">
-                  <div
-                    :for={line <- @transfer.transfer_quote.calculation_snapshot["lines"]}
-                    class="flex items-center justify-between gap-4 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-900"
-                  >
-                    <span class="font-medium text-zinc-700 dark:text-zinc-200">{line["label"]}</span>
-                    <span class="text-zinc-500">
-                      {line["amount"]} {line["currency_code"]}
-                    </span>
+                <div class="card-body p-4">
+                  <h2 class="card-title text-sm">Transfer quote</h2>
+                  <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt class="text-base-content/60">FX rate</dt>
+                      <dd class="mt-1 font-medium">
+                        {@transfer.transfer_quote.calculation_snapshot["facts"]["fx_rate"]}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="text-base-content/60">Quote reference</dt>
+                      <dd class="mt-1 font-medium">
+                        {@transfer.transfer_quote.id}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div class="mt-4 space-y-2 text-sm">
+                    <div
+                      :for={line <- @transfer.transfer_quote.calculation_snapshot["lines"]}
+                      class="flex items-center justify-between gap-4 rounded-box bg-base-200 px-3 py-2"
+                    >
+                      <span class="font-medium">{line["label"]}</span>
+                      <span class="text-base-content/60">
+                        {line["amount"]} {line["currency_code"]}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -138,25 +142,30 @@ defmodule PhoenixFintechWeb.TransferShowLive do
 
             <aside
               id="transfer-status-timeline"
-              class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+              class="card card-border bg-base-100"
             >
-              <h2 class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Status timeline</h2>
-              <ol class="mt-4 space-y-3">
-                <li
-                  :for={step <- @status_steps}
-                  id={"status-step-#{step.status}"}
-                  class="flex items-start gap-3"
-                >
-                  <span class={timeline_dot_classes(step.state)}></span>
-                  <div>
-                    <p class="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                      {format_status(step.status)}
-                    </p>
-                    <p class="text-xs text-zinc-500">{@status_copy[step.status]}</p>
-                  </div>
-                </li>
-              </ol>
-              <p class="mt-4 text-xs text-zinc-500">Created by {@transfer.created_by_user.email}</p>
+              <div class="card-body p-4">
+                <h2 class="card-title text-sm">Status timeline</h2>
+                <ol class="timeline timeline-compact timeline-vertical mt-4">
+                  <li
+                    :for={step <- @status_steps}
+                    id={"status-step-#{step.status}"}
+                  >
+                    <div class="timeline-middle">
+                      <span class={timeline_dot_classes(step.state)}></span>
+                    </div>
+                    <div class="timeline-end pb-4">
+                      <p class="text-sm font-medium">
+                        {format_status(step.status)}
+                      </p>
+                      <p class="text-xs text-base-content/60">{@status_copy[step.status]}</p>
+                    </div>
+                  </li>
+                </ol>
+                <p class="mt-4 text-xs text-base-content/60">
+                  Created by {@transfer.created_by_user.email}
+                </p>
+              </div>
             </aside>
           </div>
         </div>
@@ -190,22 +199,19 @@ defmodule PhoenixFintechWeb.TransferShowLive do
   defp format_status(status), do: status |> to_string() |> String.capitalize()
 
   defp status_badge_classes(:draft),
-    do:
-      "inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800"
+    do: "badge badge-soft badge-warning"
 
   defp status_badge_classes(:quoted),
-    do:
-      "inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800"
+    do: "badge badge-soft badge-info"
 
   defp status_badge_classes(:submitted),
-    do:
-      "inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800"
+    do: "badge badge-soft badge-success"
 
-  defp timeline_dot_classes(:complete), do: "mt-1 size-2.5 rounded-full bg-emerald-500"
+  defp timeline_dot_classes(:complete), do: "status status-success"
 
   defp timeline_dot_classes(:current),
-    do: "mt-1 size-2.5 rounded-full bg-sky-500 ring-4 ring-sky-100"
+    do: "status status-info status-lg"
 
   defp timeline_dot_classes(:upcoming),
-    do: "mt-1 size-2.5 rounded-full bg-zinc-300 dark:bg-zinc-600"
+    do: "status"
 end

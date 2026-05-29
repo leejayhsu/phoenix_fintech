@@ -153,15 +153,15 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
       <section class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8" id="party-details">
-        <div class="space-y-4 border-b border-zinc-200 pb-5 dark:border-zinc-800">
+        <div class="space-y-4 border-b border-base-300 pb-5">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+            <p class="text-xs font-semibold uppercase tracking-wide text-primary">
               Party profile
             </p>
-            <h1 class="mt-1 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
+            <h1 class="mt-1 text-3xl font-semibold">
               {@party.legal_name}
             </h1>
-            <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Tax ID: {@party.tax_id}</p>
+            <p class="mt-2 text-sm text-base-content/70">Tax ID: {@party.tax_id}</p>
           </div>
 
           <.party_tabs party={@party} active_tab={@active_tab} />
@@ -177,23 +177,23 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         />
       </section>
 
-      <div :if={@member_modal_open?} id="party-member-modal" class="fixed inset-0 z-50">
+      <div :if={@member_modal_open?} id="party-member-modal" class="modal modal-open" tabindex="0">
         <button
           id="party-member-modal-backdrop"
           type="button"
           phx-click="close_member_modal"
-          class="absolute inset-0 bg-zinc-950/50 backdrop-blur-sm transition"
+          class="modal-backdrop"
           aria-label="Close member form"
         >
         </button>
-        <div class="absolute left-1/2 top-1/2 max-h-[88vh] w-[min(92vw,34rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-5 shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="modal-box max-h-[88vh] w-[min(92vw,34rem)] max-w-none">
           <div class="mb-4 flex items-center justify-between gap-4">
             <h3 class="text-lg font-semibold">{@member_modal_title}</h3>
             <button
               id="close-member-modal-button"
               type="button"
               phx-click="close_member_modal"
-              class="rounded-lg p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-white"
+              class="btn btn-ghost btn-sm btn-circle"
               aria-label="Close member form"
             >
               <.icon name="hero-x-mark" class="size-5" />
@@ -238,7 +238,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
   defp party_tabs(assigns) do
     ~H"""
-    <nav class="tabs tabs-box w-fit bg-zinc-100 p-1 dark:bg-zinc-900" aria-label="Party sections">
+    <nav class="tabs tabs-box w-fit" aria-label="Party sections">
       <.link
         id="party-overview-tab"
         navigate={~p"/app/parties/#{@party.id}"}
@@ -295,47 +295,53 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       </div>
 
       <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <section class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Business profile</h2>
-          <dl class="mt-5 grid gap-4 sm:grid-cols-3">
-            <div>
-              <dt class="text-xs font-semibold uppercase tracking-wide text-zinc-500">Industry</dt>
-              <dd class="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                Embedded payments platform
-              </dd>
-            </div>
-            <div>
-              <dt class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Operating regions
-              </dt>
-              <dd class="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                United States, Canada
-              </dd>
-            </div>
-            <div>
-              <dt class="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-                Primary currency
-              </dt>
-              <dd class="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-100">USD</dd>
-            </div>
-          </dl>
+        <section class="card card-border bg-base-100 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Business profile</h2>
+            <dl class="mt-5 grid gap-4 sm:grid-cols-3">
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                  Industry
+                </dt>
+                <dd class="mt-1 text-sm font-medium">
+                  Embedded payments platform
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                  Operating regions
+                </dt>
+                <dd class="mt-1 text-sm font-medium">
+                  United States, Canada
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                  Primary currency
+                </dt>
+                <dd class="mt-1 text-sm font-medium">USD</dd>
+              </div>
+            </dl>
+          </div>
         </section>
 
-        <section class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Recent activity</h2>
-          <div class="mt-4 space-y-3">
-            <.activity_item
-              title="Representative verified"
-              detail="Identity match completed this morning"
-            />
-            <.activity_item
-              title="Ownership document requested"
-              detail="Awaiting updated cap table from operations"
-            />
-            <.activity_item
-              title="Risk review queued"
-              detail="Compliance review scheduled for Friday"
-            />
+        <section class="card card-border bg-base-100 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Recent activity</h2>
+            <div class="mt-4 space-y-3">
+              <.activity_item
+                title="Representative verified"
+                detail="Identity match completed this morning"
+              />
+              <.activity_item
+                title="Ownership document requested"
+                detail="Awaiting updated cap table from operations"
+              />
+              <.activity_item
+                title="Risk review queued"
+                detail="Compliance review scheduled for Friday"
+              />
+            </div>
           </div>
         </section>
       </div>
@@ -366,10 +372,12 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
   defp summary_card(assigns) do
     ~H"""
-    <div class="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950">
-      <p class="text-xs font-semibold uppercase tracking-wide text-zinc-500">{@label}</p>
-      <p class="mt-2 text-xl font-semibold text-zinc-950 dark:text-zinc-50">{@value}</p>
-      <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{@detail}</p>
+    <div class="card card-border bg-base-100 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div class="card-body p-4">
+        <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">{@label}</p>
+        <p class="mt-2 text-xl font-semibold">{@value}</p>
+        <p class="mt-1 text-sm text-base-content/70">{@detail}</p>
+      </div>
     </div>
     """
   end
@@ -379,9 +387,11 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
   defp activity_item(assigns) do
     ~H"""
-    <div class="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
-      <p class="text-sm font-medium text-zinc-950 dark:text-zinc-50">{@title}</p>
-      <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{@detail}</p>
+    <div class="card card-border bg-base-100">
+      <div class="card-body p-3">
+        <p class="text-sm font-medium">{@title}</p>
+        <p class="mt-1 text-sm text-base-content/70">{@detail}</p>
+      </div>
     </div>
     """
   end
@@ -397,14 +407,14 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     <.link
       id={@id}
       navigate={@href}
-      class="group rounded-lg border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-emerald-700"
+      class="card card-border group bg-base-100 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
     >
-      <div class="flex items-center justify-between gap-4">
+      <div class="card-body flex-row items-center justify-between gap-4">
         <div>
-          <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{@title}</h2>
-          <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{@detail}</p>
+          <h2 class="card-title text-lg">{@title}</h2>
+          <p class="mt-1 text-sm text-base-content/70">{@detail}</p>
         </div>
-        <span class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+        <span class="badge badge-primary badge-lg">
           {@count}
         </span>
       </div>
@@ -419,55 +429,57 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     ~H"""
     <div
       id="party-members-panel"
-      class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950"
+      class="card card-border bg-base-100 shadow-sm"
     >
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Party members</h2>
-          <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Map representatives, ownership, and subsidiaries in the member tree.
-          </p>
+      <div class="card-body">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 class="card-title text-lg">Party members</h2>
+            <p class="mt-1 text-sm text-base-content/70">
+              Map representatives, ownership, and subsidiaries in the member tree.
+            </p>
+          </div>
+          <.button
+            id="add-top-level-member-button"
+            type="button"
+            phx-click="open_member_modal"
+            phx-value-parent-id=""
+          >
+            <.icon name="hero-plus" class="size-4" /> Add top-level
+          </.button>
         </div>
-        <.button
-          id="add-top-level-member-button"
-          type="button"
-          phx-click="open_member_modal"
-          phx-value-parent-id=""
-        >
-          <.icon name="hero-plus" class="size-4" /> Add top-level
-        </.button>
-      </div>
 
-      <div id="members" class="mt-5">
-        <div
-          :if={@members == []}
-          class="rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400"
-        >
-          No party members yet.
-        </div>
-        <div
-          :if={@members != []}
-          class="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
-          style={"height: #{flow_height(@members)}"}
-        >
-          <.live_component
-            module={LiveFlow.Components.Flow}
-            id="party-member-flow"
-            flow={@member_flow}
-            node_types={%{party: &party_flow_node/1, member: &member_flow_node/1}}
-            opts={
-              %{
-                background: :dots,
-                controls: true,
-                fit_view_on_init: true,
-                nodes_draggable: false,
-                nodes_connectable: false,
-                elements_selectable: false,
-                pan_on_drag: true,
-                zoom_on_scroll: true
+        <div id="members" class="mt-5">
+          <div
+            :if={@members == []}
+            class="alert alert-info alert-soft"
+          >
+            No party members yet.
+          </div>
+          <div
+            :if={@members != []}
+            class="overflow-hidden rounded-box border border-base-300 bg-base-200"
+            style={"height: #{flow_height(@members)}"}
+          >
+            <.live_component
+              module={LiveFlow.Components.Flow}
+              id="party-member-flow"
+              flow={@member_flow}
+              node_types={%{party: &party_flow_node/1, member: &member_flow_node/1}}
+              opts={
+                %{
+                  background: :dots,
+                  controls: true,
+                  fit_view_on_init: true,
+                  nodes_draggable: false,
+                  nodes_connectable: false,
+                  elements_selectable: false,
+                  pan_on_drag: true,
+                  zoom_on_scroll: true
+                }
               }
-            }
-          />
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -481,52 +493,58 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   defp documents_panel(assigns) do
     ~H"""
     <div id="party-documents-panel" class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-      <section class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Upload document</h2>
-        <.form
-          for={@document_form}
-          id="party-document-form"
-          phx-submit="upload_document"
-          class="mt-4 space-y-3"
-        >
-          <.input
-            field={@document_form[:doc_type]}
-            type="select"
-            label="Document type"
-            options={[
-              {"Certificate of incorporation", "incorporation_certificate"},
-              {"Ownership structure", "ownership_structure"},
-              {"Other", "other"}
-            ]}
-          />
-          <.live_file_input
-            upload={@uploads.compliance_document}
-            class="block w-full rounded-lg border border-zinc-200 p-2 text-sm transition file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-emerald-700 hover:border-emerald-300 dark:border-zinc-700 dark:file:bg-emerald-950 dark:file:text-emerald-300"
-          />
-          <.button id="upload-document-button" type="submit">Upload document</.button>
-        </.form>
+      <section class="card card-border bg-base-100 shadow-sm">
+        <div class="card-body">
+          <h2 class="card-title text-lg">Upload document</h2>
+          <.form
+            for={@document_form}
+            id="party-document-form"
+            phx-submit="upload_document"
+            class="mt-4 space-y-3"
+          >
+            <.input
+              field={@document_form[:doc_type]}
+              type="select"
+              label="Document type"
+              options={[
+                {"Certificate of incorporation", "incorporation_certificate"},
+                {"Ownership structure", "ownership_structure"},
+                {"Other", "other"}
+              ]}
+            />
+            <.live_file_input
+              upload={@uploads.compliance_document}
+              class="file-input file-input-primary w-full"
+            />
+            <.button id="upload-document-button" type="submit">Upload document</.button>
+          </.form>
+        </div>
       </section>
 
-      <section class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <h2 class="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
-          Compliance documents
-        </h2>
-        <div id="documents" phx-update="stream" class="mt-4 space-y-2">
-          <div
-            id="documents-empty"
-            class="hidden rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 only:block dark:border-zinc-700 dark:text-zinc-400"
-          >
-            No compliance documents uploaded yet.
-          </div>
-          <div
-            :for={{dom_id, doc} <- @streams.documents}
-            id={dom_id}
-            class="rounded-md border border-zinc-200 p-3 text-sm transition hover:border-emerald-300 hover:bg-emerald-50/50 dark:border-zinc-800 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/20"
-          >
-            <a href={doc.storage_url} class="font-medium text-emerald-700 hover:underline">
-              {doc.filename}
-            </a>
-            <p class="mt-1 text-xs text-zinc-500">{doc.doc_type}</p>
+      <section class="card card-border bg-base-100 shadow-sm">
+        <div class="card-body">
+          <h2 class="card-title text-lg">
+            Compliance documents
+          </h2>
+          <div id="documents" phx-update="stream" class="mt-4 space-y-2">
+            <div
+              id="documents-empty"
+              class="alert alert-info alert-soft hidden only:flex"
+            >
+              No compliance documents uploaded yet.
+            </div>
+            <div
+              :for={{dom_id, doc} <- @streams.documents}
+              id={dom_id}
+              class="card card-border bg-base-100 text-sm transition hover:border-primary hover:bg-base-200"
+            >
+              <div class="card-body p-3">
+                <a href={doc.storage_url} class="link link-primary font-medium">
+                  {doc.filename}
+                </a>
+                <p class="mt-1 text-xs text-base-content/60">{doc.doc_type}</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -540,17 +558,19 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     ~H"""
     <div
       id="party-member-flow-node-party-root"
-      class="min-w-48 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-center shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+      class="card card-border min-w-48 bg-base-100 text-center shadow-sm"
     >
-      <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-        Party
-      </p>
-      <p class="mt-1 font-semibold text-zinc-900 dark:text-zinc-50">
-        {@node.data.party.legal_name}
-      </p>
-      <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-        Tax ID: {@node.data.party.tax_id}
-      </p>
+      <div class="card-body p-3">
+        <p class="text-xs font-semibold uppercase tracking-wide text-primary">
+          Party
+        </p>
+        <p class="mt-1 font-semibold">
+          {@node.data.party.legal_name}
+        </p>
+        <p class="mt-1 text-xs text-base-content/60">
+          Tax ID: {@node.data.party.tax_id}
+        </p>
+      </div>
     </div>
     """
   end
@@ -561,51 +581,53 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     ~H"""
     <div
       id={"party-member-flow-node-#{@node.id}"}
-      class="member-node min-w-60 rounded-lg border border-zinc-200 bg-white p-3 shadow-sm transition hover:border-emerald-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-emerald-700"
+      class="member-node card card-border min-w-60 bg-base-100 shadow-sm transition hover:border-primary hover:shadow-md"
     >
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <p class="font-medium">{@node.data.member.legal_name || "Unnamed member"}</p>
-          <p class="text-xs text-zinc-600 dark:text-zinc-400">
-            {@node.data.member.type} · {@node.data.member.title || "-"}
-          </p>
+      <div class="card-body p-3">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="font-medium">{@node.data.member.legal_name || "Unnamed member"}</p>
+            <p class="text-xs text-base-content/70">
+              {@node.data.member.type} · {@node.data.member.title || "-"}
+            </p>
+          </div>
+          <button
+            id={"add-child-member-#{@node.id}"}
+            type="button"
+            phx-click="open_member_modal"
+            phx-value-parent-id={@node.id}
+            class="btn btn-ghost btn-square btn-sm shrink-0"
+            aria-label={"Add child member to #{@node.data.member.legal_name || "unnamed member"}"}
+          >
+            <.icon name="hero-plus" class="size-4" />
+          </button>
         </div>
-        <button
-          id={"add-child-member-#{@node.id}"}
-          type="button"
-          phx-click="open_member_modal"
-          phx-value-parent-id={@node.id}
-          class="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300"
-          aria-label={"Add child member to #{@node.data.member.legal_name || "unnamed member"}"}
-        >
-          <.icon name="hero-plus" class="size-4" />
-        </button>
-      </div>
 
-      <div class="mt-2 flex flex-wrap gap-2">
-        <button
-          phx-click="toggle_role"
-          phx-value-id={@node.id}
-          phx-value-role="legal_rep"
-          class="rounded-md border border-zinc-200 px-2 py-1 text-xs transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-        >
-          Legal rep: {@node.data.member.is_legal_rep}
-        </button>
-        <button
-          phx-click="toggle_role"
-          phx-value-id={@node.id}
-          phx-value-role="ubo"
-          class="rounded-md border border-zinc-200 px-2 py-1 text-xs transition hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-        >
-          Beneficiary: {@node.data.member.is_ubo}
-        </button>
-        <button
-          phx-click="delete_member"
-          phx-value-id={@node.id}
-          class="rounded-md border border-red-300 px-2 py-1 text-xs text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950/40"
-        >
-          Delete
-        </button>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <button
+            phx-click="toggle_role"
+            phx-value-id={@node.id}
+            phx-value-role="legal_rep"
+            class="btn btn-xs btn-soft"
+          >
+            Legal rep: {@node.data.member.is_legal_rep}
+          </button>
+          <button
+            phx-click="toggle_role"
+            phx-value-id={@node.id}
+            phx-value-role="ubo"
+            class="btn btn-xs btn-soft"
+          >
+            Beneficiary: {@node.data.member.is_ubo}
+          </button>
+          <button
+            phx-click="delete_member"
+            phx-value-id={@node.id}
+            class="btn btn-error btn-soft btn-xs"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </div>
     """

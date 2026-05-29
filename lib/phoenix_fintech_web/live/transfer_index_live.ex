@@ -27,10 +27,10 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
       <section id="transfers-index" class="mx-auto max-w-6xl">
         <div class="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h1 class="text-2xl font-semibold text-zinc-950 dark:text-white">
+            <h1 class="text-2xl font-semibold">
               All transfers for user
             </h1>
-            <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+            <p class="mt-1 text-sm text-base-content/70">
               Cross-border movement requests and FX details.
             </p>
           </div>
@@ -39,39 +39,43 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
           </.button>
         </div>
 
-        <div class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-950">
-              <tr>
-                <th class="px-4 py-3">Parties</th>
-                <th class="px-4 py-3">Originator amount</th>
-                <th class="px-4 py-3">Counterparty amount</th>
-                <th class="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody id="transfers-table" class="divide-y divide-zinc-100 dark:divide-zinc-800">
-              <tr :if={@transfers == []}>
-                <td colspan="4" class="px-4 py-8 text-center text-zinc-500">No transfers yet.</td>
-              </tr>
-              <tr :for={transfer <- @transfers} id={"transfer-#{transfer.id}"}>
-                <td class="px-4 py-3">
-                  <.link
-                    navigate={~p"/app/transfers/#{transfer.id}"}
-                    class="font-medium text-zinc-950 hover:text-emerald-700 dark:text-white"
-                  >
-                    {transfer.originator_party.legal_name} → {transfer.counterparty_party.legal_name}
-                  </.link>
-                </td>
-                <td class="px-4 py-3">
-                  {transfer.amount_in_originator_currency} {transfer.originator_currency_code}
-                </td>
-                <td class="px-4 py-3">
-                  {transfer.amount_in_counterparty_currency} {transfer.counterparty_currency_code}
-                </td>
-                <td class="px-4 py-3 capitalize">{transfer.status}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="card card-border bg-base-100 shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Parties</th>
+                  <th>Originator amount</th>
+                  <th>Counterparty amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="transfers-table">
+                <tr :if={@transfers == []}>
+                  <td colspan="4" class="py-8 text-center text-base-content/60">No transfers yet.</td>
+                </tr>
+                <tr :for={transfer <- @transfers} id={"transfer-#{transfer.id}"}>
+                  <td>
+                    <.link
+                      navigate={~p"/app/transfers/#{transfer.id}"}
+                      class="link link-primary font-medium"
+                    >
+                      {transfer.originator_party.legal_name} → {transfer.counterparty_party.legal_name}
+                    </.link>
+                  </td>
+                  <td>
+                    {transfer.amount_in_originator_currency} {transfer.originator_currency_code}
+                  </td>
+                  <td>
+                    {transfer.amount_in_counterparty_currency} {transfer.counterparty_currency_code}
+                  </td>
+                  <td>
+                    <span class="badge badge-soft badge-info capitalize">{transfer.status}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </Layouts.app>

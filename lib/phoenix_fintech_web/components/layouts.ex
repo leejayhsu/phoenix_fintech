@@ -37,36 +37,32 @@ defmodule PhoenixFintechWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <div class="min-h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <div class="min-h-screen bg-base-200 text-base-content">
       <%= if @current_user do %>
         <div class="flex min-h-screen">
-          <aside class="hidden w-72 border-r border-zinc-200 bg-white/80 p-6 backdrop-blur lg:flex lg:flex-col dark:border-zinc-800 dark:bg-zinc-900/80">
+          <aside class="hidden w-72 border-r border-base-300 bg-base-100/80 p-6 backdrop-blur lg:flex lg:flex-col">
             <a href={~p"/app"} class="mb-10 flex items-center gap-2 text-lg font-semibold">
-              <.icon name="hero-banknotes" class="size-5 text-emerald-600" /> Phoenix Fintech
+              <.icon name="hero-banknotes" class="size-5 text-primary" /> Phoenix Fintech
             </a>
-            <nav class="space-y-2 text-sm">
-              <.link
-                navigate={~p"/app"}
-                class="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                <.icon name="hero-home" class="size-4" /> Dashboard
-              </.link>
-              <.link
-                navigate={~p"/app/parties"}
-                class="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                <.icon name="hero-building-office-2" class="size-4" /> Parties
-              </.link>
-              <.link
-                navigate={~p"/users/settings"}
-                class="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
-              </.link>
-            </nav>
-            <div class="mt-auto text-xs text-zinc-500">
-              Signed in as
-              <span class="font-medium text-zinc-700 dark:text-zinc-200">{@current_user.email}</span>
+            <ul class="menu menu-sm gap-1 p-0">
+              <li>
+                <.link navigate={~p"/app"}>
+                  <.icon name="hero-home" class="size-4" /> Dashboard
+                </.link>
+              </li>
+              <li>
+                <.link navigate={~p"/app/parties"}>
+                  <.icon name="hero-building-office-2" class="size-4" /> Parties
+                </.link>
+              </li>
+              <li>
+                <.link navigate={~p"/users/settings"}>
+                  <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+                </.link>
+              </li>
+            </ul>
+            <div class="mt-auto text-xs text-base-content/60">
+              Signed in as <span class="font-medium text-base-content">{@current_user.email}</span>
             </div>
           </aside>
           <main class="flex-1 p-6 lg:p-10">

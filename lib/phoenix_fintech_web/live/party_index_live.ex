@@ -27,8 +27,8 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
       <section id="parties-index" class="mx-auto max-w-5xl">
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 class="text-2xl font-semibold text-zinc-950 dark:text-white">All parties for user</h1>
-            <p class="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+            <h1 class="text-2xl font-semibold">All parties for user</h1>
+            <p class="mt-2 text-sm text-base-content/70">
               Businesses onboarded by this user for transfer workflows.
             </p>
           </div>
@@ -37,32 +37,36 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
           </.button>
         </div>
 
-        <div class="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-950">
-              <tr>
-                <th class="px-4 py-3">Legal name</th>
-                <th class="px-4 py-3">Tax ID</th>
-                <th class="px-4 py-3">Country</th>
-              </tr>
-            </thead>
-            <tbody id="parties-table" class="divide-y divide-zinc-100 dark:divide-zinc-800">
-              <tr :if={@parties == []}>
-                <td colspan="3" class="px-4 py-8 text-center text-sm text-zinc-500">
-                  No parties onboarded yet.
-                </td>
-              </tr>
-              <tr :for={party <- @parties} id={"party-#{party.id}"}>
-                <td class="px-4 py-3 font-medium text-zinc-950 dark:text-white">
-                  <.link navigate={~p"/app/parties/#{party.id}"} class="hover:text-emerald-700">
-                    {party.legal_name}
-                  </.link>
-                </td>
-                <td class="px-4 py-3 text-zinc-600 dark:text-zinc-300">{party.tax_id}</td>
-                <td class="px-4 py-3 text-zinc-600 dark:text-zinc-300">{party.country_code}</td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="card card-border bg-base-100 shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Legal name</th>
+                  <th>Tax ID</th>
+                  <th>Country</th>
+                </tr>
+              </thead>
+              <tbody id="parties-table">
+                <tr :if={@parties == []}>
+                  <td colspan="3" class="py-8 text-center text-sm text-base-content/60">
+                    No parties onboarded yet.
+                  </td>
+                </tr>
+                <tr :for={party <- @parties} id={"party-#{party.id}"}>
+                  <td class="font-medium">
+                    <.link navigate={~p"/app/parties/#{party.id}"} class="link link-primary">
+                      {party.legal_name}
+                    </.link>
+                  </td>
+                  <td>{party.tax_id}</td>
+                  <td>
+                    <span class="badge badge-ghost">{party.country_code}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
     </Layouts.app>

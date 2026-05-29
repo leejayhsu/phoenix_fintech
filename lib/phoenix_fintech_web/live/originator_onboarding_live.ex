@@ -114,18 +114,18 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
       <section id="originator-onboarding" class="mx-auto max-w-5xl">
         <div class="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
               Originator onboarding
             </p>
-            <h1 class="mt-2 text-3xl font-semibold text-zinc-950 dark:text-white">
+            <h1 class="mt-2 text-3xl font-semibold">
               Add a business party
             </h1>
-            <p class="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-300">
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-base-content/70">
               Capture the business identity, ownership representative, and tax identifiers needed before transfers can reference this originator.
             </p>
           </div>
 
-          <div class="grid min-w-72 grid-cols-3 overflow-hidden rounded-lg border border-zinc-200 bg-white text-xs font-medium shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <ul class="steps min-w-72">
             <.step_pill
               label="Business"
               active={@step == :party}
@@ -137,25 +137,27 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
               complete={@step == :review}
             />
             <.step_pill label="Review" active={@step == :review} complete={false} />
-          </div>
+          </ul>
         </div>
 
-        <div class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
-          <%= case @step do %>
-            <% :party -> %>
-              <.party_step party_form={@party_form} government_id_form={@party_government_id_form} />
-            <% :representative -> %>
-              <.representative_step
-                representative_form={@representative_form}
-                government_id_form={@representative_government_id_form}
-              />
-            <% :review -> %>
-              <.review_step
-                party_params={@party_params}
-                party_government_id_params={@party_government_id_params}
-                representative_params={@representative_params}
-              />
-          <% end %>
+        <div class="card card-border bg-base-100 shadow-sm">
+          <div class="card-body">
+            <%= case @step do %>
+              <% :party -> %>
+                <.party_step party_form={@party_form} government_id_form={@party_government_id_form} />
+              <% :representative -> %>
+                <.representative_step
+                  representative_form={@representative_form}
+                  government_id_form={@representative_government_id_form}
+                />
+              <% :review -> %>
+                <.review_step
+                  party_params={@party_params}
+                  party_government_id_params={@party_government_id_params}
+                  representative_params={@representative_params}
+                />
+            <% end %>
+          </div>
         </div>
       </section>
     </Layouts.app>
@@ -168,15 +170,16 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
 
   defp step_pill(assigns) do
     ~H"""
-    <div class={[
-      "flex items-center justify-center gap-2 px-3 py-3 transition",
-      @active && "bg-zinc-950 text-white dark:bg-white dark:text-zinc-950",
-      @complete && "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
-      !@active && !@complete && "text-zinc-500"
+    <li class={[
+      "step",
+      @active && "step-primary",
+      @complete && "step-success"
     ]}>
-      <.icon :if={@complete} name="hero-check-circle" class="size-4" />
+      <span :if={@complete} class="step-icon">
+        <.icon name="hero-check-circle" class="size-4" />
+      </span>
       <span>{@label}</span>
-    </div>
+    </li>
     """
   end
 
@@ -215,16 +218,18 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
           />
         </div>
 
-        <div class="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950">
-          <h2 class="text-sm font-semibold text-zinc-950 dark:text-white">Business government ID</h2>
-          <.input
-            field={@government_id_form[:type]}
-            type="select"
-            label="Type"
-            options={[EIN: "ein", Passport: "passport", "National ID": "national_id"]}
-          />
-          <.input field={@government_id_form[:country_code]} label="Issuing country" maxlength="2" />
-          <.input field={@government_id_form[:value]} label="Value" />
+        <div class="card bg-base-200">
+          <div class="card-body p-4">
+            <h2 class="card-title text-sm">Business government ID</h2>
+            <.input
+              field={@government_id_form[:type]}
+              type="select"
+              label="Type"
+              options={[EIN: "ein", Passport: "passport", "National ID": "national_id"]}
+            />
+            <.input field={@government_id_form[:country_code]} label="Issuing country" maxlength="2" />
+            <.input field={@government_id_form[:value]} label="Value" />
+          </div>
         </div>
       </div>
 
@@ -276,18 +281,20 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
           />
         </div>
 
-        <div class="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950">
-          <h2 class="text-sm font-semibold text-zinc-950 dark:text-white">
-            Representative government ID
-          </h2>
-          <.input
-            field={@government_id_form[:type]}
-            type="select"
-            label="Type"
-            options={[SSN: "ssn", Passport: "passport", "National ID": "national_id"]}
-          />
-          <.input field={@government_id_form[:country_code]} label="Issuing country" maxlength="2" />
-          <.input field={@government_id_form[:value]} label="Value" />
+        <div class="card bg-base-200">
+          <div class="card-body p-4">
+            <h2 class="card-title text-sm">
+              Representative government ID
+            </h2>
+            <.input
+              field={@government_id_form[:type]}
+              type="select"
+              label="Type"
+              options={[SSN: "ssn", Passport: "passport", "National ID": "national_id"]}
+            />
+            <.input field={@government_id_form[:country_code]} label="Issuing country" maxlength="2" />
+            <.input field={@government_id_form[:value]} label="Value" />
+          </div>
         </div>
       </div>
 
@@ -300,7 +307,7 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
         </.button>
       </div>
 
-      <p class="mt-3 text-xs text-zinc-500">
+      <p class="mt-3 text-xs text-base-content/60">
         Party members are optional during onboarding. You can add one or many members later from the party details page.
       </p>
     </.form>
@@ -363,14 +370,18 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
 
   defp review_panel(assigns) do
     ~H"""
-    <section class="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <h2 class="mb-4 text-sm font-semibold text-zinc-950 dark:text-white">{@title}</h2>
-      <dl class="space-y-3">
-        <div :for={row <- @row}>
-          <dt class="text-xs font-medium uppercase tracking-wide text-zinc-500">{row.label}</dt>
-          <dd class="mt-1 text-sm text-zinc-900 dark:text-zinc-100">{render_slot(row)}</dd>
-        </div>
-      </dl>
+    <section class="card card-border bg-base-100">
+      <div class="card-body p-4">
+        <h2 class="card-title mb-4 text-sm">{@title}</h2>
+        <dl class="space-y-3">
+          <div :for={row <- @row}>
+            <dt class="text-xs font-medium uppercase tracking-wide text-base-content/60">
+              {row.label}
+            </dt>
+            <dd class="mt-1 text-sm">{render_slot(row)}</dd>
+          </div>
+        </dl>
+      </div>
     </section>
     """
   end
