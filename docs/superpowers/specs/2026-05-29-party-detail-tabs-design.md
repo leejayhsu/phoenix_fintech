@@ -40,7 +40,7 @@ The shared header shows:
 - Tax ID.
 - Route links for Overview, Members, and Documents.
 
-The tabs should be visually quiet and app-like: compact route links with a clear active state, not large marketing cards. Each tab link should have a stable DOM ID for LiveView tests:
+The tabs should use daisyUI classes so the implementation follows the app's installed component system. Use a compact `tabs tabs-box` or similarly quiet daisyUI tab treatment with `tab` links and `tab-active` on the active route. Customize only with Tailwind utilities when needed for spacing or layout. Do not use large marketing cards for navigation. Each tab link should have a stable DOM ID for LiveView tests:
 
 - `party-overview-tab`
 - `party-members-tab`

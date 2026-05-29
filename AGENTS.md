@@ -6,6 +6,8 @@ This is a web application written using the Phoenix web framework.
 - Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
 - when git committing, always use conventional commits
 - when testing locally, sign in with the credentials `leejayhsu@gmail.com` / `asdfasdf`
+- always prioritize using daisyUI components and classes over custom Tailwind CSS.
+- activate the daisyUI skill to know what components and classes are available
 
 ### Phoenix v1.8 guidelines
 
