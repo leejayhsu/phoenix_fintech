@@ -9,6 +9,7 @@ services:
     environment:
       DATABASE_URL: ecto://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-phoenix_fintech}
       ECTO_IPV6: "false"
+      FORCE_SSL: ${FORCE_SSL:-false}
       PHX_HOST: ${PHX_HOST:-localhost}
       PHX_SERVER: "true"
       POOL_SIZE: ${POOL_SIZE:-10}
