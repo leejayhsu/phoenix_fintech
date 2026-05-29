@@ -34,4 +34,43 @@
     display: contents;
 }
 
+/* Keep LiveFlow aligned with the active daisyUI theme. */
+.lf-container {
+    --lf-background: var(--color-base-200);
+    --lf-background-dots-color: color-mix(in oklab, var(--color-base-content) 14%, transparent);
+    --lf-background-lines-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+    --lf-background-cross-color: color-mix(in oklab, var(--color-base-content) 10%, transparent);
+    --lf-node-bg: var(--color-base-100);
+    --lf-node-border: var(--color-base-300);
+    --lf-node-shadow: 0 1px 4px 1px color-mix(in oklab, var(--color-base-content) 10%, transparent);
+    --lf-node-shadow-hover: 0 2px 8px 2px color-mix(in oklab, var(--color-base-content) 14%, transparent);
+    --lf-node-selected-border: var(--color-primary);
+    --lf-node-selected-shadow: 0 0 0 2px color-mix(in oklab, var(--color-primary) 30%, transparent);
+    --lf-edge-stroke: color-mix(in oklab, var(--color-base-content) 38%, transparent);
+    --lf-edge-stroke-selected: var(--color-primary);
+    --lf-edge-stroke-animated: var(--color-accent);
+    --lf-handle-bg: var(--color-base-100);
+    --lf-handle-border: color-mix(in oklab, var(--color-base-content) 60%, transparent);
+    --lf-handle-hover-bg: var(--color-primary);
+    --lf-selection-bg: color-mix(in oklab, var(--color-primary) 12%, transparent);
+    --lf-selection-border: color-mix(in oklab, var(--color-primary) 80%, transparent);
+    --lf-helper-line-color: var(--color-primary);
+    --lf-minimap-bg: color-mix(in oklab, var(--color-base-100) 92%, transparent);
+    --lf-minimap-border: var(--color-base-300);
+    --lf-minimap-node-bg: var(--color-base-300);
+    --lf-minimap-viewport-border: var(--color-primary);
+    --lf-controls-bg: var(--color-base-100);
+    --lf-controls-border: var(--color-base-300);
+    --lf-controls-button-hover: var(--color-base-200);
+    --lf-controls-color: var(--color-base-content);
+    --lf-text-primary: var(--color-base-content);
+    --lf-text-secondary: color-mix(in oklab, var(--color-base-content) 72%, transparent);
+    --lf-text-muted: color-mix(in oklab, var(--color-base-content) 58%, transparent);
+    --lf-surface-secondary: var(--color-base-200);
+    --lf-border-secondary: var(--color-base-300);
+    --lf-delete-hover-bg: color-mix(in oklab, var(--color-error) 14%, transparent);
+    --lf-delete-hover-color: var(--color-error);
+    --lf-delete-hover-border: color-mix(in oklab, var(--color-error) 45%, transparent);
+}
+
 /* This file is for your main application CSS */

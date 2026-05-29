@@ -669,8 +669,8 @@ defmodule PhoenixFintechWeb.PartyShowLive do
           type: :smoothstep,
           selectable: false,
           deletable: false,
-          style: %{"stroke" => "#10b981", "stroke-width" => "2.5px"},
-          marker_end: %{type: :arrow, color: "#10b981"}
+          style: %{"stroke" => "var(--color-success)", "stroke-width" => "2.5px"},
+          marker_end: %{type: :arrow, color: "context-stroke"}
         )
       end)
 
