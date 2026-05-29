@@ -1,0 +1,38 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ecto://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-phoenix_fintech}
+      ECTO_IPV6: "false"
+      PHX_HOST: ${PHX_HOST:-localhost}
+      PHX_SERVER: "true"
+      POOL_SIZE: ${POOL_SIZE:-10}
+      PORT: "4000"
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?set SECRET_KEY_BASE}
+    ports:
+      - "${PORT:-4000}:4000"
+    restart: unless-stopped
+    command: sh -c "/app/bin/migrate && /app/bin/server"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-phoenix_fintech}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_USER: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:-phoenix_fintech}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
