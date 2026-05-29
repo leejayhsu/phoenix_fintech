@@ -9,6 +9,7 @@ This is a web application written using the Phoenix web framework.
 - dont write tests, this app is for learning purposes only.
 - always prioritize using daisyUI components and classes over custom Tailwind CSS.
 - activate the daisyUI skill to know what components and classes are available
+- typically i'm already running the dev server on localhost:4000, so check if that's running before starting your own instance of the dev server.
 
 ### Phoenix v1.8 guidelines
 
