@@ -10,6 +10,12 @@ This is a web application written using the Phoenix web framework.
 - always prioritize using daisyUI components and classes over custom Tailwind CSS.
 - activate the daisyUI skill to know what components and classes are available
 - typically i'm already running the dev server on localhost:4000, so check if that's running before starting your own instance of the dev server.
+- highly prefer liveview pages for any pages that require interactivity or state management
+
+## Styling
+- we use DaisyUI for tailwind classes
+- always prefer using daisyUI components and classes over custom Tailwind CSS
+- do not try too hard to strive for a specific look and feel- we don't yet have a design system for this app, so it's better to just have minimal css, so there are no custom styles overriding daisyUI classes, and also less to change when we do have a design system.
 
 ### Phoenix v1.8 guidelines
 
