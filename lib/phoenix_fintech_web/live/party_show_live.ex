@@ -148,6 +148,10 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     end
   end
 
+  def handle_event("validate_document", %{"document" => document_params}, socket) do
+    {:noreply, assign_doc_form(socket, document_params)}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -499,6 +503,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
           <.form
             for={@document_form}
             id="party-document-form"
+            phx-change="validate_document"
             phx-submit="upload_document"
             class="mt-4 space-y-3"
           >
@@ -512,11 +517,34 @@ defmodule PhoenixFintechWeb.PartyShowLive do
                 {"Other", "other"}
               ]}
             />
-            <.live_file_input
-              upload={@uploads.compliance_document}
-              class="file-input file-input-primary w-full"
-            />
-            <.button id="upload-document-button" type="submit">Upload document</.button>
+            <div class="flex flex-wrap items-center gap-2">
+              <.live_file_input upload={@uploads.compliance_document} class="sr-only" />
+              <label for={@uploads.compliance_document.ref} class="btn btn-primary">
+                Choose file
+              </label>
+              <.button id="upload-document-button" type="submit">Upload document</.button>
+            </div>
+            <div
+              :for={entry <- @uploads.compliance_document.entries}
+              id={"document-upload-preview-#{entry.ref}"}
+              class="flex items-center gap-3 rounded-box border border-base-300 bg-base-200 p-3"
+            >
+              <.live_img_preview
+                :if={image_upload_entry?(entry)}
+                entry={entry}
+                class="size-16 rounded-field object-cover"
+              />
+              <div
+                :if={!image_upload_entry?(entry)}
+                class="flex size-16 items-center justify-center rounded-field bg-base-300"
+              >
+                <.icon name="hero-document" class="size-7 text-base-content/60" />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium">{entry.client_name}</p>
+                <p class="text-xs text-base-content/60">{entry.progress}% uploaded</p>
+              </div>
+            </div>
           </.form>
         </div>
       </section>
@@ -538,11 +566,25 @@ defmodule PhoenixFintechWeb.PartyShowLive do
               id={dom_id}
               class="card card-border bg-base-100 text-sm transition hover:border-primary hover:bg-base-200"
             >
-              <div class="card-body p-3">
-                <a href={doc.storage_url} class="link link-primary font-medium">
-                  {doc.filename}
-                </a>
-                <p class="mt-1 text-xs text-base-content/60">{doc.doc_type}</p>
+              <div class="card-body flex-row items-center gap-3 p-3">
+                <img
+                  :if={image_document?(doc)}
+                  src={doc.storage_url}
+                  alt={"#{doc.filename} thumbnail"}
+                  class="size-16 rounded-field object-cover"
+                />
+                <div
+                  :if={!image_document?(doc)}
+                  class="flex size-16 shrink-0 items-center justify-center rounded-field bg-base-200"
+                >
+                  <.icon name="hero-document" class="size-7 text-base-content/60" />
+                </div>
+                <div class="min-w-0">
+                  <a href={doc.storage_url} class="link link-primary font-medium">
+                    {doc.filename}
+                  </a>
+                  <p class="mt-1 text-xs text-base-content/60">{doc.doc_type}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -772,8 +814,24 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     assign(socket, :member_form, to_form(changeset, as: :party_member))
   end
 
-  defp assign_doc_form(socket),
-    do: assign(socket, :document_form, to_form(%{"doc_type" => "other"}, as: :document))
+  defp assign_doc_form(socket, attrs \\ %{}),
+    do:
+      assign(
+        socket,
+        :document_form,
+        to_form(Map.put_new(attrs, "doc_type", "other"), as: :document)
+      )
+
+  defp image_upload_entry?(entry) do
+    String.starts_with?(entry.client_type || "", "image/")
+  end
+
+  defp image_document?(doc) do
+    doc.filename
+    |> Path.extname()
+    |> String.downcase()
+    |> then(&(&1 in [".jpg", ".jpeg", ".png"]))
+  end
 
   defp current_user(%{user: user}), do: user
   defp current_user(_), do: nil
