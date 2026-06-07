@@ -39,7 +39,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
           </.button>
         </div>
 
-        <div class="card card-border bg-base-100 shadow-sm">
+        <div class="card card-border bg-base-100">
           <div class="overflow-x-auto">
             <table class="table table-zebra">
               <thead>

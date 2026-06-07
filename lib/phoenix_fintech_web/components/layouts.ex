@@ -40,7 +40,7 @@ defmodule PhoenixFintechWeb.Layouts do
     <div class="min-h-screen bg-base-200 text-base-content">
       <%= if @current_user do %>
         <div class="flex min-h-screen">
-          <aside class="hidden w-72 border-r border-base-300 bg-base-100/80 p-6 backdrop-blur lg:flex lg:flex-col">
+          <aside class="hidden w-72 border-r border-base-300 bg-base-100 p-6 lg:flex lg:flex-col">
             <a href={~p"/app"} class="mb-10 flex items-center gap-2 text-lg font-semibold">
               <.icon name="hero-banknotes" class="size-5 text-primary" /> Phoenix Fintech
             </a>
@@ -136,31 +136,35 @@ defmodule PhoenixFintechWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=corporate]_&]:left-1/3 [[data-theme=dracula]_&]:left-2/3 transition-[left]" />
-
+    <div class="join">
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        type="button"
+        class="btn btn-sm btn-square join-item"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="system"
+        aria-label="Use system theme"
       >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-computer-desktop-micro" class="size-4" />
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        type="button"
+        class="btn btn-sm btn-square join-item"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="corporate"
+        aria-label="Use light theme"
       >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-sun-micro" class="size-4" />
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        type="button"
+        class="btn btn-sm btn-square join-item"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="dracula"
+        aria-label="Use dark theme"
       >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-moon-micro" class="size-4" />
       </button>
     </div>
     """

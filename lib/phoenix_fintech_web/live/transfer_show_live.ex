@@ -38,8 +38,8 @@ defmodule PhoenixFintechWeb.TransferShowLive do
           <.icon name="hero-arrow-left" class="size-4" /> Back to transfers
         </.link>
 
-        <div class="card card-border bg-base-100 shadow-sm">
-          <div class="border-b border-base-300 bg-base-200/50 px-6 py-5">
+        <div class="card card-border bg-base-100">
+          <div class="border-b border-base-300 bg-base-200 px-6 py-5">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h1 class="text-2xl font-semibold">Transfer details</h1>

@@ -114,7 +114,7 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
       <section id="originator-onboarding" class="mx-auto max-w-5xl">
         <div class="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+            <p class="text-sm font-semibold uppercase tracking-wide text-primary">
               Originator onboarding
             </p>
             <h1 class="mt-2 text-3xl font-semibold">
@@ -140,7 +140,7 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
           </ul>
         </div>
 
-        <div class="card card-border bg-base-100 shadow-sm">
+        <div class="card card-border bg-base-100">
           <div class="card-body">
             <%= case @step do %>
               <% :party -> %>

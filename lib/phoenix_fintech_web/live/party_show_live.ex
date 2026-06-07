@@ -247,7 +247,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         id="party-overview-tab"
         navigate={~p"/app/parties/#{@party.id}"}
         class={[
-          "tab h-9 px-4 text-sm transition",
+          "tab",
           @active_tab == :overview && "tab-active"
         ]}
       >
@@ -257,7 +257,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         id="party-members-tab"
         navigate={~p"/app/parties/#{@party.id}/members"}
         class={[
-          "tab h-9 px-4 text-sm transition",
+          "tab",
           @active_tab == :members && "tab-active"
         ]}
       >
@@ -267,7 +267,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         id="party-documents-tab"
         navigate={~p"/app/parties/#{@party.id}/documents"}
         class={[
-          "tab h-9 px-4 text-sm transition",
+          "tab",
           @active_tab == :documents && "tab-active"
         ]}
       >
@@ -299,7 +299,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       </div>
 
       <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <section class="card card-border bg-base-100 shadow-sm">
+        <section class="card card-border bg-base-100">
           <div class="card-body">
             <h2 class="card-title text-lg">Business profile</h2>
             <dl class="mt-5 grid gap-4 sm:grid-cols-3">
@@ -329,7 +329,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
           </div>
         </section>
 
-        <section class="card card-border bg-base-100 shadow-sm">
+        <section class="card card-border bg-base-100">
           <div class="card-body">
             <h2 class="card-title text-lg">Recent activity</h2>
             <div class="mt-4 space-y-3">
@@ -376,7 +376,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
   defp summary_card(assigns) do
     ~H"""
-    <div class="card card-border bg-base-100 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+    <div class="card card-border bg-base-100">
       <div class="card-body p-4">
         <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">{@label}</p>
         <p class="mt-2 text-xl font-semibold">{@value}</p>
@@ -411,7 +411,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     <.link
       id={@id}
       navigate={@href}
-      class="card card-border group bg-base-100 shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
+      class="card card-border bg-base-100"
     >
       <div class="card-body flex-row items-center justify-between gap-4">
         <div>
@@ -433,7 +433,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     ~H"""
     <div
       id="party-members-panel"
-      class="card card-border bg-base-100 shadow-sm"
+      class="card card-border bg-base-100"
     >
       <div class="card-body">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -497,7 +497,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   defp documents_panel(assigns) do
     ~H"""
     <div id="party-documents-panel" class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-      <section class="card card-border bg-base-100 shadow-sm">
+      <section class="card card-border bg-base-100">
         <div class="card-body">
           <h2 class="card-title text-lg">Upload document</h2>
           <.form
@@ -549,7 +549,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         </div>
       </section>
 
-      <section class="card card-border bg-base-100 shadow-sm">
+      <section class="card card-border bg-base-100">
         <div class="card-body">
           <h2 class="card-title text-lg">
             Compliance documents
@@ -564,7 +564,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
             <div
               :for={{dom_id, doc} <- @streams.documents}
               id={dom_id}
-              class="card card-border bg-base-100 text-sm transition hover:border-primary hover:bg-base-200"
+              class="card card-border bg-base-100 text-sm"
             >
               <div class="card-body flex-row items-center gap-3 p-3">
                 <img
@@ -600,7 +600,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     ~H"""
     <div
       id="party-member-flow-node-party-root"
-      class="card card-border min-w-48 bg-base-100 text-center shadow-sm"
+      class="card card-border min-w-48 bg-base-100 text-center"
     >
       <div class="card-body p-3">
         <p class="text-xs font-semibold uppercase tracking-wide text-primary">
@@ -623,7 +623,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     ~H"""
     <div
       id={"party-member-flow-node-#{@node.id}"}
-      class="member-node card card-border min-w-60 bg-base-100 shadow-sm transition hover:border-primary hover:shadow-md"
+      class="member-node card card-border min-w-60 bg-base-100"
     >
       <div class="card-body p-3">
         <div class="flex items-start justify-between gap-3">

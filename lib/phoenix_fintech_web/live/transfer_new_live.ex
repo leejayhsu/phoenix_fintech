@@ -72,7 +72,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
         <h1 class="mb-6 text-3xl font-semibold">Create transfer</h1>
 
         <%= if @step == :details do %>
-          <div class="card card-border bg-base-100 shadow-sm">
+          <div class="card card-border bg-base-100">
             <div class="card-body">
               <.form for={@transfer_form} id="transfer-details-form" phx-submit="save_details">
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -122,7 +122,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
             </div>
           </div>
         <% else %>
-          <div class="card card-border bg-base-100 shadow-sm">
+          <div class="card card-border bg-base-100">
             <div class="card-body">
               <.form for={@quote_form} id="transfer-quote-form" phx-submit="save_transfer">
                 <input
