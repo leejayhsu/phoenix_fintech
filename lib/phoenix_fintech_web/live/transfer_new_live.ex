@@ -263,17 +263,6 @@ defmodule PhoenixFintechWeb.TransferNewLive do
                   </p>
                 </div>
 
-                <div class="grid gap-3 md:grid-cols-2">
-                  <.summary_card
-                    label="Originator"
-                    party={selected_originator(@parties, @selected_originator_id)}
-                  />
-                  <.summary_card
-                    label="Counterparty"
-                    party={selected_counterparty(@parties, @selected_counterparty_ids)}
-                  />
-                </div>
-
                 <div :if={@quote_error} role="alert" class="alert alert-error alert-soft">
                   <.icon name="hero-exclamation-circle" class="size-5" />
                   <span>{@quote_error}</span>
@@ -285,39 +274,94 @@ defmodule PhoenixFintechWeb.TransferNewLive do
                   phx-change="quote_changed"
                   phx-submit="generate_quote"
                 >
-                  <div class="grid gap-4 md:grid-cols-3">
-                    <.input
-                      field={@quote_form[:amount_in_originator_currency]}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      label="Amount to send"
-                    />
-                    <.input
-                      field={@quote_form[:originator_currency_code]}
-                      type="select"
-                      label="Send currency"
-                      options={currency_options(@currencies)}
-                    />
-                    <.input
-                      field={@quote_form[:counterparty_currency_code]}
-                      type="select"
-                      label="Destination currency"
-                      options={currency_options(@currencies)}
-                    />
+                  <div class="grid gap-6 lg:grid-cols-2">
+                    <div class="space-y-4">
+                      <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                            Originator
+                          </p>
+                          <p class="mt-1 font-medium">
+                            {selected_party_name(@parties, @selected_originator_id)}
+                          </p>
+                        </div>
+                        <div>
+                          <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                            Counterparty
+                          </p>
+                          <p class="mt-1 font-medium">
+                            {selected_party_name(@parties, @selected_counterparty_ids)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <.input
+                        field={@quote_form[:amount_in_originator_currency]}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        label="Amount to send"
+                      />
+
+                      <div class="grid gap-4 sm:grid-cols-2">
+                        <.input
+                          field={@quote_form[:originator_currency_code]}
+                          type="select"
+                          label="Send currency"
+                          options={currency_options(@currencies)}
+                        />
+                        <.input
+                          field={@quote_form[:counterparty_currency_code]}
+                          type="select"
+                          label="Destination currency"
+                          options={currency_options(@currencies)}
+                        />
+                      </div>
+                    </div>
+
+                    <div class="space-y-4">
+                      <.spot_rate_card
+                        rate={selected_spot_rate(@spot_rates, @quote_form)}
+                        from_currency_code={quote_form_value(@quote_form, :originator_currency_code)}
+                        to_currency_code={quote_form_value(@quote_form, :counterparty_currency_code)}
+                        updated_at={@spot_rates_updated_at}
+                      />
+
+                      <% details = fx_details(assigns) %>
+                      <div :if={details} class="card card-border bg-base-100">
+                        <div class="card-body gap-3 p-4">
+                          <h3 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                            FX details
+                          </h3>
+                          <div class="flex items-center justify-between gap-4">
+                            <span class="text-sm text-base-content/70">Destination amount</span>
+                            <span class="font-medium tabular-nums">
+                              <%= if details.destination_amount do %>
+                                {details.destination_amount} {details.destination_currency}
+                              <% else %>
+                                —
+                              <% end %>
+                            </span>
+                          </div>
+                          <div class="flex items-center justify-between gap-4">
+                            <span class="text-sm text-base-content/70">FX fee</span>
+                            <span class="font-medium tabular-nums">
+                              <%= if details.fx_fee do %>
+                                {details.fx_fee} {details.fx_fee_currency}
+                              <% else %>
+                                —
+                              <% end %>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <input
                     type="hidden"
                     name="quote[fx_rate]"
                     value={spot_rate_input_value(selected_spot_rate(@spot_rates, @quote_form))}
-                  />
-
-                  <.spot_rate_card
-                    rate={selected_spot_rate(@spot_rates, @quote_form)}
-                    from_currency_code={quote_form_value(@quote_form, :originator_currency_code)}
-                    to_currency_code={quote_form_value(@quote_form, :counterparty_currency_code)}
-                    updated_at={@spot_rates_updated_at}
                   />
 
                   <div class="card-actions mt-6 justify-between">
@@ -436,23 +480,6 @@ defmodule PhoenixFintechWeb.TransferNewLive do
     """
   end
 
-  attr :label, :string, required: true
-  attr :party, :map, default: nil
-
-  def summary_card(assigns) do
-    ~H"""
-    <div class="card card-border bg-base-100">
-      <div class="card-body p-4">
-        <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">{@label}</p>
-        <p class="mt-2 font-medium">{if @party, do: @party.legal_name, else: "Not selected"}</p>
-        <p :if={@party} class="text-sm text-base-content/60">
-          {@party.country_code} · Tax ID {@party.tax_id}
-        </p>
-      </div>
-    </div>
-    """
-  end
-
   attr :rate, :any, required: true
   attr :from_currency_code, :string, required: true
   attr :to_currency_code, :string, required: true
@@ -468,10 +495,13 @@ defmodule PhoenixFintechWeb.TransferNewLive do
             <span class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
               {@from_currency_code}/{@to_currency_code}
             </span>
+            <span
+              class="tooltip tooltip-right text-base-content/60"
+              data-tip="This rate refreshes every 5 seconds and will be locked when you generate the binding quote."
+            >
+              <.icon name="hero-information-circle" class="size-4" />
+            </span>
           </div>
-          <p class="mt-2 text-sm text-base-content/70">
-            This rate refreshes every 5 seconds and will be locked when you generate the binding quote.
-          </p>
         </div>
         <div class="text-left sm:text-right">
           <p class="text-3xl font-semibold tabular-nums">
@@ -551,6 +581,85 @@ defmodule PhoenixFintechWeb.TransferNewLive do
 
   defp selected_counterparty(parties, selected_counterparty_ids),
     do: Enum.find(parties, &(&1.id in selected_counterparty_ids))
+
+  defp selected_party_name(parties, party_id)
+       when is_binary(party_id) or is_integer(party_id),
+       do: party_name(parties, party_id)
+
+  defp selected_party_name(parties, [party_id | _]),
+    do: party_name(parties, party_id)
+
+  defp selected_party_name(_parties, _no_selection), do: "Not selected"
+
+  defp party_name(parties, party_id) do
+    case Enum.find(parties, &(&1.id == party_id)) do
+      nil -> "Not selected"
+      party -> party.legal_name
+    end
+  end
+
+  defp fx_details(%{quote: quote}) when not is_nil(quote) do
+    lines = (quote.calculation_snapshot || %{})["lines"] || []
+    fee_line = Enum.find(lines, &(&1["code"] == "fx_fee"))
+
+    %{
+      destination_amount: quote.amount_in_counterparty_currency,
+      destination_currency: quote.counterparty_currency_code,
+      fx_fee: fee_line && fee_line["amount"],
+      fx_fee_currency: fee_line && fee_line["currency_code"]
+    }
+  end
+
+  defp fx_details(assigns) do
+    amount = quote_form_value(assigns.quote_form, :amount_in_originator_currency)
+    rate = selected_spot_rate(assigns.spot_rates, assigns.quote_form)
+    from_code = quote_form_value(assigns.quote_form, :originator_currency_code)
+    to_code = quote_form_value(assigns.quote_form, :counterparty_currency_code)
+
+    if is_nil(from_code) or is_nil(to_code) do
+      nil
+    else
+      destination_amount = preview_destination_amount(amount, rate)
+      fx_fee = preview_fx_fee(amount, rate)
+
+      %{
+        destination_amount: destination_amount,
+        destination_currency: to_code,
+        fx_fee: fx_fee,
+        fx_fee_currency: from_code
+      }
+    end
+  end
+
+  defp preview_destination_amount(amount, rate) do
+    with amount_str when not is_nil(amount_str) and amount_str != "" <- amount,
+         {amount_dec, ""} <- parse_decimal(amount_str),
+         rate when not is_nil(rate) <- rate,
+         {rate_dec, ""} <- parse_decimal(rate) do
+      Decimal.mult(amount_dec, rate_dec) |> Decimal.round(2)
+    else
+      _ -> nil
+    end
+  end
+
+  defp preview_fx_fee(amount, rate) do
+    with amount_str when not is_nil(amount_str) and amount_str != "" <- amount,
+         {amount_dec, ""} <- parse_decimal(amount_str),
+         rate when not is_nil(rate) <- rate,
+         {rate_dec, ""} <- parse_decimal(rate) do
+      if Decimal.equal?(rate_dec, Decimal.new("1")) do
+        Decimal.new("0")
+      else
+        Decimal.mult(amount_dec, Decimal.new("0.01"))
+      end
+    else
+      _ -> nil
+    end
+  end
+
+  defp parse_decimal(%Decimal{} = decimal), do: {decimal, ""}
+  defp parse_decimal(value) when is_binary(value), do: Decimal.parse(value)
+  defp parse_decimal(value), do: Decimal.parse(to_string(value))
 
   defp currency_options(currencies),
     do: for(currency <- currencies, do: {"#{currency.code} · #{currency.name}", currency.code})
