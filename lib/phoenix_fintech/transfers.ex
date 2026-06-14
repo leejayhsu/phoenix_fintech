@@ -7,6 +7,17 @@ defmodule PhoenixFintech.Transfers do
   alias PhoenixFintech.Transfers.Quotes.{Pipeline, QuoteContext}
   alias PhoenixFintech.Transfers.Quotes.Items
 
+  @demo_fx_rates %{
+    {"USD", "EUR"} => "0.9200",
+    {"EUR", "USD"} => "1.0870",
+    {"USD", "GBP"} => "0.7900",
+    {"GBP", "USD"} => "1.2660",
+    {"USD", "JPY"} => "156.2000",
+    {"JPY", "USD"} => "0.0064",
+    {"EUR", "GBP"} => "0.8600",
+    {"GBP", "EUR"} => "1.1630"
+  }
+
   def list_transfers do
     Repo.all(base_transfer_query())
   end
@@ -172,16 +183,55 @@ defmodule PhoenixFintech.Transfers do
   end
 
   defp normalize_quote_input(attrs) do
+    originator_currency_code = attrs |> Map.get("originator_currency_code") |> String.upcase()
+    counterparty_currency_code = attrs |> Map.get("counterparty_currency_code") |> String.upcase()
+
     %{
       originator_party_id: Map.get(attrs, "originator_party_id"),
       counterparty_party_id: Map.get(attrs, "counterparty_party_id"),
-      originator_currency_code: attrs |> Map.get("originator_currency_code") |> String.upcase(),
-      counterparty_currency_code:
-        attrs |> Map.get("counterparty_currency_code") |> String.upcase(),
+      originator_currency_code: originator_currency_code,
+      counterparty_currency_code: counterparty_currency_code,
       amount_in_originator_currency:
         attrs |> Map.get("amount_in_originator_currency") |> Decimal.new(),
-      fx_rate: attrs |> Map.get("fx_rate") |> blank_to_nil() |> maybe_decimal()
+      fx_rate:
+        attrs
+        |> Map.get("fx_rate")
+        |> blank_to_nil()
+        |> maybe_decimal()
+        |> maybe_generated_fx_rate(originator_currency_code, counterparty_currency_code)
     }
+  end
+
+  defp maybe_generated_fx_rate(
+         %Decimal{} = rate,
+         _originator_currency_code,
+         _counterparty_currency_code
+       ),
+       do: rate
+
+  defp maybe_generated_fx_rate(nil, currency_code, currency_code), do: nil
+
+  defp maybe_generated_fx_rate(nil, originator_currency_code, counterparty_currency_code) do
+    @demo_fx_rates
+    |> Map.get(
+      {originator_currency_code, counterparty_currency_code},
+      fallback_fx_rate(originator_currency_code, counterparty_currency_code)
+    )
+    |> Decimal.new()
+  end
+
+  defp fallback_fx_rate(originator_currency_code, counterparty_currency_code) do
+    basis_points =
+      (originator_currency_code <> counterparty_currency_code)
+      |> String.to_charlist()
+      |> Enum.sum()
+      |> rem(7_000)
+      |> Kernel.+(8_000)
+
+    basis_points
+    |> Decimal.new()
+    |> Decimal.div(Decimal.new(10_000))
+    |> Decimal.to_string(:normal)
   end
 
   defp normalize_legacy_quote_attrs(attrs) do
