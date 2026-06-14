@@ -21,7 +21,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       |> assign(:member_modal_open?, false)
       |> assign(:member_modal_title, "Add member")
       |> assign_member_form()
-      |> assign(:member_parent_options, member_parent_options(party.members))
       |> assign_doc_form()
       |> allow_upload(:compliance_document, accept: ~w(.pdf .png .jpg .jpeg), max_entries: 1)
       |> stream(:documents, party.compliance_documents)
@@ -51,7 +50,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
          socket
          |> assign(:members, members)
          |> assign_member_flow(socket.assigns.party, members)
-         |> assign(:member_parent_options, member_parent_options(members))
          |> assign(:member_modal_open?, false)
          |> assign_member_form()}
 
@@ -103,8 +101,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     {:noreply,
      socket
      |> assign(:members, members)
-     |> assign_member_flow(socket.assigns.party, members)
-     |> assign(:member_parent_options, member_parent_options(members))}
+     |> assign_member_flow(socket.assigns.party, members)}
   end
 
   def handle_event("toggle_role", %{"id" => id, "role" => role}, socket) do
@@ -225,18 +222,17 @@ defmodule PhoenixFintechWeb.PartyShowLive do
             phx-submit="create_member"
             class="grid gap-3"
           >
+            <input
+              type="hidden"
+              name={@member_form[:parent_party_member_id].name}
+              value={@member_form[:parent_party_member_id].value || ""}
+            />
             <.input field={@member_form[:legal_name]} label="Name or company name" />
             <.input
               field={@member_form[:type]}
               type="select"
               label="Type"
               options={[{"Individual", "individual"}, {"Business", "business"}]}
-            />
-            <.input
-              field={@member_form[:parent_party_member_id]}
-              type="select"
-              label="Parent member"
-              options={@member_parent_options}
             />
             <.input field={@member_form[:title]} label="Role within company" />
             <.input
@@ -464,32 +460,17 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       class="card card-border bg-base-100"
     >
       <div class="card-body">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
           <div>
             <h2 class="card-title text-lg">Party members</h2>
             <p class="mt-1 text-sm text-base-content/70">
               Map representatives, ownership, and subsidiaries in the member tree.
             </p>
           </div>
-          <.button
-            id="add-top-level-member-button"
-            type="button"
-            phx-click="open_member_modal"
-            phx-value-parent-id=""
-          >
-            <.icon name="hero-plus" class="size-4" /> Add top-level
-          </.button>
         </div>
 
         <div id="members" class="mt-5">
           <div
-            :if={@members == []}
-            class="alert alert-info alert-soft"
-          >
-            No party members yet.
-          </div>
-          <div
-            :if={@members != []}
             class="overflow-hidden rounded-box border border-base-300 bg-base-200"
             style={"height: #{flow_height(@members)}"}
           >
@@ -628,18 +609,32 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     ~H"""
     <div
       id="party-member-flow-node-party-root"
-      class="card card-border min-w-48 bg-base-100 text-center"
+      class="card card-border min-w-60 bg-base-100"
     >
       <div class="card-body p-3">
-        <p class="text-xs font-semibold uppercase tracking-wide text-primary">
-          Party
-        </p>
-        <p class="mt-1 font-semibold">
-          {@node.data.party.legal_name}
-        </p>
-        <p class="mt-1 text-xs text-base-content/60">
-          Tax ID: {@node.data.party.tax_id}
-        </p>
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-primary">
+              Party
+            </p>
+            <p class="mt-1 font-semibold">
+              {@node.data.party.legal_name}
+            </p>
+            <p class="mt-1 text-xs text-base-content/60">
+              Tax ID: {@node.data.party.tax_id}
+            </p>
+          </div>
+          <button
+            id="add-root-party-member"
+            type="button"
+            phx-click="open_member_modal"
+            phx-value-parent-id=""
+            class="btn btn-ghost btn-square btn-sm shrink-0"
+            aria-label={"Add top-level member to #{@node.data.party.legal_name}"}
+          >
+            <.icon name="hero-plus" class="size-4" />
+          </button>
+        </div>
       </div>
     </div>
     """
@@ -780,22 +775,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     |> flatten_member_tree()
     |> Enum.group_by(fn {_member, depth} -> depth end, fn {member, _depth} -> member end)
     |> Enum.sort_by(fn {depth, _members} -> depth end)
-  end
-
-  defp member_parent_options(members) do
-    base_option = [{"No parent (top-level)", ""}]
-
-    nested_options =
-      members
-      |> build_member_children()
-      |> flatten_member_tree()
-      |> Enum.map(fn {member, depth} ->
-        indent = String.duplicate("— ", depth)
-        label = "#{indent}#{member.legal_name || "Unnamed member"}"
-        {label, member.id}
-      end)
-
-    base_option ++ nested_options
   end
 
   defp build_member_children(members) do
