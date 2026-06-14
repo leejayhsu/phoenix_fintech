@@ -54,7 +54,7 @@ defmodule PhoenixFintech.Fx.SpotRatePublisher do
   end
 
   defp publish_rates do
-    currencies = Ledger.list_currencies()
+    currencies = Ledger.list_currencies(log: false)
     updated_at = DateTime.utc_now(:second)
     rates = rates_for(currencies)
 

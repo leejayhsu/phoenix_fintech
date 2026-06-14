@@ -5,7 +5,10 @@ defmodule PhoenixFintech.Ledger do
   alias PhoenixFintech.Ledger.{Account, AccountBalance, Currency, Entry, JournalEntry}
 
   def create_currency(attrs), do: %Currency{} |> Currency.changeset(attrs) |> Repo.insert()
-  def list_currencies, do: Repo.all(from c in Currency, order_by: [asc: c.code])
+
+  def list_currencies(opts \\ []),
+    do: Repo.all(from(c in Currency, order_by: [asc: c.code]), opts)
+
   def get_currency!(code), do: Repo.get!(Currency, String.upcase(code))
 
   def create_account(attrs), do: %Account{} |> Account.changeset(attrs) |> Repo.insert()
