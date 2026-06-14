@@ -41,7 +41,10 @@ WORKDIR /app
 ENV MIX_ENV=prod
 
 COPY --from=builder /app/_build/prod/rel/phoenix_fintech ./
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 EXPOSE 4000
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["/app/bin/server"]
