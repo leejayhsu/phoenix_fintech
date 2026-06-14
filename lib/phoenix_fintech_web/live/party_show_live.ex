@@ -4,7 +4,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   alias PhoenixFintech.Parties
   alias PhoenixFintech.Parties.PartyMember
   alias LiveFlow.{Edge, Handle, Node, State}
-  alias LiveFlow.Changes.{EdgeChange, NodeChange}
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -125,17 +124,17 @@ defmodule PhoenixFintechWeb.PartyShowLive do
      |> assign_member_flow(socket.assigns.party, members)}
   end
 
-  def handle_event("lf:node_change", %{"changes" => changes}, socket) do
-    flow = NodeChange.apply_changes(socket.assigns.member_flow, changes)
+  def handle_event("lf:node_change", _params, socket), do: {:noreply, socket}
 
-    {:noreply, assign(socket, :member_flow, flow)}
-  end
+  def handle_event("lf:edge_change", _params, socket), do: {:noreply, socket}
 
-  def handle_event("lf:edge_change", %{"changes" => changes}, socket) do
-    flow = EdgeChange.apply_changes(socket.assigns.member_flow, changes)
+  def handle_event("lf:selection_change", _params, socket), do: {:noreply, socket}
 
-    {:noreply, assign(socket, :member_flow, flow)}
-  end
+  def handle_event("lf:drag_start", _params, socket), do: {:noreply, socket}
+
+  def handle_event("lf:drag_move", _params, socket), do: {:noreply, socket}
+
+  def handle_event("lf:drag_stop", _params, socket), do: {:noreply, socket}
 
   def handle_event("lf:viewport_change", params, socket) do
     flow = State.update_viewport(socket.assigns.member_flow, params)
