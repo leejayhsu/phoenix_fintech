@@ -91,17 +91,11 @@ defmodule PhoenixFintechWeb.Layouts do
             </.link>
           </aside>
           <main class="flex-1 p-4">
-            <div class="mb-4 flex justify-end">
-              <.theme_toggle />
-            </div>
             {render_slot(@inner_block)}
           </main>
         </div>
       <% else %>
         <main class="px-4 py-16 sm:px-6 lg:px-8">
-          <div class="mx-auto mb-6 flex max-w-2xl justify-end">
-            <.theme_toggle />
-          </div>
           <div class="mx-auto max-w-2xl">{render_slot(@inner_block)}</div>
         </main>
       <% end %>
