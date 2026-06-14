@@ -72,14 +72,39 @@ topbar.config({
   shadowColor: themeColor("base-content"),
 })
 
-window.addEventListener("app:copy", event => {
-  const text = event.detail?.text
+const showCopyFeedback = button => {
+  if (!button) return
 
-  if (!text) return
+  const original = button.querySelector("[data-copy-original]")
+  const confirmation = button.querySelector("[data-copy-confirmation]")
 
+  clearTimeout(button.copyFeedbackTimeout)
+  original?.classList.add("opacity-0")
+  confirmation?.classList.remove("opacity-0")
+  button.classList.add(
+    "border-success",
+    "bg-success",
+    "text-success-content",
+    "hover:bg-success",
+    "scale-105"
+  )
+
+  button.copyFeedbackTimeout = setTimeout(() => {
+    original?.classList.remove("opacity-0")
+    confirmation?.classList.add("opacity-0")
+    button.classList.remove(
+      "border-success",
+      "bg-success",
+      "text-success-content",
+      "hover:bg-success",
+      "scale-105"
+    )
+  }, 900)
+}
+
+const copyText = text => {
   if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text)
-    return
+    return navigator.clipboard.writeText(text)
   }
 
   const textarea = document.createElement("textarea")
@@ -91,6 +116,20 @@ window.addEventListener("app:copy", event => {
   textarea.select()
   document.execCommand("copy")
   document.body.removeChild(textarea)
+
+  return Promise.resolve()
+}
+
+window.addEventListener("app:copy", event => {
+  const text = event.detail?.text
+
+  if (!text) return
+
+  copyText(text).then(() => {
+    const button = event.target instanceof Element ? event.target.closest("button") : null
+
+    showCopyFeedback(button)
+  })
 })
 
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))

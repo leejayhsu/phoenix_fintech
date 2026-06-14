@@ -157,14 +157,25 @@ defmodule PhoenixFintechWeb.CoreComponents do
       type="button"
       phx-click={JS.dispatch("app:copy", detail: %{text: @copy_value})}
       class={[
-        "inline-flex cursor-pointer items-center rounded border border-base-300 bg-base-200 px-2 py-1 font-mono text-xs text-base-content transition-colors hover:bg-base-300",
+        "inline-flex cursor-pointer items-center rounded border border-base-300 bg-base-200 px-2 py-1 font-mono text-xs text-base-content transition-all duration-150 hover:bg-base-300 active:scale-95",
         @class
       ]}
       title={gettext("Copy %{value}", value: @copy_value)}
       aria-label={gettext("Copy %{value} to clipboard", value: @copy_value)}
       {@rest}
     >
-      {@display}
+      <span class="grid items-center justify-items-center">
+        <span data-copy-original class="col-start-1 row-start-1 transition-opacity duration-150">
+          {@display}
+        </span>
+        <span
+          data-copy-confirmation
+          class="col-start-1 row-start-1 opacity-0 transition-opacity duration-150"
+          aria-hidden="true"
+        >
+          <.icon name="hero-check" class="size-3.5" />
+        </span>
+      </span>
     </button>
     """
   end
