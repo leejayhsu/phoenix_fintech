@@ -1,17 +1,221 @@
 <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
-  <div id="home-page" class="space-y-4">
-    <h1 class="text-3xl font-semibold tracking-tight">Phoenix Fintech</h1>
-    <p class="text-base-content/70">
-      Tablestakes authenticated shell is ready. Start building product features here.
-    </p>
-    <%= if @current_user do %>
-      <div class="alert alert-success alert-soft text-sm">
-        Signed in as {@current_user.email}
-      </div>
-    <% else %>
-      <.link navigate={~p"/users/log_in"} class="btn btn-primary">
-        Go to login
-      </.link>
-    <% end %>
-  </div>
+  <%= if @current_user do %>
+    <div id="home-page" class="space-y-6">
+      <section class="hero rounded-box bg-base-100 shadow-sm">
+        <div class="hero-content w-full flex-col items-stretch gap-6 p-6 lg:flex-row lg:items-center lg:justify-between">
+          <div class="max-w-2xl space-y-3">
+            <div class="badge badge-primary badge-soft">Treasury operations</div>
+            <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">
+              Move money with fewer loose ends.
+            </h1>
+            <p class="text-base-content/70">
+              Monitor party onboarding, transfer exposure, fee capture, and compliance work from one workspace.
+            </p>
+            <div class="flex flex-wrap gap-2 pt-2">
+              <.link navigate={~p"/app/transfers/new"} class="btn btn-primary">
+                <.icon name="hero-arrows-right-left" class="size-4" /> New transfer
+              </.link>
+              <.link navigate={~p"/app/parties/new"} class="btn btn-ghost">
+                <.icon name="hero-building-office-2" class="size-4" /> Add originator
+              </.link>
+            </div>
+          </div>
+
+          <div class="stats stats-vertical w-full bg-base-200 shadow lg:w-96">
+            <div class="stat">
+              <div class="stat-title">Today's volume</div>
+              <div class="stat-value text-primary">$842K</div>
+              <div class="stat-desc">+18.4% from yesterday</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Fee revenue</div>
+              <div class="stat-value">$6,314</div>
+              <div class="stat-desc">Blended margin 74 bps</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body gap-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-base-content/60">Active parties</span>
+              <span class="rounded-box bg-primary/10 p-2 text-primary">
+                <.icon name="hero-building-office-2" class="size-4" />
+              </span>
+            </div>
+            <div class="text-3xl font-semibold">128</div>
+            <progress class="progress progress-primary" value="76" max="100"></progress>
+            <p class="text-sm text-base-content/60">17 awaiting final verification</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body gap-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-base-content/60">Transfers in flight</span>
+              <span class="rounded-box bg-info/10 p-2 text-info">
+                <.icon name="hero-arrows-right-left" class="size-4" />
+              </span>
+            </div>
+            <div class="text-3xl font-semibold">43</div>
+            <progress class="progress progress-info" value="62" max="100"></progress>
+            <p class="text-sm text-base-content/60">$1.9M pending settlement</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body gap-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-base-content/60">Compliance SLA</span>
+              <span class="rounded-box bg-success/10 p-2 text-success">
+                <.icon name="hero-shield-check" class="size-4" />
+              </span>
+            </div>
+            <div class="text-3xl font-semibold">94%</div>
+            <progress class="progress progress-success" value="94" max="100"></progress>
+            <p class="text-sm text-base-content/60">Median review time 11 min</p>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body gap-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-base-content/60">Exceptions</span>
+              <span class="rounded-box bg-warning/10 p-2 text-warning">
+                <.icon name="hero-exclamation-circle" class="size-4" />
+              </span>
+            </div>
+            <div class="text-3xl font-semibold">8</div>
+            <progress class="progress progress-warning" value="28" max="100"></progress>
+            <p class="text-sm text-base-content/60">3 need same-day action</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 class="card-title">Transfer pipeline</h2>
+                <p class="text-sm text-base-content/60">
+                  Hardcoded sample activity until real dashboard metrics are wired.
+                </p>
+              </div>
+              <.link navigate={~p"/app/transfers"} class="btn btn-sm btn-outline">View all</.link>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="table table-zebra">
+                <thead>
+                  <tr>
+                    <th>Transfer</th>
+                    <th>Route</th>
+                    <th>Status</th>
+                    <th class="text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="font-medium">TRF-1048</td>
+                    <td>USD to MXN</td>
+                    <td><span class="badge badge-info badge-soft">Awaiting payout</span></td>
+                    <td class="text-right">$42,800</td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium">TRF-1047</td>
+                    <td>USD to PHP</td>
+                    <td><span class="badge badge-warning badge-soft">Review</span></td>
+                    <td class="text-right">$18,250</td>
+                  </tr>
+                  <tr>
+                    <td class="font-medium">TRF-1046</td>
+                    <td>EUR to USD</td>
+                    <td><span class="badge badge-success badge-soft">Settled</span></td>
+                    <td class="text-right">EUR 73,400</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card bg-base-100 shadow-sm">
+          <div class="card-body">
+            <h2 class="card-title">Operating checklist</h2>
+            <ul class="list rounded-box bg-base-100">
+              <li class="list-row px-0">
+                <div class="rounded-box bg-warning/10 p-2 text-warning">
+                  <.icon name="hero-document" class="size-5" />
+                </div>
+                <div>
+                  <div class="font-medium">KYB document expiry</div>
+                  <div class="text-sm text-base-content/60">
+                    4 parties need updated tax documents
+                  </div>
+                </div>
+              </li>
+              <li class="list-row px-0">
+                <div class="rounded-box bg-info/10 p-2 text-info">
+                  <.icon name="hero-banknotes" class="size-5" />
+                </div>
+                <div>
+                  <div class="font-medium">Prefund balance</div>
+                  <div class="text-sm text-base-content/60">
+                    MXN corridor has 1.6 days of coverage
+                  </div>
+                </div>
+              </li>
+              <li class="list-row px-0">
+                <div class="rounded-box bg-success/10 p-2 text-success">
+                  <.icon name="hero-check-circle" class="size-5" />
+                </div>
+                <div>
+                  <div class="font-medium">Ledger health</div>
+                  <div class="text-sm text-base-content/60">
+                    All journal entries balanced overnight
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  <% else %>
+    <div id="home-page" class="space-y-6">
+      <section class="hero rounded-box bg-base-100 shadow-sm">
+        <div class="hero-content flex-col gap-8 p-8 text-center">
+          <div class="space-y-4">
+            <div class="badge badge-primary badge-soft">Phoenix Fintech</div>
+            <h1 class="text-4xl font-semibold tracking-tight sm:text-5xl">
+              Payments ops without spreadsheet chaos.
+            </h1>
+            <p class="mx-auto max-w-xl text-base-content/70">
+              Manage parties, compliance documents, quotes, transfers, and ledger movement from a focused operator workspace.
+            </p>
+            <div class="flex flex-col justify-center gap-2 sm:flex-row">
+              <.link navigate={~p"/users/log_in"} class="btn btn-primary">Sign in</.link>
+              <.link navigate={~p"/users/sign_up"} class="btn btn-ghost">Create account</.link>
+            </div>
+          </div>
+
+          <div class="stats stats-vertical w-full max-w-lg bg-base-200 shadow sm:stats-horizontal">
+            <div class="stat">
+              <div class="stat-title">Corridors</div>
+              <div class="stat-value">12</div>
+              <div class="stat-desc">FX-ready routes</div>
+            </div>
+            <div class="stat">
+              <div class="stat-title">Uptime</div>
+              <div class="stat-value text-primary">99.9%</div>
+              <div class="stat-desc">Sample target</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  <% end %>
 </Layouts.app>
