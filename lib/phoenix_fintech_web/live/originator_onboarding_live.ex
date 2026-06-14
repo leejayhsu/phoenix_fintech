@@ -28,9 +28,8 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
         socket
       ) do
     party_changeset = Parties.change_party(party_params)
-    government_id_changeset = Parties.change_government_id(government_id_params)
 
-    if party_changeset.valid? and government_id_changeset.valid? do
+    if party_changeset.valid? and optional_government_id_valid?(government_id_params) do
       {:noreply,
        socket
        |> assign(:step, :representative)
@@ -96,6 +95,17 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
            to_form(Parties.change_government_id(socket.assigns.party_government_id_params),
              as: :party_government_id
            )
+         )}
+
+      {:error, :party_government_id, changeset, _changes} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Review the business government ID details.")
+         |> assign(:step, :party)
+         |> assign(:party_form, to_form(Parties.change_party(socket.assigns.party_params)))
+         |> assign(
+           :party_government_id_form,
+           to_form(%{changeset | action: :validate}, as: :party_government_id)
          )}
 
       {:error, _step, _changeset, _changes} ->
@@ -196,7 +206,6 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
             label="Legal business name"
             autocomplete="organization"
           />
-          <.input field={@party_form[:tax_id]} label="Tax ID" />
           <.input
             field={@party_form[:address_line1]}
             label="Address line 1"
@@ -307,12 +316,11 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
       <div class="grid gap-4 md:grid-cols-2">
         <.review_panel title="Business">
           <:row label="Legal name">{@party_params["legal_name"]}</:row>
-          <:row label="Tax ID">{@party_params["tax_id"]}</:row>
           <:row label="Location">
             {@party_params["locality"]}, {@party_params["region"]} {@party_params["postal_code"]}
           </:row>
           <:row label="Government ID">
-            {String.upcase(@party_government_id_params["type"] || "")}
+            {government_id_review(@party_government_id_params)}
           </:row>
         </.review_panel>
 
@@ -368,9 +376,12 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
   defp assign_party_forms(socket, action \\ nil) do
     party_changeset = %{Parties.change_party(socket.assigns.party_params) | action: action}
 
+    government_id_action =
+      if government_id_empty?(socket.assigns.party_government_id_params), do: nil, else: action
+
     government_id_changeset = %{
       Parties.change_government_id(socket.assigns.party_government_id_params)
-      | action: action
+      | action: government_id_action
     }
 
     socket
@@ -410,7 +421,6 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
   defp default_party_params do
     %{
       "legal_name" => "",
-      "tax_id" => "",
       "address_line1" => "",
       "address_line2" => "",
       "locality" => "",
@@ -430,5 +440,23 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
 
   defp default_government_id_params(type) do
     %{"type" => type, "country_code" => "US", "value" => ""}
+  end
+
+  defp optional_government_id_valid?(params) do
+    government_id_empty?(params) or Parties.change_government_id(params).valid?
+  end
+
+  defp government_id_empty?(params) do
+    params
+    |> Map.drop(["type", "country_code"])
+    |> Enum.all?(fn {_key, value} -> value in [nil, ""] end)
+  end
+
+  defp government_id_review(params) do
+    if government_id_empty?(params) do
+      "Not added"
+    else
+      String.upcase(params["type"] || "")
+    end
   end
 end

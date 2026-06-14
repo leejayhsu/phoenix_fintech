@@ -42,15 +42,7 @@ defmodule PhoenixFintech.Parties.Party do
       :country_code
     ])
     |> normalize_country_code()
-    |> validate_required([
-      :tax_id,
-      :legal_name,
-      :address_line1,
-      :locality,
-      :region,
-      :postal_code,
-      :country_code
-    ])
+    |> validate_required([:legal_name])
     |> validate_length(:tax_id, max: 80)
     |> validate_length(:legal_name, max: 160)
     |> validate_length(:country_code, is: 2)

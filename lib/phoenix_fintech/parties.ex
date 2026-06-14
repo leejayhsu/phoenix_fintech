@@ -41,6 +41,18 @@ defmodule PhoenixFintech.Parties do
   def change_government_id(attrs \\ %{}), do: GovernmentID.form_changeset(%GovernmentID{}, attrs)
   def change_party_member(member, attrs \\ %{}), do: PartyMember.changeset(member, attrs)
 
+  def update_party(%Party{} = party, attrs) do
+    party
+    |> Party.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def create_party_government_id(party_id, attrs) do
+    %GovernmentID{party_id: party_id}
+    |> GovernmentID.changeset(attrs)
+    |> Repo.insert()
+  end
+
   def get_member_for_party!(party_id, member_id),
     do: Repo.get_by!(PartyMember, id: member_id, party_id: party_id)
 
@@ -104,15 +116,23 @@ defmodule PhoenixFintech.Parties do
       :party,
       Party.changeset(%Party{created_by_user_id: created_by_user_id}, party_attrs)
     )
-    |> Multi.insert(:party_government_id, fn %{party: party} ->
-      GovernmentID.changeset(%GovernmentID{party_id: party.id}, party_government_id_attrs)
-    end)
+    |> maybe_insert_party_government_id(party_government_id_attrs)
     |> maybe_insert_representative(representative_attrs)
     |> maybe_insert_representative_government_id(representative_government_id_attrs)
     |> Repo.transaction()
     |> case do
       {:ok, %{party: party}} -> {:ok, party}
       {:error, step, changeset, changes} -> {:error, step, changeset, changes}
+    end
+  end
+
+  defp maybe_insert_party_government_id(multi, party_government_id_attrs) do
+    if present_attrs?(party_government_id_attrs) do
+      Multi.insert(multi, :party_government_id, fn %{party: party} ->
+        GovernmentID.changeset(%GovernmentID{party_id: party.id}, party_government_id_attrs)
+      end)
+    else
+      multi
     end
   end
 

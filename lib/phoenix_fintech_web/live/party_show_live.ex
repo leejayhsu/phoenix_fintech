@@ -21,6 +21,8 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       |> assign(:member_modal_open?, false)
       |> assign(:member_modal_title, "Add member")
       |> assign_member_form()
+      |> assign_party_address_form()
+      |> assign_party_government_id_form()
       |> assign_doc_form()
       |> allow_upload(:compliance_document, accept: ~w(.pdf .png .jpg .jpeg), max_entries: 1)
       |> stream(:documents, party.compliance_documents)
@@ -90,6 +92,54 @@ defmodule PhoenixFintechWeb.PartyShowLive do
      socket
      |> assign(:member_modal_open?, false)
      |> assign_member_form()}
+  end
+
+  def handle_event("update_party_address", %{"party_address" => address_params}, socket) do
+    case Parties.update_party(socket.assigns.party, address_params) do
+      {:ok, party} ->
+        party = Parties.get_party_with_details!(party.id)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, "Party address updated.")
+         |> assign(:party, party)
+         |> assign_member_flow(party, socket.assigns.members)
+         |> assign_party_address_form()}
+
+      {:error, changeset} ->
+        {:noreply,
+         assign(
+           socket,
+           :party_address_form,
+           to_form(%{changeset | action: :validate}, as: :party_address)
+         )}
+    end
+  end
+
+  def handle_event(
+        "create_party_government_id",
+        %{"party_government_id" => government_id_params},
+        socket
+      ) do
+    case Parties.create_party_government_id(socket.assigns.party.id, government_id_params) do
+      {:ok, _government_id} ->
+        party = Parties.get_party_with_details!(socket.assigns.party.id)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, "Business government ID added.")
+         |> assign(:party, party)
+         |> assign_member_flow(party, socket.assigns.members)
+         |> assign_party_government_id_form()}
+
+      {:error, changeset} ->
+        {:noreply,
+         assign(
+           socket,
+           :party_government_id_form,
+           to_form(%{changeset | action: :validate}, as: :party_government_id)
+         )}
+    end
   end
 
   def handle_event("delete_member", %{"id" => id}, socket) do
@@ -177,13 +227,21 @@ defmodule PhoenixFintechWeb.PartyShowLive do
             <h1 class="mt-1 text-3xl font-semibold">
               {@party.legal_name}
             </h1>
-            <p class="mt-2 text-sm text-base-content/70">Tax ID: {@party.tax_id}</p>
+            <p class="mt-2 text-sm text-base-content/70">
+              Business government ID: {government_id_summary(primary_party_government_id(@party))}
+            </p>
           </div>
 
           <.party_tabs party={@party} active_tab={@active_tab} />
         </div>
 
-        <.overview_panel :if={@active_tab == :overview} party={@party} members={@members} />
+        <.overview_panel
+          :if={@active_tab == :overview}
+          party={@party}
+          members={@members}
+          party_address_form={@party_address_form}
+          party_government_id_form={@party_government_id_form}
+        />
         <.members_panel :if={@active_tab == :members} members={@members} member_flow={@member_flow} />
         <.documents_panel
           :if={@active_tab == :documents}
@@ -303,6 +361,8 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
   attr :party, :map, required: true
   attr :members, :list, required: true
+  attr :party_address_form, :map, required: true
+  attr :party_government_id_form, :map, required: true
 
   defp overview_panel(assigns) do
     ~H"""
@@ -320,6 +380,115 @@ defmodule PhoenixFintechWeb.PartyShowLive do
           value="$480K"
           detail="Across card and ACH rails"
         />
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <section class="card card-border bg-base-100">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Business address</h2>
+
+            <%= if address_present?(@party) do %>
+              <div class="mt-4 text-sm leading-6">
+                <p>{@party.address_line1}</p>
+                <p :if={@party.address_line2 not in [nil, ""]}>{@party.address_line2}</p>
+                <p>
+                  {[@party.locality, @party.region, @party.postal_code]
+                  |> Enum.reject(&(&1 in [nil, ""]))
+                  |> Enum.join(", ")}
+                </p>
+                <p>{@party.country_code}</p>
+              </div>
+            <% else %>
+              <p class="mt-1 text-sm text-base-content/70">
+                Add a mailing address when it becomes available.
+              </p>
+            <% end %>
+
+            <.form
+              for={@party_address_form}
+              id="party-address-form"
+              phx-submit="update_party_address"
+              class="mt-4 grid gap-3 sm:grid-cols-2"
+            >
+              <.input
+                field={@party_address_form[:address_line1]}
+                label="Address line 1"
+                autocomplete="address-line1"
+              />
+              <.input
+                field={@party_address_form[:address_line2]}
+                label="Address line 2"
+                autocomplete="address-line2"
+              />
+              <.input
+                field={@party_address_form[:locality]}
+                label="City"
+                autocomplete="address-level2"
+              />
+              <.input
+                field={@party_address_form[:region]}
+                label="Region"
+                autocomplete="address-level1"
+              />
+              <.input
+                field={@party_address_form[:postal_code]}
+                label="Postal code"
+                autocomplete="postal-code"
+              />
+              <.input
+                field={@party_address_form[:country_code]}
+                label="Country code"
+                maxlength="2"
+                autocomplete="country"
+              />
+              <div class="sm:col-span-2">
+                <.button id="save-party-address-button" type="submit">Save address</.button>
+              </div>
+            </.form>
+          </div>
+        </section>
+
+        <section class="card card-border bg-base-100">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Business government ID</h2>
+
+            <%= if primary_party_government_id(@party) do %>
+              <p class="mt-4 text-sm font-medium">
+                {government_id_summary(primary_party_government_id(@party))}
+              </p>
+              <p class="mt-1 text-sm text-base-content/70">
+                Add more government IDs later if needed.
+              </p>
+            <% else %>
+              <p class="mt-1 text-sm text-base-content/70">
+                Add the EIN or other business identifier after creating the party.
+              </p>
+
+              <.form
+                for={@party_government_id_form}
+                id="party-government-id-form"
+                phx-submit="create_party_government_id"
+                class="mt-4 grid gap-3"
+              >
+                <.input
+                  field={@party_government_id_form[:type]}
+                  type="select"
+                  label="Type"
+                  options={[EIN: "ein", Passport: "passport", "National ID": "national_id"]}
+                />
+                <.input
+                  field={@party_government_id_form[:country_code]}
+                  label="Issuing country"
+                  maxlength="2"
+                />
+                <.input field={@party_government_id_form[:value]} label="Value" />
+                <.button id="add-party-government-id-button" type="submit">
+                  Add government ID
+                </.button>
+              </.form>
+            <% end %>
+          </div>
+        </section>
       </div>
 
       <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -802,6 +971,43 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       |> Enum.max(fn -> 0 end)
 
     "#{max(420, 300 + max_depth * 170)}px"
+  end
+
+  defp assign_party_address_form(socket) do
+    changeset = Parties.change_party(Map.take(socket.assigns.party, party_address_fields()))
+
+    assign(socket, :party_address_form, to_form(changeset, as: :party_address))
+  end
+
+  defp assign_party_government_id_form(socket, attrs \\ %{}) do
+    attrs = Map.merge(%{"type" => "ein", "country_code" => "US", "value" => ""}, attrs)
+    changeset = Parties.change_government_id(attrs)
+
+    assign(socket, :party_government_id_form, to_form(changeset, as: :party_government_id))
+  end
+
+  defp party_address_fields do
+    [:address_line1, :address_line2, :locality, :region, :postal_code, :country_code]
+  end
+
+  defp address_present?(party) do
+    party
+    |> Map.take(party_address_fields())
+    |> Enum.any?(fn {_field, value} -> value not in [nil, ""] end)
+  end
+
+  defp primary_party_government_id(party), do: List.first(party.government_ids)
+
+  defp government_id_summary(nil), do: "Not added"
+
+  defp government_id_summary(government_id) do
+    [
+      String.upcase(to_string(government_id.type)),
+      government_id.country_code,
+      government_id.value
+    ]
+    |> Enum.reject(&(&1 in [nil, ""]))
+    |> Enum.join(" · ")
   end
 
   defp assign_member_form(socket, overrides \\ %{}) do
