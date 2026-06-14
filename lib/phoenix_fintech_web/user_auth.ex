@@ -30,6 +30,14 @@ defmodule PhoenixFintechWeb.UserAuth do
      )}
   end
 
+  def on_mount(:require_admin, _params, _session, socket) do
+    if socket.assigns[:current_user] && socket.assigns.current_user.is_admin do
+      {:cont, socket}
+    else
+      {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/app")}
+    end
+  end
+
   def require_authenticated_user(conn, _opts) do
     if conn.assigns[:current_user] do
       conn
@@ -37,6 +45,17 @@ defmodule PhoenixFintechWeb.UserAuth do
       conn
       |> put_flash(:error, "Please log in to continue.")
       |> redirect(to: ~p"/users/log_in")
+      |> halt()
+    end
+  end
+
+  def require_admin_user(conn, _opts) do
+    if conn.assigns[:current_user] && conn.assigns.current_user.is_admin do
+      conn
+    else
+      conn
+      |> put_flash(:error, "You must be an admin to access that page.")
+      |> redirect(to: ~p"/app")
       |> halt()
     end
   end

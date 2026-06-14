@@ -17,6 +17,10 @@ defmodule PhoenixFintechWeb.Router do
     plug :require_authenticated_user
   end
 
+  pipeline :admin do
+    plug :require_admin_user
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
@@ -53,6 +57,20 @@ defmodule PhoenixFintechWeb.Router do
     get "/users/settings", UserSettingsController, :edit
     put "/users/settings/profile", UserSettingsController, :update_profile
     put "/users/settings/password", UserSettingsController, :update_password
+  end
+
+  scope "/admin", PhoenixFintechWeb do
+    pipe_through [:browser, :authenticated, :admin]
+
+    live_session :admin,
+      on_mount: [
+        {PhoenixFintechWeb.UserAuth, :mount_current_scope},
+        {PhoenixFintechWeb.UserAuth, :require_admin}
+      ] do
+      live "/", AdminLive, :index
+      live "/:resource", AdminLive, :resource
+      live "/:resource/:id/edit", AdminLive, :edit
+    end
   end
 
   # Other scopes may use custom stacks.

@@ -68,6 +68,11 @@ defmodule PhoenixFintechWeb.Layouts do
                   <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
                 </.link>
               </li>
+              <li :if={@current_user.is_admin}>
+                <.link navigate={~p"/admin"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+                  <.icon name="hero-shield-check" class="size-4" /> Admin
+                </.link>
+              </li>
             </ul>
             <.link
               navigate={~p"/users/settings"}

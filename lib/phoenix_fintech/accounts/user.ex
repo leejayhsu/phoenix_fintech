@@ -10,6 +10,7 @@ defmodule PhoenixFintech.Accounts.User do
     field :password, :string, virtual: true, redact: true
     field :current_password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
+    field :is_admin, :boolean, default: false
 
     timestamps(type: :utc_datetime)
   end
