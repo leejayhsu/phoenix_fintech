@@ -44,8 +44,8 @@ defmodule PhoenixFintechWeb.Layouts do
     ~H"""
     <div class="min-h-screen bg-base-200 text-base-content">
       <%= if @current_user do %>
-        <div class="flex min-h-screen">
-          <aside class="hidden w-64 border-r border-base-300 bg-base-100 p-2 lg:flex lg:flex-col">
+        <div class="flex h-screen overflow-hidden">
+          <aside class="hidden h-screen w-64 shrink-0 border-r border-base-300 bg-base-100 p-2 lg:flex lg:flex-col">
             <a
               href={if @section == :admin, do: ~p"/admin", else: ~p"/app"}
               class="mb-4 flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium tracking-tight transition-colors hover:bg-base-200"
@@ -125,7 +125,7 @@ defmodule PhoenixFintechWeb.Layouts do
               </ul>
             </details>
           </aside>
-          <main class="flex-1 p-4">
+          <main class="min-w-0 flex-1 overflow-y-auto p-4">
             {render_slot(@inner_block)}
           </main>
         </div>
