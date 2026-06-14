@@ -130,6 +130,56 @@ defmodule PhoenixFintechWeb.CoreComponents do
   end
 
   @doc """
+  Renders a compact click-to-copy value.
+
+  ## Examples
+
+      <.copy_value value={user.id} />
+      <.copy_value value={account.number} display="**** 4242" />
+  """
+  attr :value, :any, required: true, doc: "the value copied to the clipboard"
+
+  attr :display, :string,
+    default: nil,
+    doc: "optional display text instead of the truncated value"
+
+  attr :class, :any, default: nil
+  attr :rest, :global, doc: "the arbitrary HTML attributes to add to the button"
+
+  def copy_value(assigns) do
+    assigns =
+      assigns
+      |> assign(:copy_value, to_string(assigns.value))
+      |> assign(:display, assigns.display || truncate_copy_value(assigns.value))
+
+    ~H"""
+    <button
+      type="button"
+      phx-click={JS.dispatch("app:copy", detail: %{text: @copy_value})}
+      class={[
+        "inline-flex cursor-pointer items-center rounded border border-base-300 bg-base-200 px-2 py-1 font-mono text-xs text-base-content transition-colors hover:bg-base-300",
+        @class
+      ]}
+      title={gettext("Copy %{value}", value: @copy_value)}
+      aria-label={gettext("Copy %{value} to clipboard", value: @copy_value)}
+      {@rest}
+    >
+      {@display}
+    </button>
+    """
+  end
+
+  defp truncate_copy_value(value) do
+    value = to_string(value)
+
+    if String.length(value) > 13 do
+      String.slice(value, 0, 8) <> "..." <> String.slice(value, -4, 4)
+    else
+      value
+    end
+  end
+
+  @doc """
   Renders an input with label and error messages.
 
   A `Phoenix.HTML.FormField` may be passed as argument,

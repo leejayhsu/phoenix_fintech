@@ -71,6 +71,28 @@ topbar.config({
   barColors: {0: themeColor("primary")},
   shadowColor: themeColor("base-content"),
 })
+
+window.addEventListener("app:copy", event => {
+  const text = event.detail?.text
+
+  if (!text) return
+
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text)
+    return
+  }
+
+  const textarea = document.createElement("textarea")
+  textarea.value = text
+  textarea.setAttribute("readonly", "")
+  textarea.style.position = "absolute"
+  textarea.style.left = "-9999px"
+  document.body.appendChild(textarea)
+  textarea.select()
+  document.execCommand("copy")
+  document.body.removeChild(textarea)
+})
+
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 

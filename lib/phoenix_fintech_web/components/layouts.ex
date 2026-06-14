@@ -86,6 +86,11 @@ defmodule PhoenixFintechWeb.Layouts do
                   </.link>
                 </li>
                 <li>
+                  <.link navigate={~p"/app/transfers"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+                    <.icon name="hero-arrows-right-left" class="size-4" /> Transfers
+                  </.link>
+                </li>
+                <li>
                   <.link navigate={~p"/users/settings"} class="gap-2 rounded-lg px-2 py-2 font-medium">
                     <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
                   </.link>

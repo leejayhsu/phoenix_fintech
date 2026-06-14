@@ -14,7 +14,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
 
     socket =
       socket
-      |> assign(:page_title, "All transfers")
+      |> assign(:page_title, "Transfers")
       |> assign(:transfers, list_transfers_for_current_user(current_user))
 
     {:ok, socket}
@@ -27,15 +27,13 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
       <section id="transfers-index" class="mx-auto max-w-6xl">
         <div class="mb-6 flex items-center justify-between gap-4">
           <div>
-            <h1 class="text-2xl font-semibold">
-              All transfers for user
-            </h1>
+            <h1 class="text-2xl font-semibold">Transfers</h1>
             <p class="mt-1 text-sm text-base-content/70">
-              Cross-border movement requests and FX details.
+              Cross-border movement requests by party.
             </p>
           </div>
           <.button navigate={~p"/app/transfers/new"} variant="primary" id="new-transfer-link">
-            <.icon name="hero-arrows-right-left" class="size-4" /> Create transfer
+            <.icon name="hero-arrows-right-left" class="size-4" /> Create new transfer
           </.button>
         </div>
 
@@ -44,33 +42,24 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
             <table class="table table-zebra">
               <thead>
                 <tr>
-                  <th>Parties</th>
-                  <th>Originator amount</th>
-                  <th>Counterparty amount</th>
-                  <th>Status</th>
+                  <th>ID</th>
+                  <th>Originator name</th>
+                  <th>Counterparty name</th>
                 </tr>
               </thead>
               <tbody id="transfers-table">
                 <tr :if={@transfers == []}>
-                  <td colspan="4" class="py-8 text-center text-base-content/60">No transfers yet.</td>
+                  <td colspan="3" class="py-8 text-center text-base-content/60">No transfers yet.</td>
                 </tr>
                 <tr :for={transfer <- @transfers} id={"transfer-#{transfer.id}"}>
                   <td>
-                    <.link
-                      navigate={~p"/app/transfers/#{transfer.id}"}
-                      class="link link-primary font-medium"
-                    >
-                      {transfer.originator_party.legal_name} → {transfer.counterparty_party.legal_name}
-                    </.link>
+                    <.copy_value value={transfer.id} />
                   </td>
                   <td>
-                    {transfer.amount_in_originator_currency} {transfer.originator_currency_code}
+                    {transfer.originator_party.legal_name}
                   </td>
                   <td>
-                    {transfer.amount_in_counterparty_currency} {transfer.counterparty_currency_code}
-                  </td>
-                  <td>
-                    <span class="badge badge-soft badge-info">{format_status(transfer.status)}</span>
+                    {transfer.counterparty_party.legal_name}
                   </td>
                 </tr>
               </tbody>
@@ -92,7 +81,4 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
     do: Transfers.list_transfers_for_user(user_id)
 
   defp list_transfers_for_current_user(_), do: []
-
-  defp format_status(status),
-    do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
 end
