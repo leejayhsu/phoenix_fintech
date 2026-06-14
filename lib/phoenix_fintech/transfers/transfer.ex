@@ -6,7 +6,7 @@ defmodule PhoenixFintech.Transfers.Transfer do
   @foreign_key_type :binary_id
 
   schema "transfers" do
-    field :status, Ecto.Enum, values: [:draft, :quoted, :submitted], default: :draft
+    field :status, :string, default: "created"
     field :originator_currency_code, :string
     field :counterparty_currency_code, :string
     field :amount_in_originator_currency, :decimal
@@ -16,6 +16,7 @@ defmodule PhoenixFintech.Transfers.Transfer do
     belongs_to :originator_party, PhoenixFintech.Parties.Party
     belongs_to :counterparty_party, PhoenixFintech.Parties.Party
     belongs_to :transfer_quote, PhoenixFintech.Transfers.TransferQuote
+    has_many :events, PhoenixFintech.Transfers.TransferEvent
 
     timestamps(type: :utc_datetime)
   end

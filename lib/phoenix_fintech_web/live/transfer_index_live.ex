@@ -70,7 +70,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                     {transfer.amount_in_counterparty_currency} {transfer.counterparty_currency_code}
                   </td>
                   <td>
-                    <span class="badge badge-soft badge-info capitalize">{transfer.status}</span>
+                    <span class="badge badge-soft badge-info">{format_status(transfer.status)}</span>
                   </td>
                 </tr>
               </tbody>
@@ -92,4 +92,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
     do: Transfers.list_transfers_for_user(user_id)
 
   defp list_transfers_for_current_user(_), do: []
+
+  defp format_status(status),
+    do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
 end

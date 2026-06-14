@@ -105,10 +105,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   def handle_event("finish_wizard", _params, socket) do
     case Transfers.create_transfer_from_quote(
            socket.assigns.current_user.id,
-           socket.assigns.quote.id,
-           %{
-             "status" => "quoted"
-           }
+           socket.assigns.quote.id
          ) do
       {:ok, transfer} ->
         {:noreply,

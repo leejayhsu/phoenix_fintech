@@ -3,7 +3,7 @@ defmodule PhoenixFintech.Transfers do
 
   alias Ecto.Multi
   alias PhoenixFintech.Repo
-  alias PhoenixFintech.Transfers.{Transfer, TransferQuote}
+  alias PhoenixFintech.Transfers.{Transfer, TransferEvent, TransferQuote, TransferStateMachine}
   alias PhoenixFintech.Transfers.Quotes.{Pipeline, QuoteContext}
   alias PhoenixFintech.Transfers.Quotes.Items
 
@@ -31,7 +31,16 @@ defmodule PhoenixFintech.Transfers do
 
   def get_transfer!(id) do
     Repo.get!(Transfer, id)
-    |> Repo.preload([:originator_party, :counterparty_party, :created_by_user, :transfer_quote])
+    |> Repo.preload(transfer_preloads())
+  end
+
+  def list_transfer_events(transfer_id) do
+    Repo.all(
+      from e in TransferEvent,
+        where: e.transfer_id == ^transfer_id,
+        order_by: [asc: e.occurred_at, asc: e.inserted_at],
+        preload: [:actor_user]
+    )
   end
 
   def change_transfer(attrs \\ %{}) do
@@ -41,19 +50,29 @@ defmodule PhoenixFintech.Transfers do
   def create_transfer(user_id, attrs) do
     if quote_attrs?(attrs) do
       with {:ok, quote} <- quote_transfer(user_id, normalize_legacy_quote_attrs(attrs)) do
-        create_transfer_from_quote(user_id, quote.id, %{
-          "status" => Map.get(attrs, "status", "quoted")
-        })
+        create_transfer_from_quote(user_id, quote.id)
       end
     else
       transfer_attrs = derive_amounts(attrs)
 
-      %Transfer{created_by_user_id: user_id}
-      |> Transfer.changeset(transfer_attrs)
-      |> Repo.insert()
+      Multi.new()
+      |> Multi.insert(
+        :transfer,
+        Transfer.changeset(
+          %Transfer{created_by_user_id: user_id},
+          Map.put(transfer_attrs, "status", "created")
+        )
+      )
+      |> Multi.insert(:event, fn %{transfer: transfer} ->
+        transfer_event_changeset(transfer, nil, "created", %{
+          actor_user_id: user_id,
+          event_type: "created"
+        })
+      end)
+      |> Repo.transaction()
       |> case do
-        {:ok, transfer} -> {:ok, get_transfer!(transfer.id)}
-        {:error, changeset} -> {:error, :transfer, changeset, %{}}
+        {:ok, %{transfer: transfer}} -> {:ok, get_transfer!(transfer.id)}
+        {:error, step, changeset, changes} -> {:error, step, changeset, changes}
       end
     end
   end
@@ -85,6 +104,7 @@ defmodule PhoenixFintech.Transfers do
 
     transfer_attrs =
       attrs
+      |> Map.delete("status")
       |> Map.put("originator_party_id", quote.originator_party_id)
       |> Map.put("counterparty_party_id", quote.counterparty_party_id)
       |> Map.put("originator_currency_code", quote.originator_currency_code)
@@ -92,6 +112,7 @@ defmodule PhoenixFintech.Transfers do
       |> Map.put("amount_in_originator_currency", quote.amount_in_originator_currency)
       |> Map.put("amount_in_counterparty_currency", quote.amount_in_counterparty_currency)
       |> Map.put("transfer_quote_id", quote.id)
+      |> Map.put("status", "created")
 
     Multi.new()
     |> Multi.update(:quote, Ecto.Changeset.change(quote, accepted_at: DateTime.utc_now(:second)))
@@ -99,10 +120,47 @@ defmodule PhoenixFintech.Transfers do
       :transfer,
       Transfer.changeset(%Transfer{created_by_user_id: user_id}, transfer_attrs)
     )
+    |> Multi.insert(:event, fn %{transfer: transfer} ->
+      transfer_event_changeset(transfer, nil, "created", %{
+        actor_user_id: user_id,
+        event_type: "created_from_quote",
+        transfer_quote_id: quote.id
+      })
+    end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{transfer: transfer}} -> {:ok, get_transfer!(transfer.id)}
-      {:error, step, changeset, changes} -> {:error, step, changeset, changes}
+      {:ok, %{transfer: transfer}} ->
+        advance_transfer_to_compliance_review(user_id, get_transfer!(transfer.id))
+
+      {:error, step, changeset, changes} ->
+        {:error, step, changeset, changes}
+    end
+  end
+
+  def transition_transfer(transfer, next_status, metadata \\ %{}) do
+    Machinery.transition_to(transfer, TransferStateMachine, next_status, metadata)
+    |> case do
+      {:ok, transfer} -> {:ok, get_transfer!(transfer.id)}
+      {:error, reason} -> {:error, :transition, reason, %{}}
+    end
+  end
+
+  def persist_transfer_transition!(transfer, next_status, metadata) do
+    metadata = normalize_metadata(metadata)
+    from_status = transfer.status
+
+    Multi.new()
+    |> Multi.update(:transfer, Transfer.changeset(transfer, %{status: next_status}))
+    |> Multi.insert(:event, fn %{transfer: transfer} ->
+      transfer_event_changeset(transfer, from_status, next_status, metadata)
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{transfer: transfer}} ->
+        transfer
+
+      {:error, step, reason, _changes} ->
+        raise "transfer transition failed at #{step}: #{inspect(reason)}"
     end
   end
 
@@ -146,8 +204,55 @@ defmodule PhoenixFintech.Transfers do
   defp base_transfer_query do
     from t in Transfer,
       order_by: [desc: t.inserted_at],
-      preload: [:originator_party, :counterparty_party, :created_by_user, :transfer_quote]
+      preload: ^transfer_preloads()
   end
+
+  defp transfer_preloads do
+    [
+      :originator_party,
+      :counterparty_party,
+      :created_by_user,
+      :transfer_quote,
+      events:
+        from(e in TransferEvent,
+          order_by: [asc: e.occurred_at, asc: e.inserted_at],
+          preload: [:actor_user]
+        )
+    ]
+  end
+
+  defp advance_transfer_to_compliance_review(user_id, transfer) do
+    [
+      {"originator_set", "originator_set"},
+      {"counterparty_set", "counterparty_set"},
+      {"fx_quote_confirmed", "fx_quote_confirmed"},
+      {"compliance_review", "submitted_for_compliance_review"}
+    ]
+    |> Enum.reduce_while({:ok, transfer}, fn {next_status, event_type}, {:ok, transfer} ->
+      case transition_transfer(transfer, next_status, %{
+             actor_user_id: user_id,
+             event_type: event_type
+           }) do
+        {:ok, transfer} -> {:cont, {:ok, transfer}}
+        {:error, step, reason, changes} -> {:halt, {:error, step, reason, changes}}
+      end
+    end)
+  end
+
+  defp transfer_event_changeset(transfer, from_status, to_status, metadata) do
+    TransferEvent.changeset(%TransferEvent{}, %{
+      transfer_id: transfer.id,
+      actor_user_id: Map.get(metadata, :actor_user_id),
+      event_type: Map.get(metadata, :event_type, "#{from_status || "none"}_to_#{to_status}"),
+      from_status: from_status,
+      to_status: to_status,
+      metadata: metadata |> Map.drop([:actor_user_id, :event_type]) |> snapshot(),
+      occurred_at: DateTime.utc_now(:second)
+    })
+  end
+
+  defp normalize_metadata(metadata) when is_map(metadata), do: metadata
+  defp normalize_metadata(_metadata), do: %{}
 
   defp insert_transfer_quote(user_id, %QuoteContext{} = ctx) do
     attrs = %{

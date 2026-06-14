@@ -3,11 +3,36 @@ defmodule PhoenixFintechWeb.TransferShowLive do
 
   alias PhoenixFintech.Transfers
 
-  @status_steps [:draft, :quoted, :submitted]
+  @status_steps [
+    "created",
+    "originator_set",
+    "counterparty_set",
+    "fx_quote_confirmed",
+    "compliance_review",
+    "compliance_approved",
+    "deposit_pending",
+    "deposit_received",
+    "disbursement_pending",
+    "disbursement_initiated",
+    "disbursement_settled",
+    "completed"
+  ]
+
   @status_copy %{
-    draft: "Draft created",
-    quoted: "FX quote locked",
-    submitted: "Submitted for settlement"
+    "created" => "Transfer record created",
+    "originator_set" => "Originator selected",
+    "counterparty_set" => "Counterparty selected",
+    "fx_quote_confirmed" => "FX quote locked",
+    "compliance_review" => "Awaiting compliance review",
+    "compliance_approved" => "Compliance approved",
+    "compliance_rejected" => "Compliance rejected",
+    "deposit_pending" => "Awaiting incoming funds",
+    "deposit_received" => "Incoming funds received",
+    "disbursement_pending" => "Ready for disbursement",
+    "disbursement_initiated" => "Disbursement initiated",
+    "disbursement_settled" => "Disbursement settled",
+    "completed" => "Transfer completed",
+    "cancelled" => "Transfer cancelled"
   }
 
   @impl true
@@ -145,7 +170,7 @@ defmodule PhoenixFintechWeb.TransferShowLive do
               class="card card-border bg-base-100"
             >
               <div class="card-body p-4">
-                <h2 class="card-title text-sm">Status timeline</h2>
+                <h2 class="card-title text-sm">Workflow progress</h2>
                 <ol class="timeline timeline-compact timeline-vertical mt-4">
                   <li
                     :for={step <- @status_steps}
@@ -167,6 +192,41 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                 </p>
               </div>
             </aside>
+
+            <section id="transfer-events" class="lg:col-span-2">
+              <div class="card card-border bg-base-100">
+                <div class="card-body p-4">
+                  <h2 class="card-title text-sm">Event history</h2>
+                  <div class="mt-4 space-y-3">
+                    <div :if={@transfer.events == []} class="text-sm text-base-content/60">
+                      No events recorded yet.
+                    </div>
+                    <article
+                      :for={event <- @transfer.events}
+                      id={"transfer-event-#{event.id}"}
+                      class="rounded-box border border-base-300 bg-base-100 p-3"
+                    >
+                      <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p class="text-sm font-medium">{format_event_type(event.event_type)}</p>
+                          <p class="text-xs text-base-content/60">
+                            {format_status(event.from_status || "none")} → {format_status(
+                              event.to_status
+                            )}
+                          </p>
+                        </div>
+                        <time class="text-xs text-base-content/60">
+                          {Calendar.strftime(event.occurred_at, "%b %-d, %Y %-I:%M %p")}
+                        </time>
+                      </div>
+                      <p :if={event.actor_user} class="mt-2 text-xs text-base-content/60">
+                        Actor: {event.actor_user.email}
+                      </p>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
         </div>
       </section>
@@ -181,9 +241,10 @@ defmodule PhoenixFintechWeb.TransferShowLive do
     do: assign(socket, :current_user, current_user(socket.assigns[:current_scope]))
 
   defp status_steps_for(status) do
-    current_index = Enum.find_index(@status_steps, &(&1 == status)) || 0
+    status_steps = status_steps_for_current_status(status)
+    current_index = Enum.find_index(status_steps, &(&1 == status)) || 0
 
-    Enum.with_index(@status_steps)
+    Enum.with_index(status_steps)
     |> Enum.map(fn {step, index} ->
       state =
         cond do
@@ -196,16 +257,36 @@ defmodule PhoenixFintechWeb.TransferShowLive do
     end)
   end
 
-  defp format_status(status), do: status |> to_string() |> String.capitalize()
+  defp status_steps_for_current_status("cancelled"), do: @status_steps ++ ["cancelled"]
 
-  defp status_badge_classes(:draft),
+  defp status_steps_for_current_status("compliance_rejected") do
+    Enum.take_while(@status_steps, &(&1 != "compliance_approved")) ++ ["compliance_rejected"]
+  end
+
+  defp status_steps_for_current_status(_status), do: @status_steps
+
+  defp format_status(status),
+    do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
+
+  defp format_event_type(event_type), do: format_status(event_type)
+
+  defp status_badge_classes("created"),
     do: "badge badge-soft badge-warning"
 
-  defp status_badge_classes(:quoted),
+  defp status_badge_classes("compliance_review"),
     do: "badge badge-soft badge-info"
 
-  defp status_badge_classes(:submitted),
+  defp status_badge_classes("completed"),
     do: "badge badge-soft badge-success"
+
+  defp status_badge_classes("compliance_rejected"),
+    do: "badge badge-soft badge-error"
+
+  defp status_badge_classes("cancelled"),
+    do: "badge badge-soft"
+
+  defp status_badge_classes(_status),
+    do: "badge badge-soft badge-info"
 
   defp timeline_dot_classes(:complete), do: "status status-success"
 
