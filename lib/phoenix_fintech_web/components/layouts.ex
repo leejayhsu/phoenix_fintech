@@ -36,34 +36,54 @@ defmodule PhoenixFintechWeb.Layouts do
   slot :inner_block, required: true
 
   def app(assigns) do
+    assigns = assign(assigns, :profile_name, profile_name(assigns[:current_user]))
+
     ~H"""
     <div class="min-h-screen bg-base-200 text-base-content">
       <%= if @current_user do %>
         <div class="flex min-h-screen">
-          <aside class="hidden w-72 border-r border-base-300 bg-base-100 p-6 lg:flex lg:flex-col">
-            <a href={~p"/app"} class="mb-10 flex items-center gap-2 text-lg font-semibold">
-              <.icon name="hero-banknotes" class="size-5 text-primary" /> Phoenix Fintech
+          <aside class="hidden w-72 border-r border-base-300 bg-base-100/95 p-4 shadow-sm lg:flex lg:flex-col">
+            <a
+              href={~p"/app"}
+              class="mb-8 flex items-center gap-3 rounded-box px-3 py-3 text-xl font-semibold tracking-tight transition-colors hover:bg-base-200"
+            >
+              <span class="flex size-10 items-center justify-center rounded-box bg-primary/10 text-primary">
+                <.icon name="hero-banknotes" class="size-6" />
+              </span>
+              <span>Phoenix Fintech</span>
             </a>
-            <ul class="menu menu-sm gap-1 p-0">
+            <ul class="menu menu-lg gap-2 p-0">
               <li>
-                <.link navigate={~p"/app"}>
-                  <.icon name="hero-home" class="size-4" /> Dashboard
+                <.link navigate={~p"/app"} class="gap-3 rounded-box px-4 py-3 font-medium">
+                  <.icon name="hero-home" class="size-5" /> Dashboard
                 </.link>
               </li>
               <li>
-                <.link navigate={~p"/app/parties"}>
-                  <.icon name="hero-building-office-2" class="size-4" /> Parties
+                <.link navigate={~p"/app/parties"} class="gap-3 rounded-box px-4 py-3 font-medium">
+                  <.icon name="hero-building-office-2" class="size-5" /> Parties
                 </.link>
               </li>
               <li>
-                <.link navigate={~p"/users/settings"}>
-                  <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+                <.link navigate={~p"/users/settings"} class="gap-3 rounded-box px-4 py-3 font-medium">
+                  <.icon name="hero-cog-6-tooth" class="size-5" /> Settings
                 </.link>
               </li>
             </ul>
-            <div class="mt-auto text-xs text-base-content/60">
-              Signed in as <span class="font-medium text-base-content">{@current_user.email}</span>
-            </div>
+            <.link
+              navigate={~p"/users/settings"}
+              class="mt-auto flex items-center gap-3 rounded-box border border-base-300 bg-base-100 p-3 text-left shadow-sm transition-colors hover:bg-base-200"
+            >
+              <div class="avatar avatar-placeholder">
+                <div class="size-11 rounded-box bg-neutral text-neutral-content">
+                  <span class="text-base font-semibold">{String.first(@profile_name)}</span>
+                </div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-base font-semibold leading-tight">{@profile_name}</div>
+                <div class="truncate text-sm text-base-content/60">{@current_user.email}</div>
+              </div>
+              <.icon name="hero-chevron-up-down" class="size-5 shrink-0 text-base-content/60" />
+            </.link>
           </aside>
           <main class="flex-1 p-6 lg:p-10">
             <div class="mb-6 flex justify-end">
@@ -85,6 +105,19 @@ defmodule PhoenixFintechWeb.Layouts do
     </div>
     """
   end
+
+  defp profile_name(nil), do: "Account"
+
+  defp profile_name(%{email: email}) when is_binary(email) do
+    email
+    |> String.split("@")
+    |> List.first()
+    |> String.replace([".", "_", "-"], " ")
+    |> String.split(" ", trim: true)
+    |> Enum.map_join(" ", &String.capitalize/1)
+  end
+
+  defp profile_name(_user), do: "Account"
 
   @doc """
   Shows the flash group with standard titles and content.
