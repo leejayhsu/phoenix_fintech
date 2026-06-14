@@ -12,8 +12,7 @@ defmodule PhoenixFintech.Application do
       PhoenixFintech.Repo,
       {DNSCluster, query: Application.get_env(:phoenix_fintech, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: PhoenixFintech.PubSub},
-      # Start a worker by calling: PhoenixFintech.Worker.start_link(arg)
-      # {PhoenixFintech.Worker, arg},
+      PhoenixFintech.Fx.SpotRatePublisher,
       # Start to serve requests, typically the last entry
       PhoenixFintechWeb.Endpoint
     ]

@@ -1,13 +1,14 @@
 defmodule PhoenixFintechWeb.TransferNewLive do
   use PhoenixFintechWeb, :live_view
 
-  alias PhoenixFintech.{Ledger, Parties, Transfers}
+  alias PhoenixFintech.{Fx.SpotRatePublisher, Ledger, Parties, Transfers}
 
   @steps [:originator, :counterparties, :quote, :review]
 
   @impl true
   def mount(_params, _session, socket) do
     currencies = Ledger.list_currencies()
+    spot_rate_snapshot = SpotRatePublisher.current_snapshot()
 
     quote_form =
       %{
@@ -23,13 +24,16 @@ defmodule PhoenixFintechWeb.TransferNewLive do
       |> assign(:page_title, "New transfer")
       |> assign(:parties, Parties.list_parties())
       |> assign(:currencies, currencies)
-      |> assign(:steps, @steps)
       |> assign(:step, :originator)
       |> assign(:selected_originator_id, nil)
       |> assign(:selected_counterparty_ids, [])
       |> assign(:quote_form, quote_form)
       |> assign(:quote, nil)
       |> assign(:quote_error, nil)
+      |> assign(:spot_rates, spot_rate_snapshot.rates)
+      |> assign(:spot_rates_updated_at, spot_rate_snapshot.updated_at)
+
+    if connected?(socket), do: SpotRatePublisher.subscribe()
 
     {:ok, socket}
   end
@@ -69,6 +73,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   def handle_event("generate_quote", %{"quote" => quote_params}, socket) do
     attrs =
       quote_params
+      |> Map.put("fx_rate", live_spot_rate(socket.assigns, quote_params))
       |> Map.put("originator_party_id", socket.assigns.selected_originator_id)
       |> Map.put("counterparty_party_id", selected_counterparty_id(socket.assigns))
 
@@ -98,6 +103,13 @@ defmodule PhoenixFintechWeb.TransferNewLive do
     end
   end
 
+  def handle_event("quote_changed", %{"quote" => quote_params}, socket) do
+    {:noreply,
+     socket
+     |> assign(:quote_form, to_form(quote_params, as: :quote))
+     |> clear_quote()}
+  end
+
   def handle_event("finish_wizard", _params, %{assigns: %{quote: nil}} = socket) do
     {:noreply, assign(socket, :step, :quote)}
   end
@@ -122,6 +134,14 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   end
 
   @impl true
+  def handle_info({:spot_rates, rates, updated_at}, socket) do
+    {:noreply,
+     socket
+     |> assign(:spot_rates, rates)
+     |> assign(:spot_rates_updated_at, updated_at)}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
@@ -141,12 +161,6 @@ defmodule PhoenixFintechWeb.TransferNewLive do
           <progress class="progress progress-primary max-w-xs" value={step_number(@step)} max="4">
           </progress>
         </div>
-
-        <ul class="steps steps-horizontal w-full overflow-x-auto">
-          <li :for={step <- @steps} class={step_classes(step, @step)}>
-            {step_label(step)}
-          </li>
-        </ul>
 
         <div class="overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm">
           <div id="transfer-wizard-track" class={wizard_track_classes(@step)}>
@@ -265,7 +279,12 @@ defmodule PhoenixFintechWeb.TransferNewLive do
                   <span>{@quote_error}</span>
                 </div>
 
-                <.form for={@quote_form} id="transfer-quote-form" phx-submit="generate_quote">
+                <.form
+                  for={@quote_form}
+                  id="transfer-quote-form"
+                  phx-change="quote_changed"
+                  phx-submit="generate_quote"
+                >
                   <div class="grid gap-4 md:grid-cols-3">
                     <.input
                       field={@quote_form[:amount_in_originator_currency]}
@@ -287,6 +306,19 @@ defmodule PhoenixFintechWeb.TransferNewLive do
                       options={currency_options(@currencies)}
                     />
                   </div>
+
+                  <input
+                    type="hidden"
+                    name="quote[fx_rate]"
+                    value={spot_rate_input_value(selected_spot_rate(@spot_rates, @quote_form))}
+                  />
+
+                  <.spot_rate_card
+                    rate={selected_spot_rate(@spot_rates, @quote_form)}
+                    from_currency_code={quote_form_value(@quote_form, :originator_currency_code)}
+                    to_currency_code={quote_form_value(@quote_form, :counterparty_currency_code)}
+                    updated_at={@spot_rates_updated_at}
+                  />
 
                   <div class="card-actions mt-6 justify-between">
                     <button
@@ -421,6 +453,39 @@ defmodule PhoenixFintechWeb.TransferNewLive do
     """
   end
 
+  attr :rate, :any, required: true
+  attr :from_currency_code, :string, required: true
+  attr :to_currency_code, :string, required: true
+  attr :updated_at, :any, default: nil
+
+  def spot_rate_card(assigns) do
+    ~H"""
+    <div class="card card-border mt-4 bg-base-100">
+      <div class="card-body gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="badge badge-success badge-soft">Live spot</span>
+            <span class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              {@from_currency_code}/{@to_currency_code}
+            </span>
+          </div>
+          <p class="mt-2 text-sm text-base-content/70">
+            This rate refreshes every 5 seconds and will be locked when you generate the binding quote.
+          </p>
+        </div>
+        <div class="text-left sm:text-right">
+          <p class="text-3xl font-semibold tabular-nums">
+            {format_spot_rate(@rate)}
+          </p>
+          <p class="mt-1 text-xs text-base-content/60">
+            Updated {format_spot_updated_at(@updated_at)}
+          </p>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   defp current_user(%{user: user}), do: user
   defp current_user(_scope), do: nil
 
@@ -490,25 +555,42 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   defp currency_options(currencies),
     do: for(currency <- currencies, do: {"#{currency.code} · #{currency.name}", currency.code})
 
+  defp selected_spot_rate(rates, quote_form) do
+    from_currency_code = quote_form_value(quote_form, :originator_currency_code)
+    to_currency_code = quote_form_value(quote_form, :counterparty_currency_code)
+
+    Map.get(rates, {from_currency_code, to_currency_code})
+  end
+
+  defp live_spot_rate(assigns, quote_params) do
+    Map.get(assigns.spot_rates, {
+      Map.get(quote_params, "originator_currency_code"),
+      Map.get(quote_params, "counterparty_currency_code")
+    })
+  end
+
+  defp quote_form_value(quote_form, field) do
+    Phoenix.HTML.Form.input_value(quote_form, field)
+  end
+
+  defp format_spot_rate(nil), do: "Waiting for rate"
+  defp format_spot_rate(%Decimal{} = rate), do: Decimal.to_string(rate, :normal)
+  defp format_spot_rate(rate), do: to_string(rate)
+
+  defp spot_rate_input_value(nil), do: nil
+  defp spot_rate_input_value(%Decimal{} = rate), do: Decimal.to_string(rate, :normal)
+  defp spot_rate_input_value(rate), do: to_string(rate)
+
+  defp format_spot_updated_at(nil), do: "on next tick"
+
+  defp format_spot_updated_at(%DateTime{} = updated_at) do
+    Calendar.strftime(updated_at, "%H:%M:%S UTC")
+  end
+
   defp default_currency_code([currency | _]), do: currency.code
   defp default_currency_code([]), do: nil
 
   defp step_number(step), do: Enum.find_index(@steps, &(&1 == step)) + 1
-
-  defp step_label(:originator), do: "Originator"
-  defp step_label(:counterparties), do: "Counterparty"
-  defp step_label(:quote), do: "FX quote"
-  defp step_label(:review), do: "Review"
-
-  defp step_classes(step, current_step) do
-    current_index = Enum.find_index(@steps, &(&1 == current_step))
-    step_index = Enum.find_index(@steps, &(&1 == step))
-
-    [
-      "step",
-      step_index <= current_index && "step-primary"
-    ]
-  end
 
   defp wizard_track_classes(:originator), do: base_track_classes() ++ ["translate-x-0"]
   defp wizard_track_classes(:counterparties), do: base_track_classes() ++ ["-translate-x-1/4"]
@@ -525,6 +607,8 @@ defmodule PhoenixFintechWeb.TransferNewLive do
       current_step != panel_step && "pointer-events-none opacity-40"
     ]
   end
+
+  defp party_card_classes(party_id, nil), do: party_card_classes(party_id, [])
 
   defp party_card_classes(party_id, selected_party_id) when is_binary(selected_party_id),
     do: party_card_classes(party_id, [selected_party_id])
