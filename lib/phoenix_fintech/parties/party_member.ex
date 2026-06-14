@@ -16,11 +16,6 @@ defmodule PhoenixFintech.Parties.PartyMember do
     field :title, :string
     field :is_legal_rep, :boolean, default: false
     field :is_ubo, :boolean, default: false
-    field :address_line1, :string
-    field :address_line2, :string
-    field :locality, :string
-    field :region, :string
-    field :postal_code, :string
     field :country_code, :string
 
     has_many :government_ids, GovernmentID
@@ -37,15 +32,11 @@ defmodule PhoenixFintech.Parties.PartyMember do
       :title,
       :is_legal_rep,
       :is_ubo,
-      :address_line1,
-      :address_line2,
-      :locality,
-      :region,
-      :postal_code,
       :country_code
     ])
     |> normalize_country_code()
-    |> validate_required([:party_id, :type])
+    |> validate_required([:party_id, :legal_name, :type, :country_code])
+    |> validate_individual_title()
     |> validate_length(:legal_name, max: 160)
     |> validate_length(:country_code, is: 2)
     |> foreign_key_constraint(:party_id)
@@ -59,16 +50,21 @@ defmodule PhoenixFintech.Parties.PartyMember do
       :type,
       :parent_party_member_id,
       :title,
-      :address_line1,
-      :address_line2,
-      :locality,
-      :region,
-      :postal_code,
       :country_code
     ])
     |> normalize_country_code()
+    |> validate_required([:legal_name, :type, :country_code])
+    |> validate_individual_title()
     |> validate_length(:legal_name, max: 160)
     |> validate_length(:country_code, is: 2)
+  end
+
+  defp validate_individual_title(changeset) do
+    if get_field(changeset, :type) == :individual do
+      validate_required(changeset, [:title])
+    else
+      changeset
+    end
   end
 
   defp normalize_country_code(changeset) do

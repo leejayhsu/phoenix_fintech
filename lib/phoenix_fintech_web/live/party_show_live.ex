@@ -36,8 +36,13 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   end
 
   @impl true
-  def handle_event("create_member", %{"party_member" => member_params}, socket) do
+  def handle_event(
+        "create_member",
+        %{"party_member" => member_params, "government_id" => government_id_params},
+        socket
+      ) do
     attrs = Map.put(member_params, "type", Map.get(member_params, "type", "individual"))
+    attrs = Map.put(attrs, "government_id", government_id_params)
 
     case Parties.create_party_member(socket.assigns.party.id, attrs) do
       {:ok, member} ->
@@ -51,13 +56,24 @@ defmodule PhoenixFintechWeb.PartyShowLive do
          |> assign(:member_modal_open?, false)
          |> assign_member_form()}
 
-      {:error, changeset} ->
+      {:error, :member, changeset} ->
         {:noreply,
          socket
          |> assign(:member_modal_open?, true)
          |> assign(
            :member_form,
            to_form(%{changeset | action: :validate}, as: :party_member)
+         )
+         |> assign_member_government_id_form(government_id_params)}
+
+      {:error, :government_id, changeset} ->
+        {:noreply,
+         socket
+         |> assign(:member_modal_open?, true)
+         |> assign_member_form(member_params)
+         |> assign(
+           :member_government_id_form,
+           to_form(%{changeset | action: :validate}, as: :government_id)
          )}
     end
   end
@@ -210,7 +226,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
             phx-submit="create_member"
             class="grid gap-3"
           >
-            <.input field={@member_form[:legal_name]} label="Legal name" />
+            <.input field={@member_form[:legal_name]} label="Name or company name" />
             <.input
               field={@member_form[:type]}
               type="select"
@@ -223,12 +239,25 @@ defmodule PhoenixFintechWeb.PartyShowLive do
               label="Parent member"
               options={@member_parent_options}
             />
-            <.input field={@member_form[:title]} label="Title" />
-            <.input field={@member_form[:address_line1]} label="Address line 1" />
-            <.input field={@member_form[:locality]} label="City" />
-            <.input field={@member_form[:region]} label="Region" />
-            <.input field={@member_form[:postal_code]} label="Postal code" />
-            <.input field={@member_form[:country_code]} label="Country code" />
+            <.input field={@member_form[:title]} label="Role within company" />
+            <.input
+              field={@member_form[:country_code]}
+              label="Country of birth/business"
+              maxlength="2"
+            />
+            <div class="divider my-1">Government ID</div>
+            <.input
+              field={@member_government_id_form[:type]}
+              type="select"
+              label="Type"
+              options={[SSN: "ssn", EIN: "ein", Passport: "passport", "National ID": "national_id"]}
+            />
+            <.input
+              field={@member_government_id_form[:country_code]}
+              label="Issuing country"
+              maxlength="2"
+            />
+            <.input field={@member_government_id_form[:value]} label="Value" />
             <.button id="create-member-button" type="submit">Add member</.button>
           </.form>
         </div>
@@ -811,7 +840,16 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     changeset =
       Parties.change_party_member(%PartyMember{party_id: socket.assigns.party.id}, member_attrs)
 
-    assign(socket, :member_form, to_form(changeset, as: :party_member))
+    socket
+    |> assign(:member_form, to_form(changeset, as: :party_member))
+    |> assign_member_government_id_form()
+  end
+
+  defp assign_member_government_id_form(socket, attrs \\ %{}) do
+    attrs = Map.merge(%{"type" => "ssn", "country_code" => "US", "value" => ""}, attrs)
+    changeset = Parties.change_government_id(attrs)
+
+    assign(socket, :member_government_id_form, to_form(changeset, as: :government_id))
   end
 
   defp assign_doc_form(socket, attrs \\ %{}),

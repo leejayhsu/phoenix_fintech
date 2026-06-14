@@ -45,9 +45,21 @@ defmodule PhoenixFintech.Parties do
     do: Repo.get_by!(PartyMember, id: member_id, party_id: party_id)
 
   def create_party_member(party_id, attrs) do
-    %PartyMember{party_id: party_id}
-    |> PartyMember.changeset(attrs)
-    |> Repo.insert()
+    {government_id_attrs, member_attrs} = Map.pop(attrs, "government_id", %{})
+
+    Multi.new()
+    |> Multi.insert(
+      :member,
+      PartyMember.changeset(%PartyMember{party_id: party_id}, member_attrs)
+    )
+    |> Multi.insert(:government_id, fn %{member: member} ->
+      GovernmentID.changeset(%GovernmentID{party_member_id: member.id}, government_id_attrs)
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{member: member}} -> {:ok, member}
+      {:error, step, changeset, _changes} -> {:error, step, changeset}
+    end
   end
 
   def delete_party_member(%PartyMember{} = member), do: Repo.delete(member)

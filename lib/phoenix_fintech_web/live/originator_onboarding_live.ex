@@ -255,27 +255,10 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
             label="Full legal name"
             autocomplete="name"
           />
-          <.input field={@representative_form[:title]} label="Title" />
-          <.input
-            field={@representative_form[:address_line1]}
-            label="Address line 1"
-            autocomplete="address-line1"
-          />
-          <.input
-            field={@representative_form[:address_line2]}
-            label="Address line 2"
-            autocomplete="address-line2"
-          />
-          <.input field={@representative_form[:locality]} label="City" autocomplete="address-level2" />
-          <.input field={@representative_form[:region]} label="Region" autocomplete="address-level1" />
-          <.input
-            field={@representative_form[:postal_code]}
-            label="Postal code"
-            autocomplete="postal-code"
-          />
+          <.input field={@representative_form[:title]} label="Role within company" />
           <.input
             field={@representative_form[:country_code]}
-            label="Country code"
+            label="Country of birth"
             maxlength="2"
             autocomplete="country"
           />
@@ -335,12 +318,8 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
 
         <.review_panel title="Representative">
           <:row label="Legal name">{@representative_params["legal_name"]}</:row>
-          <:row label="Title">{@representative_params["title"]}</:row>
-          <:row label="Location">
-            {@representative_params["locality"]}, {@representative_params["region"]} {@representative_params[
-              "postal_code"
-            ]}
-          </:row>
+          <:row label="Role within company">{@representative_params["title"]}</:row>
+          <:row label="Country of birth">{@representative_params["country_code"]}</:row>
           <:row label="Role">Legal representative and UBO</:row>
         </.review_panel>
       </div>
@@ -445,11 +424,6 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
     %{
       "legal_name" => "",
       "title" => "",
-      "address_line1" => "",
-      "address_line2" => "",
-      "locality" => "",
-      "region" => "",
-      "postal_code" => "",
       "country_code" => "US"
     }
   end
