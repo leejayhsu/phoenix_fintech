@@ -2,21 +2,11 @@ defmodule PhoenixFintech.Transfers do
   import Ecto.Query, warn: false
 
   alias Ecto.Multi
+  alias PhoenixFintech.Fx.Rates
   alias PhoenixFintech.Repo
   alias PhoenixFintech.Transfers.{Transfer, TransferEvent, TransferQuote, TransferStateMachine}
   alias PhoenixFintech.Transfers.Quotes.{Pipeline, QuoteContext}
   alias PhoenixFintech.Transfers.Quotes.Items
-
-  @demo_fx_rates %{
-    {"USD", "EUR"} => "0.9200",
-    {"EUR", "USD"} => "1.0870",
-    {"USD", "GBP"} => "0.7900",
-    {"GBP", "USD"} => "1.2660",
-    {"USD", "JPY"} => "156.2000",
-    {"JPY", "USD"} => "0.0064",
-    {"EUR", "GBP"} => "0.8600",
-    {"GBP", "EUR"} => "1.1630"
-  }
 
   def list_transfers do
     Repo.all(base_transfer_query())
@@ -317,26 +307,7 @@ defmodule PhoenixFintech.Transfers do
   defp maybe_generated_fx_rate(nil, currency_code, currency_code), do: nil
 
   defp maybe_generated_fx_rate(nil, originator_currency_code, counterparty_currency_code) do
-    @demo_fx_rates
-    |> Map.get(
-      {originator_currency_code, counterparty_currency_code},
-      fallback_fx_rate(originator_currency_code, counterparty_currency_code)
-    )
-    |> Decimal.new()
-  end
-
-  defp fallback_fx_rate(originator_currency_code, counterparty_currency_code) do
-    basis_points =
-      (originator_currency_code <> counterparty_currency_code)
-      |> String.to_charlist()
-      |> Enum.sum()
-      |> rem(7_000)
-      |> Kernel.+(8_000)
-
-    basis_points
-    |> Decimal.new()
-    |> Decimal.div(Decimal.new(10_000))
-    |> Decimal.to_string(:normal)
+    Rates.spot_rate(originator_currency_code, counterparty_currency_code)
   end
 
   defp normalize_legacy_quote_attrs(attrs) do

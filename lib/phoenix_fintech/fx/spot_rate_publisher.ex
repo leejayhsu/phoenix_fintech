@@ -1,6 +1,7 @@
 defmodule PhoenixFintech.Fx.SpotRatePublisher do
   use GenServer
 
+  alias PhoenixFintech.Fx.Rates
   alias PhoenixFintech.Ledger
 
   @topic "fx:spot_rates"
@@ -78,20 +79,7 @@ defmodule PhoenixFintech.Fx.SpotRatePublisher do
     )
   end
 
-  defp generated_rate(currency_code, currency_code), do: Decimal.new("1")
-
   defp generated_rate(from_currency_code, to_currency_code) do
-    base_basis_points =
-      (from_currency_code <> to_currency_code)
-      |> String.to_charlist()
-      |> Enum.sum()
-      |> rem(7_000)
-      |> Kernel.+(8_000)
-
-    basis_points = max(base_basis_points + :rand.uniform(101) - 51, 1)
-
-    basis_points
-    |> Decimal.new()
-    |> Decimal.div(Decimal.new(10_000))
+    Rates.live_spot_rate(from_currency_code, to_currency_code)
   end
 end
