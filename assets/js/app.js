@@ -26,11 +26,41 @@ import {hooks as colocatedHooks} from "phoenix-colocated/phoenix_fintech"
 import {LiveFlowHook} from "live_flow"
 import topbar from "../vendor/topbar"
 
+const safeLiveFlowHook = {
+  ...LiveFlowHook,
+  mounted() {
+    const pushEvent = this.pushEvent.bind(this)
+
+    this.pushEvent = (event, payload, ...args) => {
+      if (!this.el.isConnected) return Promise.resolve()
+
+      const result = pushEvent(event, payload, ...args)
+
+      if (result?.catch) {
+        return result.catch(error => {
+          if (
+            error?.message === "timeout" ||
+            error?.message === "unable to push hook event. LiveView not connected"
+          ) {
+            return null
+          }
+
+          throw error
+        })
+      }
+
+      return result
+    }
+
+    return LiveFlowHook.mounted.call(this)
+  },
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, LiveFlow: LiveFlowHook},
+  hooks: {...colocatedHooks, LiveFlow: safeLiveFlowHook},
 })
 
 // Show progress bar on live navigation and form submits
