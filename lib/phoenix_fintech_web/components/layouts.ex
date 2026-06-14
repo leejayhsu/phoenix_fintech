@@ -223,7 +223,7 @@ defmodule PhoenixFintechWeb.Layouts do
         type="button"
         class="btn btn-sm btn-square join-item"
         phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="corporate"
+        data-phx-theme="cupcake"
         aria-label="Use light theme"
       >
         <.icon name="hero-sun-micro" class="size-4" />
