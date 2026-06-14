@@ -42,51 +42,51 @@ defmodule PhoenixFintechWeb.Layouts do
     <div class="min-h-screen bg-base-200 text-base-content">
       <%= if @current_user do %>
         <div class="flex min-h-screen">
-          <aside class="hidden w-72 border-r border-base-300 bg-base-100/95 p-4 shadow-sm lg:flex lg:flex-col">
+          <aside class="hidden w-64 border-r border-base-300 bg-base-100 p-2 lg:flex lg:flex-col">
             <a
               href={~p"/app"}
-              class="mb-8 flex items-center gap-3 rounded-box px-3 py-3 text-xl font-semibold tracking-tight transition-colors hover:bg-base-200"
+              class="mb-4 flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium tracking-tight transition-colors hover:bg-base-200"
             >
-              <span class="flex size-10 items-center justify-center rounded-box bg-primary/10 text-primary">
-                <.icon name="hero-banknotes" class="size-6" />
+              <span class="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-content">
+                <.icon name="hero-banknotes" class="size-4" />
               </span>
               <span>Phoenix Fintech</span>
             </a>
-            <ul class="menu menu-lg gap-2 p-0">
+            <ul class="menu menu-sm gap-1 p-0 text-sm">
               <li>
-                <.link navigate={~p"/app"} class="gap-3 rounded-box px-4 py-3 font-medium">
-                  <.icon name="hero-home" class="size-5" /> Dashboard
+                <.link navigate={~p"/app"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+                  <.icon name="hero-home" class="size-4" /> Dashboard
                 </.link>
               </li>
               <li>
-                <.link navigate={~p"/app/parties"} class="gap-3 rounded-box px-4 py-3 font-medium">
-                  <.icon name="hero-building-office-2" class="size-5" /> Parties
+                <.link navigate={~p"/app/parties"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+                  <.icon name="hero-building-office-2" class="size-4" /> Parties
                 </.link>
               </li>
               <li>
-                <.link navigate={~p"/users/settings"} class="gap-3 rounded-box px-4 py-3 font-medium">
-                  <.icon name="hero-cog-6-tooth" class="size-5" /> Settings
+                <.link navigate={~p"/users/settings"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+                  <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
                 </.link>
               </li>
             </ul>
             <.link
               navigate={~p"/users/settings"}
-              class="mt-auto flex items-center gap-3 rounded-box border border-base-300 bg-base-100 p-3 text-left shadow-sm transition-colors hover:bg-base-200"
+              class="mt-auto flex items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-base-200"
             >
               <div class="avatar avatar-placeholder">
-                <div class="size-11 rounded-box bg-neutral text-neutral-content">
-                  <span class="text-base font-semibold">{String.first(@profile_name)}</span>
+                <div class="size-8 rounded-lg bg-neutral text-neutral-content">
+                  <span class="text-xs font-medium">{String.first(@profile_name)}</span>
                 </div>
               </div>
               <div class="min-w-0 flex-1">
-                <div class="truncate text-base font-semibold leading-tight">{@profile_name}</div>
-                <div class="truncate text-sm text-base-content/60">{@current_user.email}</div>
+                <div class="truncate text-sm font-medium leading-tight">{@profile_name}</div>
+                <div class="truncate text-xs text-base-content/60">{@current_user.email}</div>
               </div>
-              <.icon name="hero-chevron-up-down" class="size-5 shrink-0 text-base-content/60" />
+              <.icon name="hero-chevron-up-down" class="size-4 shrink-0 text-base-content/60" />
             </.link>
           </aside>
-          <main class="flex-1 p-6 lg:p-10">
-            <div class="mb-6 flex justify-end">
+          <main class="flex-1 p-4">
+            <div class="mb-4 flex justify-end">
               <.theme_toggle />
             </div>
             {render_slot(@inner_block)}
