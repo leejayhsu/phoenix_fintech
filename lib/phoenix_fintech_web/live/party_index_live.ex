@@ -53,11 +53,14 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
                     No parties onboarded yet.
                   </td>
                 </tr>
-                <tr :for={party <- @parties} id={"party-#{party.id}"}>
+                <tr
+                  :for={party <- @parties}
+                  id={"party-#{party.id}"}
+                  phx-click={JS.navigate(~p"/app/parties/#{party.id}")}
+                  class="hover cursor-pointer"
+                >
                   <td class="font-medium">
-                    <.link navigate={~p"/app/parties/#{party.id}"} class="link link-primary">
-                      {party.legal_name}
-                    </.link>
+                    {party.legal_name}
                   </td>
                   <td>{party.tax_id}</td>
                   <td>

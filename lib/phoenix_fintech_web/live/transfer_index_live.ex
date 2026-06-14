@@ -51,7 +51,12 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                 <tr :if={@transfers == []}>
                   <td colspan="3" class="py-8 text-center text-base-content/60">No transfers yet.</td>
                 </tr>
-                <tr :for={transfer <- @transfers} id={"transfer-#{transfer.id}"}>
+                <tr
+                  :for={transfer <- @transfers}
+                  id={"transfer-#{transfer.id}"}
+                  phx-click={JS.navigate(~p"/app/transfers/#{transfer.id}")}
+                  class="hover cursor-pointer"
+                >
                   <td>
                     <.copy_value value={transfer.id} />
                   </td>
