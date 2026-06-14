@@ -70,43 +70,25 @@ defmodule PhoenixFintechWeb.AdminLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
+    <Layouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      current_user={@current_user}
+      section={:admin}
+      admin_resources={@resources}
+      admin_resource={@resource}
+    >
       <section id="admin-panel" class="mx-auto max-w-7xl">
-        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="mb-6">
           <div>
             <h1 class="text-2xl font-semibold">Admin</h1>
             <p class="mt-1 text-sm text-base-content/70">
               View and edit application records.
             </p>
           </div>
-
-          <.link navigate={~p"/app"} class="btn btn-ghost btn-sm">
-            Back to app
-          </.link>
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-[16rem_1fr]">
-          <aside class="card card-border bg-base-100">
-            <div class="card-body p-3">
-              <h2 class="px-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                Resources
-              </h2>
-              <ul class="menu menu-sm p-0">
-                <li :for={resource <- @resources}>
-                  <.link
-                    navigate={~p"/admin/#{resource.key}"}
-                    class={[
-                      "rounded-lg",
-                      assigns[:resource] && @resource.key == resource.key && "menu-active"
-                    ]}
-                  >
-                    {resource.label}
-                  </.link>
-                </li>
-              </ul>
-            </div>
-          </aside>
-
+        <div>
           <%= case @live_action do %>
             <% :index -> %>
               <div class="card card-border bg-base-100">

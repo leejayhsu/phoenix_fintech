@@ -32,6 +32,9 @@ defmodule PhoenixFintechWeb.Layouts do
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
   attr :current_user, :map, default: nil
+  attr :section, :atom, default: :app
+  attr :admin_resources, :list, default: []
+  attr :admin_resource, :map, default: nil
 
   slot :inner_block, required: true
 
@@ -44,7 +47,7 @@ defmodule PhoenixFintechWeb.Layouts do
         <div class="flex min-h-screen">
           <aside class="hidden w-64 border-r border-base-300 bg-base-100 p-2 lg:flex lg:flex-col">
             <a
-              href={~p"/app"}
+              href={if @section == :admin, do: ~p"/admin", else: ~p"/app"}
               class="mb-4 flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium tracking-tight transition-colors hover:bg-base-200"
             >
               <span class="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-content">
@@ -52,43 +55,75 @@ defmodule PhoenixFintechWeb.Layouts do
               </span>
               <span>Phoenix Fintech</span>
             </a>
-            <ul class="menu menu-sm gap-1 p-0 text-sm">
-              <li>
-                <.link navigate={~p"/app"} class="gap-2 rounded-lg px-2 py-2 font-medium">
-                  <.icon name="hero-home" class="size-4" /> Dashboard
-                </.link>
-              </li>
-              <li>
-                <.link navigate={~p"/app/parties"} class="gap-2 rounded-lg px-2 py-2 font-medium">
-                  <.icon name="hero-building-office-2" class="size-4" /> Parties
-                </.link>
-              </li>
-              <li>
-                <.link navigate={~p"/users/settings"} class="gap-2 rounded-lg px-2 py-2 font-medium">
-                  <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
-                </.link>
-              </li>
-              <li :if={@current_user.is_admin}>
-                <.link navigate={~p"/admin"} class="gap-2 rounded-lg px-2 py-2 font-medium">
-                  <.icon name="hero-shield-check" class="size-4" /> Admin
-                </.link>
-              </li>
-            </ul>
-            <.link
-              navigate={~p"/users/settings"}
-              class="mt-auto flex items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-base-200"
-            >
-              <div class="avatar avatar-placeholder">
-                <div class="size-8 rounded-lg bg-neutral text-neutral-content">
-                  <span class="text-xs font-medium">{String.first(@profile_name)}</span>
+
+            <%= if @section == :admin do %>
+              <div class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                Resources
+              </div>
+              <ul class="menu menu-sm gap-1 p-0 text-sm">
+                <li :for={resource <- @admin_resources}>
+                  <.link
+                    navigate={~p"/admin/#{resource.key}"}
+                    class={[
+                      "rounded-lg px-2 py-2 font-medium",
+                      @admin_resource && @admin_resource.key == resource.key && "menu-active"
+                    ]}
+                  >
+                    {resource.label}
+                  </.link>
+                </li>
+              </ul>
+            <% else %>
+              <ul class="menu menu-sm gap-1 p-0 text-sm">
+                <li>
+                  <.link navigate={~p"/app"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+                    <.icon name="hero-home" class="size-4" /> Dashboard
+                  </.link>
+                </li>
+                <li>
+                  <.link navigate={~p"/app/parties"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+                    <.icon name="hero-building-office-2" class="size-4" /> Parties
+                  </.link>
+                </li>
+                <li>
+                  <.link navigate={~p"/users/settings"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+                    <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+                  </.link>
+                </li>
+              </ul>
+            <% end %>
+
+            <details class="dropdown dropdown-top mt-auto w-full">
+              <summary class="flex cursor-pointer list-none items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-base-200">
+                <div class="avatar avatar-placeholder">
+                  <div class="size-8 rounded-lg bg-neutral text-neutral-content">
+                    <span class="text-xs font-medium">{String.first(@profile_name)}</span>
+                  </div>
                 </div>
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="truncate text-sm font-medium leading-tight">{@profile_name}</div>
-                <div class="truncate text-xs text-base-content/60">{@current_user.email}</div>
-              </div>
-              <.icon name="hero-chevron-up-down" class="size-4 shrink-0 text-base-content/60" />
-            </.link>
+                <div class="min-w-0 flex-1">
+                  <div class="truncate text-sm font-medium leading-tight">{@profile_name}</div>
+                  <div class="truncate text-xs text-base-content/60">{@current_user.email}</div>
+                </div>
+                <.icon name="hero-chevron-up-down" class="size-4 shrink-0 text-base-content/60" />
+              </summary>
+              <ul class="menu dropdown-content z-10 mb-2 w-full rounded-box border border-base-300 bg-base-100 p-2 shadow">
+                <li>
+                  <.link navigate={~p"/users/settings"}>
+                    <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+                  </.link>
+                </li>
+                <li :if={@current_user.is_admin && @section != :admin}>
+                  <.link navigate={~p"/admin"}>
+                    <.icon name="hero-shield-check" class="size-4" /> Admin
+                  </.link>
+                </li>
+                <li :if={@current_user.is_admin && @section == :admin}>
+                  <.link navigate={~p"/app"}>
+                    <.icon name="hero-arrow-left" class="size-4" /> Back to app
+                  </.link>
+                </li>
+              </ul>
+            </details>
           </aside>
           <main class="flex-1 p-4">
             {render_slot(@inner_block)}
