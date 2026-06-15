@@ -240,13 +240,19 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
                 <div>
                   <dt class="text-base-content/60">Send amount</dt>
                   <dd class="mt-1 font-medium">
-                    {@quote.amount_in_originator_currency} {@quote.originator_currency_code}
+                    {format_currency_amount(
+                      @quote.amount_in_originator_currency,
+                      @quote.originator_currency_code
+                    )}
                   </dd>
                 </div>
                 <div>
                   <dt class="text-base-content/60">Destination amount</dt>
                   <dd class="mt-1 font-medium">
-                    {@quote.amount_in_counterparty_currency} {@quote.counterparty_currency_code}
+                    {format_currency_amount(
+                      @quote.amount_in_counterparty_currency,
+                      @quote.counterparty_currency_code
+                    )}
                   </dd>
                 </div>
               </dl>
@@ -272,7 +278,9 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
             class="flex items-center justify-between gap-4 rounded-box bg-base-200 px-4 py-3 text-sm"
           >
             <span class="font-medium">{line["label"]}</span>
-            <span class="text-base-content/70">{line["amount"]} {line["currency_code"]}</span>
+            <span class="text-base-content/70">
+              {format_currency_amount(line["amount"], line["currency_code"])}
+            </span>
           </div>
         </div>
 
@@ -383,7 +391,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
           <span class="text-sm text-base-content/70">Destination amount</span>
           <span class="font-medium tabular-nums">
             <%= if @details.destination_amount do %>
-              {@details.destination_amount} {@details.destination_currency}
+              {format_currency_amount(@details.destination_amount, @details.destination_currency)}
             <% else %>
               —
             <% end %>
@@ -393,7 +401,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
           <span class="text-sm text-base-content/70">FX fee</span>
           <span class="font-medium tabular-nums">
             <%= if @details.fx_fee do %>
-              {@details.fx_fee} {@details.fx_fee_currency}
+              {format_currency_amount(@details.fx_fee, @details.fx_fee_currency)}
             <% else %>
               —
             <% end %>

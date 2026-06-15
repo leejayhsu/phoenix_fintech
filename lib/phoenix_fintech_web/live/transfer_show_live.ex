@@ -116,13 +116,19 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                     <div>
                       <dt class="text-base-content/60">Originator amount</dt>
                       <dd class="mt-1 font-medium">
-                        {@transfer.amount_in_originator_currency} {@transfer.originator_currency_code}
+                        {format_currency_amount(
+                          @transfer.amount_in_originator_currency,
+                          @transfer.originator_currency_code
+                        )}
                       </dd>
                     </div>
                     <div>
                       <dt class="text-base-content/60">Counterparty amount</dt>
                       <dd class="mt-1 font-medium">
-                        {@transfer.amount_in_counterparty_currency} {@transfer.counterparty_currency_code}
+                        {format_currency_amount(
+                          @transfer.amount_in_counterparty_currency,
+                          @transfer.counterparty_currency_code
+                        )}
                       </dd>
                     </div>
                   </dl>
@@ -157,7 +163,7 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                     >
                       <span class="font-medium">{line["label"]}</span>
                       <span class="text-base-content/60">
-                        {line["amount"]} {line["currency_code"]}
+                        {format_currency_amount(line["amount"], line["currency_code"])}
                       </span>
                     </div>
                   </div>

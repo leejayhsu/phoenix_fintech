@@ -86,6 +86,7 @@ defmodule PhoenixFintechWeb do
       import Phoenix.HTML
       # Core UI components
       import PhoenixFintechWeb.CoreComponents
+      import PhoenixFintechWeb.NumberHelpers
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
