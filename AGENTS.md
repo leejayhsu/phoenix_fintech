@@ -11,6 +11,7 @@ This is a web application written using the Phoenix web framework.
 - activate the daisyUI skill to know what components and classes are available
 - typically i'm already running the dev server on localhost:4000, so check if that's running before starting your own instance of the dev server.
 - highly prefer liveview pages for any pages that require interactivity or state management
+- when showing currency amounts in user facing pages, use proper localization for numbers. For now, we can just use US localization for simplicity's sake.
 
 ## Styling
 - we use DaisyUI for tailwind classes
