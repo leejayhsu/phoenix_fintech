@@ -3,6 +3,8 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
 
   alias PhoenixFintech.Parties
 
+  @steps [:party, :representative, :review]
+
   @impl true
   def mount(_params, _session, socket) do
     socket =
@@ -135,19 +137,8 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
             </p>
           </div>
 
-          <ul class="steps min-w-72">
-            <.step_pill
-              label="Business"
-              active={@step == :party}
-              complete={@step in [:representative, :review]}
-            />
-            <.step_pill
-              label="Representative"
-              active={@step == :representative}
-              complete={@step == :review}
-            />
-            <.step_pill label="Review" active={@step == :review} complete={false} />
-          </ul>
+          <progress class="progress progress-primary max-w-xs" value={step_number(@step)} max="3">
+          </progress>
         </div>
 
         <div class="card card-border bg-base-100">
@@ -171,25 +162,6 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
         </div>
       </section>
     </Layouts.app>
-    """
-  end
-
-  attr :label, :string, required: true
-  attr :active, :boolean, required: true
-  attr :complete, :boolean, required: true
-
-  defp step_pill(assigns) do
-    ~H"""
-    <li class={[
-      "step",
-      @active && "step-primary",
-      @complete && "step-success"
-    ]}>
-      <span :if={@complete} class="step-icon">
-        <.icon name="hero-check-circle" class="size-4" />
-      </span>
-      <span>{@label}</span>
-    </li>
     """
   end
 
@@ -417,6 +389,8 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
   defp assign_current_user(socket) do
     assign(socket, :current_user, current_user(socket.assigns[:current_scope]))
   end
+
+  defp step_number(step), do: Enum.find_index(@steps, &(&1 == step)) + 1
 
   defp default_party_params do
     %{
