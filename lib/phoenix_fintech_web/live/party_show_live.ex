@@ -20,6 +20,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       |> assign_member_flow(party, party.members)
       |> assign(:member_modal_open?, false)
       |> assign(:member_modal_title, "Add member")
+      |> assign(:party_government_id_modal_open?, false)
       |> assign_member_form()
       |> assign_party_address_form()
       |> assign_party_government_id_form()
@@ -94,6 +95,20 @@ defmodule PhoenixFintechWeb.PartyShowLive do
      |> assign_member_form()}
   end
 
+  def handle_event("open_party_government_id_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:party_government_id_modal_open?, true)
+     |> assign_party_government_id_form()}
+  end
+
+  def handle_event("close_party_government_id_modal", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:party_government_id_modal_open?, false)
+     |> assign_party_government_id_form()}
+  end
+
   def handle_event("update_party_address", %{"party_address" => address_params}, socket) do
     case Parties.update_party(socket.assigns.party, address_params) do
       {:ok, party} ->
@@ -130,12 +145,14 @@ defmodule PhoenixFintechWeb.PartyShowLive do
          |> put_flash(:info, "Business government ID added.")
          |> assign(:party, party)
          |> assign_member_flow(party, socket.assigns.members)
+         |> assign(:party_government_id_modal_open?, false)
          |> assign_party_government_id_form()}
 
       {:error, changeset} ->
         {:noreply,
-         assign(
-           socket,
+         socket
+         |> assign(:party_government_id_modal_open?, true)
+         |> assign(
            :party_government_id_form,
            to_form(%{changeset | action: :validate}, as: :party_government_id)
          )}
@@ -240,7 +257,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
           party={@party}
           members={@members}
           party_address_form={@party_address_form}
-          party_government_id_form={@party_government_id_form}
         />
         <.members_panel :if={@active_tab == :members} members={@members} member_flow={@member_flow} />
         <.documents_panel
@@ -315,6 +331,69 @@ defmodule PhoenixFintechWeb.PartyShowLive do
           </.form>
         </div>
       </div>
+
+      <div
+        :if={@party_government_id_modal_open?}
+        id="party-government-id-modal"
+        class="modal modal-open"
+        tabindex="0"
+      >
+        <button
+          id="party-government-id-modal-backdrop"
+          type="button"
+          phx-click="close_party_government_id_modal"
+          class="modal-backdrop"
+          aria-label="Close government ID form"
+        >
+        </button>
+        <div class="modal-box w-[min(92vw,28rem)] max-w-none">
+          <div class="mb-4 flex items-center justify-between gap-4">
+            <h3 class="text-lg font-semibold">Add business government ID</h3>
+            <button
+              id="close-party-government-id-modal-button"
+              type="button"
+              phx-click="close_party_government_id_modal"
+              class="btn btn-ghost btn-sm btn-circle"
+              aria-label="Close government ID form"
+            >
+              <.icon name="hero-x-mark" class="size-5" />
+            </button>
+          </div>
+
+          <.form
+            for={@party_government_id_form}
+            id="party-government-id-form"
+            phx-submit="create_party_government_id"
+            class="grid gap-3"
+          >
+            <.input
+              field={@party_government_id_form[:type]}
+              type="select"
+              label="Type"
+              options={[EIN: "ein", Passport: "passport", "National ID": "national_id"]}
+            />
+            <.input
+              field={@party_government_id_form[:country_code]}
+              label="Issuing country"
+              maxlength="2"
+            />
+            <.input field={@party_government_id_form[:value]} label="Value" />
+            <div class="modal-action">
+              <button
+                id="cancel-party-government-id-button"
+                type="button"
+                phx-click="close_party_government_id_modal"
+                class="btn btn-ghost"
+              >
+                Cancel
+              </button>
+              <.button id="add-party-government-id-button" type="submit">
+                Add government ID
+              </.button>
+            </div>
+          </.form>
+        </div>
+      </div>
     </Layouts.app>
     """
   end
@@ -362,7 +441,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   attr :party, :map, required: true
   attr :members, :list, required: true
   attr :party_address_form, :map, required: true
-  attr :party_government_id_form, :map, required: true
 
   defp overview_panel(assigns) do
     ~H"""
@@ -450,42 +528,41 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
         <section class="card card-border bg-base-100">
           <div class="card-body">
-            <h2 class="card-title text-lg">Business government ID</h2>
-
-            <%= if primary_party_government_id(@party) do %>
-              <p class="mt-4 text-sm font-medium">
-                {government_id_summary(primary_party_government_id(@party))}
-              </p>
-              <p class="mt-1 text-sm text-base-content/70">
-                Add more government IDs later if needed.
-              </p>
-            <% else %>
-              <p class="mt-1 text-sm text-base-content/70">
-                Add the EIN or other business identifier after creating the party.
-              </p>
-
-              <.form
-                for={@party_government_id_form}
-                id="party-government-id-form"
-                phx-submit="create_party_government_id"
-                class="mt-4 grid gap-3"
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="card-title text-lg">Business government IDs</h2>
+                <p class="mt-1 text-sm text-base-content/70">
+                  Store the EIN or other identifiers used for verification.
+                </p>
+              </div>
+              <button
+                id="open-party-government-id-modal-button"
+                type="button"
+                phx-click="open_party_government_id_modal"
+                class="btn btn-primary btn-sm shrink-0"
               >
-                <.input
-                  field={@party_government_id_form[:type]}
-                  type="select"
-                  label="Type"
-                  options={[EIN: "ein", Passport: "passport", "National ID": "national_id"]}
-                />
-                <.input
-                  field={@party_government_id_form[:country_code]}
-                  label="Issuing country"
-                  maxlength="2"
-                />
-                <.input field={@party_government_id_form[:value]} label="Value" />
-                <.button id="add-party-government-id-button" type="submit">
-                  Add government ID
-                </.button>
-              </.form>
+                Add ID
+              </button>
+            </div>
+
+            <%= if @party.government_ids == [] do %>
+              <div class="alert alert-info alert-soft mt-4">
+                No business government IDs added yet.
+              </div>
+            <% else %>
+              <ul class="list mt-4 rounded-box border border-base-300 bg-base-100">
+                <li :for={government_id <- @party.government_ids} class="list-row">
+                  <div class="flex size-10 items-center justify-center rounded-field bg-base-200">
+                    <.icon name="hero-identification" class="size-5 text-base-content/60" />
+                  </div>
+                  <div>
+                    <p class="font-medium">{government_id_summary(government_id)}</p>
+                    <p class="text-xs text-base-content/60">
+                      Added {Calendar.strftime(government_id.inserted_at, "%b %-d, %Y")}
+                    </p>
+                  </div>
+                </li>
+              </ul>
             <% end %>
           </div>
         </section>
