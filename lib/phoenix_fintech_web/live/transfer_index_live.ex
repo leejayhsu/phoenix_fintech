@@ -58,7 +58,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                   class="hover cursor-pointer"
                 >
                   <td>
-                    <.copy_value value={transfer.id} />
+                    <.copy_value id={"transfer-#{transfer.id}-copy"} value={transfer.id} />
                   </td>
                   <td>
                     {transfer.originator_party.legal_name}

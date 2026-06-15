@@ -143,6 +143,7 @@ defmodule PhoenixFintechWeb.CoreComponents do
     default: nil,
     doc: "optional display text instead of the truncated value"
 
+  attr :id, :string, default: nil
   attr :class, :any, default: nil
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the button"
 
@@ -151,11 +152,15 @@ defmodule PhoenixFintechWeb.CoreComponents do
       assigns
       |> assign(:copy_value, to_string(assigns.value))
       |> assign(:display, assigns.display || truncate_copy_value(assigns.value))
+      |> assign(:id, assigns.id || "copy-value-#{:erlang.phash2(to_string(assigns.value))}")
 
     ~H"""
     <button
+      id={@id}
       type="button"
-      phx-click={JS.dispatch("app:copy", detail: %{text: @copy_value})}
+      phx-hook="CopyButton"
+      phx-update="ignore"
+      data-copy-text={@copy_value}
       class={[
         "inline-flex cursor-pointer items-center rounded border border-base-300 bg-base-200 px-2 py-1 font-mono text-xs text-base-content transition-all duration-150 hover:bg-base-300 active:scale-95",
         @class
@@ -170,7 +175,7 @@ defmodule PhoenixFintechWeb.CoreComponents do
         </span>
         <span
           data-copy-confirmation
-          class="col-start-1 row-start-1 opacity-0 transition-opacity duration-150"
+          class="col-start-1 row-start-1 text-success opacity-0 transition-opacity duration-150"
           aria-hidden="true"
         >
           <.icon name="hero-check" class="size-3.5" />

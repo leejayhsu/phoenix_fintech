@@ -56,52 +56,6 @@ const safeLiveFlowHook = {
   },
 }
 
-const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-const liveSocket = new LiveSocket("/live", Socket, {
-  longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, LiveFlow: safeLiveFlowHook},
-})
-
-// Show progress bar on live navigation and form submits
-const themeColor = name =>
-  getComputedStyle(document.documentElement).getPropertyValue(`--color-${name}`).trim()
-
-topbar.config({
-  barColors: {0: themeColor("primary")},
-  shadowColor: themeColor("base-content"),
-})
-
-const showCopyFeedback = button => {
-  if (!button) return
-
-  const original = button.querySelector("[data-copy-original]")
-  const confirmation = button.querySelector("[data-copy-confirmation]")
-
-  clearTimeout(button.copyFeedbackTimeout)
-  original?.classList.add("opacity-0")
-  confirmation?.classList.remove("opacity-0")
-  button.classList.add(
-    "border-success",
-    "bg-success",
-    "text-success-content",
-    "hover:bg-success",
-    "scale-105"
-  )
-
-  button.copyFeedbackTimeout = setTimeout(() => {
-    original?.classList.remove("opacity-0")
-    confirmation?.classList.add("opacity-0")
-    button.classList.remove(
-      "border-success",
-      "bg-success",
-      "text-success-content",
-      "hover:bg-success",
-      "scale-105"
-    )
-  }, 900)
-}
-
 const copyText = text => {
   if (navigator.clipboard?.writeText) {
     return navigator.clipboard.writeText(text)
@@ -120,16 +74,55 @@ const copyText = text => {
   return Promise.resolve()
 }
 
-window.addEventListener("app:copy", event => {
-  const text = event.detail?.text
+const CopyButton = {
+  mounted() {
+    this.handleClick = event => {
+      event.stopPropagation()
 
-  if (!text) return
+      const text = this.el.dataset.copyText
 
-  copyText(text).then(() => {
-    const button = event.target instanceof Element ? event.target.closest("button") : null
+      if (!text) return
 
-    showCopyFeedback(button)
-  })
+      copyText(text).then(() => this.showFeedback())
+    }
+
+    this.el.addEventListener("click", this.handleClick)
+  },
+
+  destroyed() {
+    clearTimeout(this.copyFeedbackTimeout)
+    this.el.removeEventListener("click", this.handleClick)
+  },
+
+  showFeedback() {
+    const original = this.el.querySelector("[data-copy-original]")
+    const confirmation = this.el.querySelector("[data-copy-confirmation]")
+
+    clearTimeout(this.copyFeedbackTimeout)
+    original?.classList.add("opacity-0")
+    confirmation?.classList.remove("opacity-0")
+
+    this.copyFeedbackTimeout = setTimeout(() => {
+      original?.classList.remove("opacity-0")
+      confirmation?.classList.add("opacity-0")
+    }, 900)
+  },
+}
+
+const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+const liveSocket = new LiveSocket("/live", Socket, {
+  longPollFallbackMs: 2500,
+  params: {_csrf_token: csrfToken},
+  hooks: {...colocatedHooks, CopyButton, LiveFlow: safeLiveFlowHook},
+})
+
+// Show progress bar on live navigation and form submits
+const themeColor = name =>
+  getComputedStyle(document.documentElement).getPropertyValue(`--color-${name}`).trim()
+
+topbar.config({
+  barColors: {0: themeColor("primary")},
+  shadowColor: themeColor("base-content"),
 })
 
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
