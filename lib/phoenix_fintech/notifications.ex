@@ -116,6 +116,43 @@ defmodule PhoenixFintech.Notifications do
   end
 
   @doc """
+  Notifies the transfer's owner that the transfer has been submitted for
+  compliance review.
+  """
+  def notify_transfer_in_compliance_review(transfer, review_id, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message: "Transfer #{short_id(transfer.id)} has been submitted for compliance review.",
+      cta_type: "compliance_review",
+      cta_id: review_id
+    })
+  end
+
+  @doc """
+  Notifies the transfer's owner that compliance has approved their transfer.
+  """
+  def notify_transfer_compliance_approved(transfer, review_id, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message: "Transfer #{short_id(transfer.id)} has been approved by compliance.",
+      cta_type: "compliance_review",
+      cta_id: review_id
+    })
+  end
+
+  @doc """
+  Notifies the transfer's owner that compliance has rejected their transfer.
+  """
+  def notify_transfer_compliance_rejected(transfer, review_id, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message: "Transfer #{short_id(transfer.id)} was rejected by compliance.",
+      cta_type: "compliance_review",
+      cta_id: review_id
+    })
+  end
+
+  @doc """
   Notifies the transfer's owner that the incoming deposit has been received.
   """
   def notify_transfer_deposit_received(transfer, user_id) do

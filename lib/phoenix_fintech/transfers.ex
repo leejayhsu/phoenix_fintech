@@ -449,6 +449,15 @@ defmodule PhoenixFintech.Transfers do
         {:error, step, reason, changes} -> {:halt, {:error, step, reason, changes}}
       end
     end)
+    |> case do
+      {:ok, transfer} ->
+        review = Compliance.get_review_for_transfer(transfer.id)
+        Notifications.notify_transfer_in_compliance_review(transfer, review.id, user_id)
+        {:ok, transfer}
+
+      {:error, step, reason, changes} ->
+        {:error, step, reason, changes}
+    end
   end
 
   defp transfer_event_changeset(transfer, from_status, to_status, metadata) do

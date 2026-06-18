@@ -3,6 +3,7 @@ defmodule PhoenixFintech.Compliance do
 
   alias Ecto.Multi
   alias PhoenixFintech.Compliance.{Review, ReviewStateMachine}
+  alias PhoenixFintech.Notifications
   alias PhoenixFintech.Parties
   alias PhoenixFintech.Parties.Party
   alias PhoenixFintech.Repo
@@ -156,10 +157,33 @@ defmodule PhoenixFintech.Compliance do
     |> then(fn multi -> party_ops.(multi, review) end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{review: review}} -> {:ok, get_review!(review.id)}
-      {:error, step, reason, _changes} -> {:error, step, reason, %{}}
+      {:ok, %{review: review}} ->
+        review = get_review!(review.id)
+        notify_transfer_review_decision(review, next_status)
+        {:ok, review}
+
+      {:error, step, reason, _changes} ->
+        {:error, step, reason, %{}}
     end
   end
+
+  defp notify_transfer_review_decision(
+         %Review{transfer: %Transfer{} = transfer, id: review_id},
+         next_status
+       )
+       when next_status in ["approved", "rejected"] do
+    user_id = transfer.created_by_user_id
+
+    case next_status do
+      "approved" ->
+        Notifications.notify_transfer_compliance_approved(transfer, review_id, user_id)
+
+      "rejected" ->
+        Notifications.notify_transfer_compliance_rejected(transfer, review_id, user_id)
+    end
+  end
+
+  defp notify_transfer_review_decision(_review, _next_status), do: :ok
 
   # When the review's subject is a transfer and the decision is approved or
   # rejected, we also advance the transfer's workflow state. The operations are
