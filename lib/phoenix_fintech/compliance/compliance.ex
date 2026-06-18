@@ -188,33 +188,66 @@ defmodule PhoenixFintech.Compliance do
   # When the review's subject is a transfer and the decision is approved or
   # rejected, we also advance the transfer's workflow state. The operations are
   # added to the same Multi so the transition is atomic.
+  #
+  # On approval the transfer is advanced through `compliance_approved` and on
+  # to `deposit_pending` in the same transaction, so that it surfaces in the
+  # admin transfer processing workflow awaiting deposit confirmation (since we
+  # don't detect incoming deposits automatically).
   defp build_transfer_transition_ops(
          %Review{transfer: %Transfer{} = transfer},
          next_status,
          metadata
        ) do
-    transfer_target =
+    transitions =
       case next_status do
-        "approved" -> "compliance_approved"
-        "rejected" -> "compliance_rejected"
-        _ -> nil
+        "approved" ->
+          [
+            {"compliance_approved", "compliance_review_approved"},
+            {"deposit_pending", "compliance_approved_auto_advance"}
+          ]
+
+        "rejected" ->
+          [{"compliance_rejected", "compliance_review_rejected"}]
+
+        _ ->
+          []
       end
 
-    if transfer_target && transfer.status != transfer_target do
-      from_status = transfer.status
-      event_metadata = Map.put(metadata, :event_type, "compliance_review_#{next_status}")
+    # Drop any transitions the transfer has already reached so the operation
+    # is idempotent if the transfer is partially advanced.
+    transitions =
+      Enum.drop_while(transitions, fn {target, _} -> transfer.status == target end)
 
+    final_target =
+      case List.last(transitions) do
+        {target, _} -> target
+        nil -> nil
+      end
+
+    if final_target do
       fn multi, _review ->
-        multi
-        |> Multi.update(:transfer, Transfer.changeset(transfer, %{status: transfer_target}))
-        |> Multi.insert(:transfer_event, fn %{transfer: updated_transfer} ->
-          Transfers.build_transfer_event_changeset(
-            updated_transfer,
-            from_status,
-            transfer_target,
-            event_metadata
-          )
+        transitions
+        |> Enum.reduce({multi, transfer.status, transfer}, fn {target, event_type},
+                                                              {acc, from_status, prev_transfer} ->
+          event_metadata = Map.put(metadata, :event_type, event_type)
+          op_transfer = String.to_atom("transfer_to_#{target}")
+          op_event = String.to_atom("event_to_#{target}")
+
+          acc =
+            acc
+            |> Multi.update(op_transfer, Transfer.changeset(prev_transfer, %{status: target}))
+            |> Multi.insert(op_event, fn %{^op_transfer => updated_transfer} ->
+              Transfers.build_transfer_event_changeset(
+                updated_transfer,
+                from_status,
+                target,
+                event_metadata
+              )
+            end)
+
+          {acc, target, prev_transfer}
         end)
+        |> elem(0)
       end
     else
       fn multi, _review -> multi end
