@@ -23,7 +23,12 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
+    <Layouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      current_user={@current_user}
+      notifications_unread_count={@notifications_unread_count}
+    >
       <section id="parties-index" class="mx-auto max-w-5xl">
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

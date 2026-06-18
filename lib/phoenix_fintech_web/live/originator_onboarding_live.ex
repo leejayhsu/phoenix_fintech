@@ -1,6 +1,7 @@
 defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
   use PhoenixFintechWeb, :live_view
 
+  alias PhoenixFintech.Notifications
   alias PhoenixFintech.Parties
 
   @steps [:party, :representative, :review]
@@ -80,7 +81,9 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
     }
 
     case Parties.create_originator(socket.assigns.current_user.id, attrs) do
-      {:ok, _party} ->
+      {:ok, party} ->
+        Notifications.notify_party_in_compliance_review(party, socket.assigns.current_user.id)
+
         {:noreply,
          socket
          |> put_flash(:info, "Originator party created.")
@@ -122,7 +125,12 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
+    <Layouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      current_user={@current_user}
+      notifications_unread_count={@notifications_unread_count}
+    >
       <section id="originator-onboarding" class="mx-auto max-w-5xl">
         <div class="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>

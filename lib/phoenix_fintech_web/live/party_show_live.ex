@@ -234,7 +234,12 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
+    <Layouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      current_user={@current_user}
+      notifications_unread_count={@notifications_unread_count}
+    >
       <section class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8" id="party-details">
         <div class="space-y-4 border-b border-base-300 pb-5">
           <div class="flex flex-wrap items-start justify-between gap-3">

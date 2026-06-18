@@ -23,7 +23,12 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
+    <Layouts.app
+      flash={@flash}
+      current_scope={@current_scope}
+      current_user={@current_user}
+      notifications_unread_count={@notifications_unread_count}
+    >
       <section id="transfers-index" class="mx-auto max-w-6xl">
         <div class="mb-6 flex items-center justify-between gap-4">
           <div>

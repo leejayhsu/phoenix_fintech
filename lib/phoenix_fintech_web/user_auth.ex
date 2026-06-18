@@ -3,6 +3,7 @@ defmodule PhoenixFintechWeb.UserAuth do
   import Phoenix.Controller
 
   alias PhoenixFintech.Accounts
+  alias PhoenixFintech.Notifications
 
   use PhoenixFintechWeb, :verified_routes
 
@@ -36,6 +37,16 @@ defmodule PhoenixFintechWeb.UserAuth do
     else
       {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/app")}
     end
+  end
+
+  def on_mount(:assign_notifications_unread_count, _params, _session, socket) do
+    count =
+      case socket.assigns[:current_user] do
+        %{id: user_id} -> Notifications.unread_count(user_id)
+        _ -> 0
+      end
+
+    {:cont, Phoenix.Component.assign(socket, notifications_unread_count: count)}
   end
 
   def require_authenticated_user(conn, _opts) do

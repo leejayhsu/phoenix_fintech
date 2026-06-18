@@ -43,7 +43,10 @@ defmodule PhoenixFintechWeb.Router do
     get "/app", PageController, :home
 
     live_session :authenticated,
-      on_mount: [{PhoenixFintechWeb.UserAuth, :mount_current_scope}] do
+      on_mount: [
+        {PhoenixFintechWeb.UserAuth, :mount_current_scope},
+        {PhoenixFintechWeb.UserAuth, :assign_notifications_unread_count}
+      ] do
       live "/app/parties", PartyIndexLive
       live "/app/parties/new", OriginatorOnboardingLive
       live "/app/parties/:id", PartyShowLive, :overview
@@ -52,6 +55,7 @@ defmodule PhoenixFintechWeb.Router do
       live "/app/transfers", TransferIndexLive
       live "/app/transfers/new", TransferNewLive
       live "/app/transfers/:id", TransferShowLive
+      live "/app/notifications", NotificationsLive, :index
     end
 
     get "/users/settings", UserSettingsController, :edit

@@ -36,6 +36,7 @@ defmodule PhoenixFintechWeb.Layouts do
   attr :admin_resources, :list, default: []
   attr :admin_resource, :map, default: nil
   attr :admin_compliance_pending_count, :integer, default: nil
+  attr :notifications_unread_count, :integer, default: nil
 
   slot :inner_block, required: true
 
@@ -113,6 +114,22 @@ defmodule PhoenixFintechWeb.Layouts do
                 <li>
                   <.link navigate={~p"/users/settings"} class="gap-2 rounded-lg px-2 py-2 font-medium">
                     <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+                  </.link>
+                </li>
+                <li>
+                  <.link
+                    navigate={~p"/app/notifications"}
+                    class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
+                  >
+                    <span class="flex items-center gap-2">
+                      <.icon name="hero-bell" class="size-4" /> Notifications
+                    </span>
+                    <span
+                      :if={@notifications_unread_count && @notifications_unread_count > 0}
+                      class="badge badge-error badge-sm"
+                    >
+                      {@notifications_unread_count}
+                    </span>
                   </.link>
                 </li>
               </ul>
