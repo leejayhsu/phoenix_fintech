@@ -80,6 +80,42 @@ defmodule PhoenixFintech.Notifications do
   end
 
   @doc """
+  Builds a notification that a party has been approved by compliance.
+  """
+  def notify_party_approved(party, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message: "Your party \"#{party.legal_name}\" has been approved by compliance.",
+      cta_type: "party",
+      cta_id: party.id
+    })
+  end
+
+  @doc """
+  Builds a notification that a party has been rejected by compliance.
+  """
+  def notify_party_rejected(party, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message: "Your party \"#{party.legal_name}\" was rejected by compliance.",
+      cta_type: "party",
+      cta_id: party.id
+    })
+  end
+
+  @doc """
+  Builds a notification that a party has been sent for manual review.
+  """
+  def notify_party_in_manual_review(party, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message: "Your party \"#{party.legal_name}\" has been queued for manual compliance review.",
+      cta_type: "party",
+      cta_id: party.id
+    })
+  end
+
+  @doc """
   Resolves a notification's CTA to a path, or nil when no link applies.
   """
   def cta_path(%Notification{cta_type: "party", cta_id: id}) when is_binary(id),

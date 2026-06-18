@@ -5,16 +5,19 @@ defmodule PhoenixFintech.Parties.PartyStateMachine do
       created
          |
          v
-      compliance_review <----+
-         |  ^  |  ^          |
-         v  |  v  |          |
-   compliance_approved      |
-         |  ^  |  ^          |
-         v  |  v  |          |
-   compliance_rejected      |
-         |  ^  |  ^          |
-         v  |  v  |          |
-   compliance_flagged ------+
+      compliance_review <-------+
+         |  ^  |  ^  |  ^       |
+         v  |  v  |  v  |       |
+    compliance_approved         |
+         |  ^  |  ^  |  ^       |
+         v  |  v  |  v  |       |
+    compliance_rejected         |
+         |  ^  |  ^  |  ^       |
+         v  |  v  |  v  |       |
+    compliance_flagged ---------+
+         |  ^  |  ^             |
+         v  |  v  |             |
+    compliance_manual_review ---+
 
   States:
 
@@ -26,6 +29,9 @@ defmodule PhoenixFintech.Parties.PartyStateMachine do
       be manually moved to `compliance_approved`
     * `compliance_flagged` - party has been flagged (e.g. by continuous
       monitoring); may be reached from any `compliance_*` state
+    * `compliance_manual_review` - party has been escalated for human review;
+      may be reached from any `compliance_*` state and may move back to any
+      other `compliance_*` state
 
   The `compliance_*` states flow freely between each other to support manual
   overrides and continuous monitoring. None of them are terminal.
@@ -40,30 +46,47 @@ defmodule PhoenixFintech.Parties.PartyStateMachine do
     "compliance_review",
     "compliance_approved",
     "compliance_rejected",
-    "compliance_flagged"
+    "compliance_flagged",
+    "compliance_manual_review"
   ]
 
   @transitions %{
-    "created" => ["compliance_review"],
+    "created" => [
+      "compliance_review",
+      "compliance_approved",
+      "compliance_rejected",
+      "compliance_flagged",
+      "compliance_manual_review"
+    ],
     "compliance_review" => [
       "compliance_approved",
       "compliance_rejected",
-      "compliance_flagged"
+      "compliance_flagged",
+      "compliance_manual_review"
     ],
     "compliance_approved" => [
       "compliance_review",
       "compliance_rejected",
-      "compliance_flagged"
+      "compliance_flagged",
+      "compliance_manual_review"
     ],
     "compliance_rejected" => [
       "compliance_review",
       "compliance_approved",
-      "compliance_flagged"
+      "compliance_flagged",
+      "compliance_manual_review"
     ],
     "compliance_flagged" => [
       "compliance_review",
       "compliance_approved",
-      "compliance_rejected"
+      "compliance_rejected",
+      "compliance_manual_review"
+    ],
+    "compliance_manual_review" => [
+      "compliance_review",
+      "compliance_approved",
+      "compliance_rejected",
+      "compliance_flagged"
     ]
   }
 

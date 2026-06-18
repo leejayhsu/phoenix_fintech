@@ -3,6 +3,7 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
 
   alias PhoenixFintech.Compliance
   alias PhoenixFintech.Compliance.Review
+  alias PhoenixFintech.Notifications
 
   @status_filters [
     %{key: "pending", label: "Pending", statuses: ["created", "manual_review"]},
@@ -40,7 +41,9 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
     notes = socket.assigns[:review_notes_value]
 
     case Compliance.approve_review(review, socket.assigns.current_user, notes) do
-      {:ok, _review} ->
+      {:ok, updated_review} ->
+        notify_party_decision(updated_review, :approved)
+
         {:noreply,
          socket
          |> put_flash(:info, "Compliance review approved.")
@@ -56,7 +59,9 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
     notes = socket.assigns[:review_notes_value]
 
     case Compliance.reject_review(review, socket.assigns.current_user, notes) do
-      {:ok, _review} ->
+      {:ok, updated_review} ->
+        notify_party_decision(updated_review, :rejected)
+
         {:noreply,
          socket
          |> put_flash(:info, "Compliance review rejected.")
@@ -72,7 +77,9 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
     notes = socket.assigns[:review_notes_value]
 
     case Compliance.request_manual_review(review, socket.assigns.current_user, notes) do
-      {:ok, _review} ->
+      {:ok, updated_review} ->
+        notify_party_decision(updated_review, :manual_review)
+
         {:noreply,
          socket
          |> put_flash(:info, "Compliance review queued for manual review.")
@@ -466,4 +473,19 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
   defp status_badge_classes("approved"), do: "badge badge-soft badge-success"
   defp status_badge_classes("rejected"), do: "badge badge-soft badge-error"
   defp status_badge_classes(_status), do: "badge badge-soft"
+
+  defp notify_party_decision(%Review{party: %{created_by_user_id: nil}}, _decision), do: :ok
+
+  defp notify_party_decision(%Review{party: party}, decision) do
+    case decision do
+      :approved ->
+        Notifications.notify_party_approved(party, party.created_by_user_id)
+
+      :rejected ->
+        Notifications.notify_party_rejected(party, party.created_by_user_id)
+
+      :manual_review ->
+        Notifications.notify_party_in_manual_review(party, party.created_by_user_id)
+    end
+  end
 end

@@ -3,6 +3,8 @@ defmodule PhoenixFintech.Compliance do
 
   alias Ecto.Multi
   alias PhoenixFintech.Compliance.{Review, ReviewStateMachine}
+  alias PhoenixFintech.Parties
+  alias PhoenixFintech.Parties.Party
   alias PhoenixFintech.Repo
   alias PhoenixFintech.Transfers
   alias PhoenixFintech.Transfers.Transfer
@@ -146,10 +148,12 @@ defmodule PhoenixFintech.Compliance do
       })
 
     transfer_ops = build_transfer_transition_ops(review, next_status, metadata)
+    party_ops = build_party_transition_ops(review, next_status, metadata)
 
     Multi.new()
     |> Multi.update(:review, review_changeset)
     |> then(fn multi -> transfer_ops.(multi, review) end)
+    |> then(fn multi -> party_ops.(multi, review) end)
     |> Repo.transaction()
     |> case do
       {:ok, %{review: review}} -> {:ok, get_review!(review.id)}
@@ -194,6 +198,53 @@ defmodule PhoenixFintech.Compliance do
   end
 
   defp build_transfer_transition_ops(_review, _next_status, _metadata) do
+    fn multi, _review -> multi end
+  end
+
+  # On approve/reject/manual_review of a party's compliance review, we also
+  # advance the party's lifecycle state and record a party event in the same
+  # transaction so the decision is atomic. Mirrors the transfer transition
+  # ops above.
+  defp build_party_transition_ops(
+         %Review{party: %Party{} = party},
+         next_status,
+         metadata
+       ) do
+    party_target =
+      case next_status do
+        "approved" -> "compliance_approved"
+        "rejected" -> "compliance_rejected"
+        "manual_review" -> "compliance_manual_review"
+        _ -> nil
+      end
+
+    cond do
+      is_nil(party_target) ->
+        fn multi, _review -> multi end
+
+      party.status == party_target ->
+        fn multi, _review -> multi end
+
+      true ->
+        from_status = party.status
+        event_metadata = Map.put(metadata, :event_type, "compliance_review_#{next_status}")
+
+        fn multi, _review ->
+          multi
+          |> Multi.update(:party, Party.changeset(party, %{status: party_target}))
+          |> Multi.insert(:party_event, fn %{party: updated_party} ->
+            Parties.build_party_event_changeset(
+              updated_party,
+              from_status,
+              party_target,
+              event_metadata
+            )
+          end)
+        end
+    end
+  end
+
+  defp build_party_transition_ops(_review, _next_status, _metadata) do
     fn multi, _review -> multi end
   end
 
