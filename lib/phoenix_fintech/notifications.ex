@@ -116,6 +116,46 @@ defmodule PhoenixFintech.Notifications do
   end
 
   @doc """
+  Notifies the transfer's owner that the incoming deposit has been received.
+  """
+  def notify_transfer_deposit_received(transfer, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message:
+        "Deposit received for transfer #{short_id(transfer.id)} — funds are being prepared for disbursement.",
+      cta_type: "transfer",
+      cta_id: transfer.id
+    })
+  end
+
+  @doc """
+  Notifies the transfer's owner that the disbursement has been initiated.
+  """
+  def notify_transfer_disbursement_initiated(transfer, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message:
+        "Disbursement initiated for transfer #{short_id(transfer.id)} — funds are on their way.",
+      cta_type: "transfer",
+      cta_id: transfer.id
+    })
+  end
+
+  @doc """
+  Notifies the transfer's owner that the disbursement has settled and the
+  transfer is complete.
+  """
+  def notify_transfer_disbursement_settled(transfer, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message:
+        "Disbursement settled for transfer #{short_id(transfer.id)} — the transfer is complete.",
+      cta_type: "transfer",
+      cta_id: transfer.id
+    })
+  end
+
+  @doc """
   Resolves a notification's CTA to a path, or nil when no link applies.
   """
   def cta_path(%Notification{cta_type: "party", cta_id: id}) when is_binary(id),
@@ -129,4 +169,13 @@ defmodule PhoenixFintech.Notifications do
     do: "/app/transfers/#{id}"
 
   def cta_path(_), do: nil
+
+  defp short_id(id) when is_binary(id) do
+    case String.split(id, "-") do
+      [prefix | _] when byte_size(prefix) >= 8 -> String.slice(prefix, 0, 8)
+      _ -> id
+    end
+  end
+
+  defp short_id(id), do: to_string(id)
 end

@@ -4,6 +4,7 @@ defmodule PhoenixFintech.Transfers do
   alias Ecto.Multi
   alias PhoenixFintech.Compliance
   alias PhoenixFintech.Fx.Rates
+  alias PhoenixFintech.Notifications
   alias PhoenixFintech.Repo
 
   alias PhoenixFintech.Transfers.{
@@ -162,6 +163,197 @@ defmodule PhoenixFintech.Transfers do
       {:error, reason} -> {:error, :transition, reason, %{}}
     end
   end
+
+  @actionable_statuses ["deposit_pending", "disbursement_pending", "disbursement_initiated"]
+
+  @doc """
+  Lists transfers whose status is in `statuses`, newest first.
+  """
+  def list_transfers_by_statuses(statuses) do
+    Repo.all(
+      from t in base_transfer_query(),
+        where: t.status in ^statuses
+    )
+  end
+
+  @doc """
+  Lists transfers that currently require admin action to move funds along the
+  workflow (awaiting deposit confirmation, disbursement initiation, or
+  disbursement settlement).
+  """
+  def list_transfers_needing_action do
+    list_transfers_by_statuses(@actionable_statuses)
+  end
+
+  @doc """
+  Returns the transfer statuses that require admin action.
+  """
+  def actionable_statuses, do: @actionable_statuses
+
+  @doc """
+  Marks a transfer's deposit as received.
+
+  Updates the deposit to `received` and advances the transfer from
+  `deposit_pending` to `deposit_received`, then automatically to
+  `disbursement_pending` (since we don't yet detect incoming payments via the
+  ledger). Both state transitions are recorded as transfer events for audit.
+  """
+  def mark_deposit_received(transfer, actor_user) do
+    transfer = get_transfer!(transfer.id)
+
+    with {:ok, deposit} <- deposit_for_transfer(transfer),
+         :ok <- ensure_status(transfer, "deposit_pending") do
+      actor_metadata = %{actor_user_id: actor_user.id}
+      received_metadata = Map.put(actor_metadata, :event_type, "deposit_received")
+      auto_metadata = Map.put(actor_metadata, :event_type, "deposit_received_auto_advance")
+
+      Multi.new()
+      |> Multi.update(:deposit, Deposit.changeset(deposit, %{status: "received"}))
+      |> Multi.update(:transfer_received, fn _ ->
+        Transfer.changeset(transfer, %{status: "deposit_received"})
+      end)
+      |> Multi.insert(:event_received, fn %{transfer_received: t} ->
+        build_transfer_event_changeset(
+          t,
+          "deposit_pending",
+          "deposit_received",
+          received_metadata
+        )
+      end)
+      |> Multi.update(:transfer_disbursement, fn %{transfer_received: t} ->
+        Transfer.changeset(t, %{status: "disbursement_pending"})
+      end)
+      |> Multi.insert(:event_disbursement, fn %{transfer_disbursement: t} ->
+        build_transfer_event_changeset(
+          t,
+          "deposit_received",
+          "disbursement_pending",
+          auto_metadata
+        )
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, _} ->
+          updated = get_transfer!(transfer.id)
+          Notifications.notify_transfer_deposit_received(updated, transfer.created_by_user_id)
+          {:ok, updated}
+
+        {:error, step, reason, _} ->
+          {:error, step, reason, %{}}
+      end
+    end
+  end
+
+  @doc """
+  Marks a transfer's disbursement as initiated.
+
+  Updates the disbursement to `initiated` and advances the transfer from
+  `disbursement_pending` to `disbursement_initiated`.
+  """
+  def initiate_disbursement(transfer, actor_user) do
+    transfer = get_transfer!(transfer.id)
+
+    with {:ok, disbursement} <- disbursement_for_transfer(transfer),
+         :ok <- ensure_status(transfer, "disbursement_pending") do
+      metadata = %{
+        actor_user_id: actor_user.id,
+        event_type: "disbursement_initiated"
+      }
+
+      Multi.new()
+      |> Multi.update(:disbursement, Disbursement.changeset(disbursement, %{status: "initiated"}))
+      |> Multi.update(:transfer, fn _ ->
+        Transfer.changeset(transfer, %{status: "disbursement_initiated"})
+      end)
+      |> Multi.insert(:event, fn %{transfer: t} ->
+        build_transfer_event_changeset(
+          t,
+          "disbursement_pending",
+          "disbursement_initiated",
+          metadata
+        )
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, _} ->
+          updated = get_transfer!(transfer.id)
+
+          Notifications.notify_transfer_disbursement_initiated(
+            updated,
+            transfer.created_by_user_id
+          )
+
+          {:ok, updated}
+
+        {:error, step, reason, _} ->
+          {:error, step, reason, %{}}
+      end
+    end
+  end
+
+  @doc """
+  Marks a transfer's disbursement as settled.
+
+  Updates the disbursement to `settled`, advances the transfer from
+  `disbursement_initiated` to `disbursement_settled`, then automatically to
+  `completed`. Both state transitions are recorded as transfer events.
+  """
+  def settle_disbursement(transfer, actor_user) do
+    transfer = get_transfer!(transfer.id)
+
+    with {:ok, disbursement} <- disbursement_for_transfer(transfer),
+         :ok <- ensure_status(transfer, "disbursement_initiated") do
+      actor_metadata = %{actor_user_id: actor_user.id}
+      settled_metadata = Map.put(actor_metadata, :event_type, "disbursement_settled")
+      auto_metadata = Map.put(actor_metadata, :event_type, "disbursement_settled_auto_advance")
+
+      Multi.new()
+      |> Multi.update(:disbursement, Disbursement.changeset(disbursement, %{status: "settled"}))
+      |> Multi.update(:transfer_settled, fn _ ->
+        Transfer.changeset(transfer, %{status: "disbursement_settled"})
+      end)
+      |> Multi.insert(:event_settled, fn %{transfer_settled: t} ->
+        build_transfer_event_changeset(
+          t,
+          "disbursement_initiated",
+          "disbursement_settled",
+          settled_metadata
+        )
+      end)
+      |> Multi.update(:transfer_completed, fn %{transfer_settled: t} ->
+        Transfer.changeset(t, %{status: "completed"})
+      end)
+      |> Multi.insert(:event_completed, fn %{transfer_completed: t} ->
+        build_transfer_event_changeset(t, "disbursement_settled", "completed", auto_metadata)
+      end)
+      |> Repo.transaction()
+      |> case do
+        {:ok, _} ->
+          updated = get_transfer!(transfer.id)
+          Notifications.notify_transfer_disbursement_settled(updated, transfer.created_by_user_id)
+          {:ok, updated}
+
+        {:error, step, reason, _} ->
+          {:error, step, reason, %{}}
+      end
+    end
+  end
+
+  defp deposit_for_transfer(%Transfer{deposits: [deposit | _]}), do: {:ok, deposit}
+
+  defp deposit_for_transfer(%Transfer{deposits: []}),
+    do: {:error, :deposit, "no deposit found", %{}}
+
+  defp disbursement_for_transfer(%Transfer{disbursements: [disbursement | _]}),
+    do: {:ok, disbursement}
+
+  defp disbursement_for_transfer(%Transfer{disbursements: []}),
+    do: {:error, :disbursement, "no disbursement found", %{}}
+
+  defp ensure_status(%Transfer{status: status}, status), do: :ok
+
+  defp ensure_status(%Transfer{status: actual}, expected),
+    do: {:error, :invalid_status, "expected status #{expected}, got #{actual}", %{}}
 
   def persist_transfer_transition!(transfer, next_status, metadata) do
     metadata = normalize_metadata(metadata)
