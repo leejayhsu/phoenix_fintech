@@ -3,7 +3,15 @@ defmodule PhoenixFintech.Parties do
 
   alias Ecto.Multi
   alias PhoenixFintech.Compliance
-  alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, Party, PartyMember}
+
+  alias PhoenixFintech.Parties.{
+    ComplianceDocument,
+    GovernmentID,
+    Party,
+    PartyMember,
+    PartyStateMachine
+  }
+
   alias PhoenixFintech.Repo
   alias PhoenixFintech.Storage.MockS3
 
@@ -52,6 +60,59 @@ defmodule PhoenixFintech.Parties do
     |> Party.changeset(attrs)
     |> Repo.update()
   end
+
+  @doc """
+  Returns the set of statuses a party can move to from `status`.
+  """
+  def allowed_targets(status) do
+    Map.get(PartyStateMachine.transitions(), status, [])
+  end
+
+  defp allowed_transition?(status, target) do
+    target in allowed_targets(status)
+  end
+
+  @doc """
+  Moves a party to the next status in its lifecycle.
+
+  `metadata` is an arbitrary map (typically containing `actor_user_id` and
+  optional `notes`) that is passed through to the persistence layer.
+  """
+  def transition_party(%Party{} = party, next_status, metadata \\ %{}) do
+    party = Repo.preload(party, [])
+
+    if allowed_transition?(party.status, next_status) do
+      Machinery.transition_to(party, PartyStateMachine, next_status, metadata)
+      |> case do
+        {:ok, party} -> {:ok, get_party_with_details!(party.id)}
+        {:error, reason} -> {:error, :transition, reason, %{}}
+      end
+    else
+      {:error, :transition, "cannot transition from #{party.status} to #{next_status}", %{}}
+    end
+  end
+
+  @doc """
+  Persists a party status transition. Invoked by `PartyStateMachine.persist/3`.
+  """
+  def persist_party_transition!(%Party{} = party, next_status, metadata) do
+    _metadata = normalize_metadata(metadata)
+    _from_status = party.status
+
+    Multi.new()
+    |> Multi.update(:party, Party.changeset(party, %{status: next_status}))
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{party: party}} ->
+        party
+
+      {:error, step, reason, _changes} ->
+        raise "party transition failed at #{step}: #{inspect(reason)}"
+    end
+  end
+
+  defp normalize_metadata(metadata) when is_map(metadata), do: metadata
+  defp normalize_metadata(_metadata), do: %{}
 
   def create_party_government_id(party_id, attrs) do
     %GovernmentID{party_id: party_id}

@@ -8,6 +8,7 @@ defmodule PhoenixFintech.Parties.Party do
   @foreign_key_type :binary_id
 
   schema "parties" do
+    field :status, :string, default: "created"
     field :tax_id, :string
     field :legal_name, :string
     field :address_line1, :string
@@ -34,6 +35,7 @@ defmodule PhoenixFintech.Parties.Party do
   def changeset(party, attrs) do
     party
     |> cast(attrs, [
+      :status,
       :tax_id,
       :legal_name,
       :address_line1,
