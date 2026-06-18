@@ -36,6 +36,7 @@ defmodule PhoenixFintechWeb.Layouts do
   attr :admin_resources, :list, default: []
   attr :admin_resource, :map, default: nil
   attr :admin_compliance_pending_count, :integer, default: nil
+  attr :admin_actionable_transfer_count, :integer, default: nil
   attr :notifications_unread_count, :integer, default: nil
 
   slot :inner_block, required: true
@@ -73,6 +74,19 @@ defmodule PhoenixFintechWeb.Layouts do
                     </span>
                     <span :if={@admin_compliance_pending_count} class="badge badge-warning badge-sm">
                       {@admin_compliance_pending_count}
+                    </span>
+                  </.link>
+                </li>
+                <li>
+                  <.link
+                    navigate={~p"/admin/transfers_processing"}
+                    class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
+                  >
+                    <span class="flex items-center gap-2">
+                      <.icon name="hero-banknotes" class="size-4" /> Transfer processing
+                    </span>
+                    <span :if={@admin_actionable_transfer_count} class="badge badge-warning badge-sm">
+                      {@admin_actionable_transfer_count}
                     </span>
                   </.link>
                 </li>

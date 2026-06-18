@@ -74,6 +74,8 @@ defmodule PhoenixFintechWeb.Router do
       live "/", AdminLive, :index
       live "/compliance_reviews", ComplianceReviewLive, :index
       live "/compliance_reviews/:id", ComplianceReviewLive, :show
+      live "/transfers_processing", AdminTransferLive, :index
+      live "/transfers_processing/:id", AdminTransferLive, :show
       live "/:resource", AdminLive, :resource
       live "/:resource/:id/edit", AdminLive, :edit
     end

@@ -11,6 +11,7 @@ defmodule PhoenixFintechWeb.AdminLive do
   alias PhoenixFintech.Ledger.{Account, AccountBalance, Currency, Entry, JournalEntry}
   alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, Party, PartyMember}
   alias PhoenixFintech.Repo
+  alias PhoenixFintech.Transfers
   alias PhoenixFintech.Transfers.{Transfer, TransferQuote}
 
   @resources [
@@ -32,6 +33,7 @@ defmodule PhoenixFintechWeb.AdminLive do
   @impl true
   def mount(params, _session, socket) do
     pending_count = length(Compliance.list_pending_reviews())
+    actionable_transfer_count = length(Transfers.list_transfers_needing_action())
 
     socket =
       socket
@@ -39,6 +41,7 @@ defmodule PhoenixFintechWeb.AdminLive do
       |> assign(:current_user, socket.assigns.current_scope.user)
       |> assign(:resources, @resources)
       |> assign(:admin_compliance_pending_count, pending_count)
+      |> assign(:admin_actionable_transfer_count, actionable_transfer_count)
 
     {:ok, apply_action(socket, socket.assigns.live_action, params)}
   end
@@ -98,6 +101,8 @@ defmodule PhoenixFintechWeb.AdminLive do
       section={:admin}
       admin_resources={@resources}
       admin_resource={@resource}
+      admin_compliance_pending_count={@admin_compliance_pending_count}
+      admin_actionable_transfer_count={@admin_actionable_transfer_count}
     >
       <section id="admin-panel" class="mx-auto max-w-7xl">
         <div class="mb-6">

@@ -4,6 +4,7 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
   alias PhoenixFintech.Compliance
   alias PhoenixFintech.Compliance.Review
   alias PhoenixFintech.Notifications
+  alias PhoenixFintech.Transfers
 
   @status_filters [
     %{key: "pending", label: "Pending", statuses: ["created", "manual_review"]},
@@ -15,6 +16,7 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
   @impl true
   def mount(params, _session, socket) do
     pending_count = length(Compliance.list_pending_reviews())
+    actionable_transfer_count = length(Transfers.list_transfers_needing_action())
 
     socket =
       socket
@@ -22,6 +24,7 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
       |> assign(:current_user, socket.assigns.current_scope.user)
       |> assign(:status_filters, @status_filters)
       |> assign(:admin_compliance_pending_count, pending_count)
+      |> assign(:admin_actionable_transfer_count, actionable_transfer_count)
 
     {:ok, apply_action(socket, socket.assigns.live_action, params)}
   end
@@ -104,6 +107,8 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
       current_user={@current_user}
       section={:admin}
       admin_resources={[]}
+      admin_compliance_pending_count={@admin_compliance_pending_count}
+      admin_actionable_transfer_count={@admin_actionable_transfer_count}
     >
       <section id="compliance-reviews" class="mx-auto max-w-6xl">
         <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
