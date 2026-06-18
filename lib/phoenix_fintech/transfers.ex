@@ -5,7 +5,16 @@ defmodule PhoenixFintech.Transfers do
   alias PhoenixFintech.Compliance
   alias PhoenixFintech.Fx.Rates
   alias PhoenixFintech.Repo
-  alias PhoenixFintech.Transfers.{Transfer, TransferEvent, TransferQuote, TransferStateMachine}
+
+  alias PhoenixFintech.Transfers.{
+    Transfer,
+    TransferEvent,
+    TransferQuote,
+    TransferStateMachine,
+    Deposit,
+    Disbursement
+  }
+
   alias PhoenixFintech.Transfers.Quotes.{Pipeline, QuoteContext}
   alias PhoenixFintech.Transfers.Quotes.Items
 
@@ -62,6 +71,12 @@ defmodule PhoenixFintech.Transfers do
       end)
       |> Multi.insert(:compliance_review, fn %{transfer: transfer} ->
         Compliance.change_review(%{"transfer_id" => transfer.id, "status" => "created"})
+      end)
+      |> Multi.insert(:deposit, fn %{transfer: transfer} ->
+        deposit_changeset(transfer)
+      end)
+      |> Multi.insert(:disbursement, fn %{transfer: transfer} ->
+        disbursement_changeset(transfer)
       end)
       |> Repo.transaction()
       |> case do
@@ -123,6 +138,12 @@ defmodule PhoenixFintech.Transfers do
     end)
     |> Multi.insert(:compliance_review, fn %{transfer: transfer} ->
       Compliance.change_review(%{"transfer_id" => transfer.id, "status" => "created"})
+    end)
+    |> Multi.insert(:deposit, fn %{transfer: transfer} ->
+      deposit_changeset(transfer)
+    end)
+    |> Multi.insert(:disbursement, fn %{transfer: transfer} ->
+      disbursement_changeset(transfer)
     end)
     |> Repo.transaction()
     |> case do
@@ -210,6 +231,8 @@ defmodule PhoenixFintech.Transfers do
       :counterparty_party,
       :created_by_user,
       :transfer_quote,
+      :deposits,
+      :disbursements,
       events:
         from(e in TransferEvent,
           order_by: [asc: e.occurred_at, asc: e.inserted_at],
@@ -238,6 +261,50 @@ defmodule PhoenixFintech.Transfers do
 
   defp transfer_event_changeset(transfer, from_status, to_status, metadata) do
     build_transfer_event_changeset(transfer, from_status, to_status, metadata)
+  end
+
+  defp deposit_changeset(%Transfer{} = transfer) do
+    {source_party_id, currency_code, amount} = deposit_source(transfer)
+
+    Deposit.changeset(%Deposit{}, %{
+      transfer_id: transfer.id,
+      source_party_id: source_party_id,
+      currency_code: currency_code,
+      amount: amount,
+      status: "pending"
+    })
+  end
+
+  defp disbursement_changeset(%Transfer{} = transfer) do
+    {destination_party_id, currency_code, amount} = disbursement_destination(transfer)
+
+    Disbursement.changeset(%Disbursement{}, %{
+      transfer_id: transfer.id,
+      destination_party_id: destination_party_id,
+      currency_code: currency_code,
+      amount: amount,
+      status: "pending"
+    })
+  end
+
+  defp deposit_source(%Transfer{direction: :send} = transfer) do
+    {transfer.originator_party_id, transfer.originator_currency_code,
+     transfer.amount_in_originator_currency}
+  end
+
+  defp deposit_source(%Transfer{direction: :receive} = transfer) do
+    {transfer.counterparty_party_id, transfer.counterparty_currency_code,
+     transfer.amount_in_counterparty_currency}
+  end
+
+  defp disbursement_destination(%Transfer{direction: :send} = transfer) do
+    {transfer.counterparty_party_id, transfer.counterparty_currency_code,
+     transfer.amount_in_counterparty_currency}
+  end
+
+  defp disbursement_destination(%Transfer{direction: :receive} = transfer) do
+    {transfer.originator_party_id, transfer.originator_currency_code,
+     transfer.amount_in_originator_currency}
   end
 
   @doc """

@@ -18,6 +18,8 @@ defmodule PhoenixFintech.Transfers.Transfer do
     belongs_to :counterparty_party, PhoenixFintech.Parties.Party
     belongs_to :transfer_quote, PhoenixFintech.Transfers.TransferQuote
     has_many :events, PhoenixFintech.Transfers.TransferEvent
+    has_many :deposits, PhoenixFintech.Transfers.Deposit
+    has_many :disbursements, PhoenixFintech.Transfers.Disbursement
 
     timestamps(type: :utc_datetime)
   end
