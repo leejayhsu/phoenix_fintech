@@ -313,6 +313,10 @@ defmodule PhoenixFintechWeb.AdminLive do
     Multi.new()
     |> Multi.delete_all(:reviews, from(r in Review, where: r.transfer_id == ^transfer.id))
     |> Multi.delete_all(:events, from(e in TransferEvent, where: e.transfer_id == ^transfer.id))
+    |> Multi.delete_all(
+      :quotes,
+      from(q in TransferQuote, where: q.id == ^transfer.transfer_quote_id)
+    )
     |> Multi.delete(:transfer, transfer)
     |> Repo.transaction()
     |> case do
