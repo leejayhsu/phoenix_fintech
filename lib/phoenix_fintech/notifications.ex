@@ -153,6 +153,19 @@ defmodule PhoenixFintech.Notifications do
   end
 
   @doc """
+  Notifies the transfer's owner that compliance has queued their transfer for
+  manual review.
+  """
+  def notify_transfer_compliance_in_manual_review(transfer, review_id, user_id) do
+    create_notification(%{
+      user_id: user_id,
+      message: "Transfer #{short_id(transfer.id)} has been queued for manual compliance review.",
+      cta_type: "compliance_review",
+      cta_id: review_id
+    })
+  end
+
+  @doc """
   Notifies the transfer's owner that the incoming deposit has been received.
   """
   def notify_transfer_deposit_received(transfer, user_id) do

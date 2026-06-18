@@ -479,6 +479,10 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
   defp status_badge_classes("rejected"), do: "badge badge-soft badge-error"
   defp status_badge_classes(_status), do: "badge badge-soft"
 
+  defp notify_party_decision(%Review{party: nil, transfer: %{} = transfer} = review, decision),
+    do: notify_transfer_decision(review, transfer, decision)
+
+  defp notify_party_decision(%Review{party: nil}, _decision), do: :ok
   defp notify_party_decision(%Review{party: %{created_by_user_id: nil}}, _decision), do: :ok
 
   defp notify_party_decision(%Review{party: party}, decision) do
@@ -491,6 +495,33 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
 
       :manual_review ->
         Notifications.notify_party_in_manual_review(party, party.created_by_user_id)
+    end
+  end
+
+  defp notify_transfer_decision(_review, %{created_by_user_id: nil}, _decision), do: :ok
+
+  defp notify_transfer_decision(%Review{id: review_id}, transfer, decision) do
+    case decision do
+      :approved ->
+        Notifications.notify_transfer_compliance_approved(
+          transfer,
+          review_id,
+          transfer.created_by_user_id
+        )
+
+      :rejected ->
+        Notifications.notify_transfer_compliance_rejected(
+          transfer,
+          review_id,
+          transfer.created_by_user_id
+        )
+
+      :manual_review ->
+        Notifications.notify_transfer_compliance_in_manual_review(
+          transfer,
+          review_id,
+          transfer.created_by_user_id
+        )
     end
   end
 end
