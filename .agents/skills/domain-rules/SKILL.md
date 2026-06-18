@@ -23,6 +23,12 @@ Do NOT use this skill for:
 - Any state machine transition on an entity **must** be recorded as a row in the corresponding `entity_events` table. State changes are never silent at the data layer — there is always an audit trail.
 - As a general rule, a state change should result in a notification to the user who owns the entity. This is not a hard guarantee: some state changes may not warrant a notification, and some sensitive details may need to be hidden from (or withheld entirely from) the user. If you are unsure whether a given state change should notify the user, **ask the user** rather than assuming.
 
+## Transfers
+- The transfer model should have a direction; it should be a send or a receive. In a receive the counterparty is sending money to the originator and in a send the originator is sending money to the counterparty.
+- This creates a dichotomy where, depending on the direction, the originator is either the sender or the recipient of the money
+- deposit is incoming money to our system. disbursements are outgoing money. for a send, the originator deposits to us, and we disburse to the counterparty. for a receive, the counterparty deposits to us, and we disburse to the originator.
+
+
 <!-- Add concrete business rules below as they are defined. Examples:
 
 ## Transfers
