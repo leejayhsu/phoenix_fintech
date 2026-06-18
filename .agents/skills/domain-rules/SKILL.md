@@ -28,6 +28,9 @@ Do NOT use this skill for:
 - This creates a dichotomy where, depending on the direction, the originator is either the sender or the recipient of the money
 - deposit is incoming money to our system. disbursements are outgoing money. for a send, the originator deposits to us, and we disburse to the counterparty. for a receive, the counterparty deposits to us, and we disburse to the originator.
 
+## Notifications
+- Notifications should generally be sent after any state change of a state-machine-governed model. There are exceptions to this rule, for instance if it's purely an internal process that the user never needs to know about, but this is probably rare. Since this is not a production app, you can safely default to notifying on most things.
+- Notifications should be best effort and should never be atomic with the underlying database changes or, in other words, a failed notification should not fail the rest of the database transaction 
 
 <!-- Add concrete business rules below as they are defined. Examples:
 
