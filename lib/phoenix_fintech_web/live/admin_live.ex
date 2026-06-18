@@ -333,6 +333,22 @@ defmodule PhoenixFintechWeb.AdminLive do
       raise Phoenix.Router.NoRouteError, conn: nil, router: PhoenixFintechWeb.Router
   end
 
+  defp delete_record(%{key: "parties"}, %Party{} = party) do
+    Multi.new()
+    |> Multi.delete_all(
+      :transfers,
+      from(t in Transfer,
+        where: t.originator_party_id == ^party.id or t.counterparty_party_id == ^party.id
+      )
+    )
+    |> Multi.delete(:party, party)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{party: deleted}} -> {:ok, deleted}
+      {:error, _op, error, _changes} -> {:error, error}
+    end
+  end
+
   defp delete_record(%{key: "transfers"}, %Transfer{} = transfer) do
     Multi.new()
     |> Multi.delete_all(
