@@ -245,9 +245,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
               <h1 class="mt-1 text-3xl font-semibold">
                 {@party.legal_name}
               </h1>
-              <p class="mt-2 text-sm text-base-content/70">
-                Business government ID: {government_id_summary(primary_party_government_id(@party))}
-              </p>
+
             </div>
 
             <.link
