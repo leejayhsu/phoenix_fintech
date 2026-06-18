@@ -4,12 +4,14 @@ defmodule PhoenixFintechWeb.AdminLive do
   import Ecto.Query
 
   alias Ecto.Changeset
+  alias Ecto.Multi
   alias PhoenixFintech.Accounts.{User, UserToken}
   alias PhoenixFintech.Compliance
+  alias PhoenixFintech.Compliance.Review
   alias PhoenixFintech.Ledger.{Account, AccountBalance, Currency, Entry, JournalEntry}
   alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, Party, PartyMember}
   alias PhoenixFintech.Repo
-  alias PhoenixFintech.Transfers.{Transfer, TransferQuote}
+  alias PhoenixFintech.Transfers.{Transfer, TransferEvent, TransferQuote}
 
   @resources [
     %{key: "users", label: "Users", schema: User},
@@ -71,6 +73,21 @@ defmodule PhoenixFintechWeb.AdminLive do
     end
   end
 
+  def handle_event("delete", %{"id" => id}, socket) do
+    record = Repo.get!(socket.assigns.resource.schema, id)
+
+    case delete_record(socket.assigns.resource, record) do
+      {:ok, _record} ->
+        {:noreply,
+         socket
+         |> stream_delete(:records, record)
+         |> put_flash(:info, "Record deleted.")}
+
+      {:error, _error} ->
+        {:noreply, put_flash(socket, :error, "Could not delete record.")}
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -114,37 +131,84 @@ defmodule PhoenixFintechWeb.AdminLive do
                   </div>
 
                   <div class="overflow-x-auto">
-                    <table class="table table-zebra table-sm">
-                      <thead>
-                        <tr>
-                          <th :for={field <- @list_fields}>{field}</th>
-                          <th class="text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody id="admin-records" phx-update="stream">
-                        <tr :if={@records_empty?} id="admin-records-empty">
-                          <td
-                            colspan={length(@list_fields) + 1}
-                            class="py-8 text-center text-base-content/60"
-                          >
-                            No records found.
-                          </td>
-                        </tr>
-                        <tr :for={{dom_id, record} <- @streams.records} id={dom_id}>
-                          <td :for={field <- @list_fields} class="max-w-64 truncate">
-                            {format_value(Map.get(record, field))}
-                          </td>
-                          <td class="text-right">
-                            <.link
-                              navigate={~p"/admin/#{@resource.key}/#{record_id(record)}/edit"}
-                              class="btn btn-xs btn-primary"
+                    <%= if @resource.key == "transfers" do %>
+                      <table class="table table-zebra table-sm">
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Status</th>
+                            <th>Amount</th>
+                            <th>Originator ID</th>
+                            <th class="text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody id="admin-records" phx-update="stream">
+                          <tr :if={@records_empty?} id="admin-records-empty">
+                            <td colspan="5" class="py-8 text-center text-base-content/60">
+                              No records found.
+                            </td>
+                          </tr>
+                          <tr :for={{dom_id, record} <- @streams.records} id={dom_id}>
+                            <td>
+                              <.copy_value
+                                id={"transfer-#{record.id}-id-copy"}
+                                value={record.id}
+                              />
+                            </td>
+                            <td>
+                              <span class="badge badge-sm badge-ghost">{record.status}</span>
+                            </td>
+                            <td>
+                              {format_currency_amount(
+                                record.amount_in_originator_currency,
+                                record.originator_currency_code
+                              )}
+                            </td>
+                            <td>
+                              <.copy_value
+                                id={"transfer-#{record.id}-originator-copy"}
+                                value={record.originator_party_id}
+                              />
+                            </td>
+                            <td class="text-right">
+                              <.actions_dropdown resource_key={@resource.key} record={record} />
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    <% else %>
+                      <table class="table table-zebra table-sm">
+                        <thead>
+                          <tr>
+                            <th :for={field <- @list_fields}>{field}</th>
+                            <th class="text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody id="admin-records" phx-update="stream">
+                          <tr :if={@records_empty?} id="admin-records-empty">
+                            <td
+                              colspan={length(@list_fields) + 1}
+                              class="py-8 text-center text-base-content/60"
                             >
-                              Edit
-                            </.link>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                              No records found.
+                            </td>
+                          </tr>
+                          <tr :for={{dom_id, record} <- @streams.records} id={dom_id}>
+                            <td :for={field <- @list_fields} class="max-w-64 truncate">
+                              {format_value(Map.get(record, field))}
+                            </td>
+                            <td class="text-right">
+                              <.link
+                                navigate={~p"/admin/#{@resource.key}/#{record_id(record)}/edit"}
+                                class="btn btn-xs btn-primary"
+                              >
+                                Edit
+                              </.link>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    <% end %>
                   </div>
                 </div>
               </div>
@@ -245,6 +309,20 @@ defmodule PhoenixFintechWeb.AdminLive do
       raise Phoenix.Router.NoRouteError, conn: nil, router: PhoenixFintechWeb.Router
   end
 
+  defp delete_record(%{key: "transfers"}, %Transfer{} = transfer) do
+    Multi.new()
+    |> Multi.delete_all(:reviews, from(r in Review, where: r.transfer_id == ^transfer.id))
+    |> Multi.delete_all(:events, from(e in TransferEvent, where: e.transfer_id == ^transfer.id))
+    |> Multi.delete(:transfer, transfer)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{transfer: deleted}} -> {:ok, deleted}
+      {:error, _op, error, _changes} -> {:error, error}
+    end
+  end
+
+  defp delete_record(_resource, record), do: Repo.delete(record)
+
   defp list_records(%{schema: schema}) do
     primary_key = primary_key(schema)
 
@@ -336,4 +414,35 @@ defmodule PhoenixFintechWeb.AdminLive do
   defp format_value(%DateTime{} = value), do: Calendar.strftime(value, "%Y-%m-%d %H:%M:%S")
   defp format_value(value) when is_map(value), do: Jason.encode!(value)
   defp format_value(value), do: to_string(value)
+
+  attr :resource_key, :string, required: true
+  attr :record, :any, required: true
+
+  defp actions_dropdown(assigns) do
+    ~H"""
+    <details class="dropdown dropdown-end">
+      <summary class="btn btn-xs btn-ghost">
+        <.icon name="hero-bars-3" class="size-4" />
+      </summary>
+      <ul class="menu dropdown-content z-10 mt-1 w-40 rounded-box border border-base-300 bg-base-100 p-2 shadow">
+        <li>
+          <.link navigate={~p"/admin/#{@resource_key}/#{record_id(@record)}/edit"}>
+            <.icon name="hero-pencil-square" class="size-4" /> Edit
+          </.link>
+        </li>
+        <li>
+          <button
+            type="button"
+            phx-click="delete"
+            phx-value-id={record_id(@record)}
+            data-confirm="Are you sure you want to delete this record?"
+            class="text-error"
+          >
+            <.icon name="hero-trash" class="size-4" /> Delete
+          </button>
+        </li>
+      </ul>
+    </details>
+    """
+  end
 end
