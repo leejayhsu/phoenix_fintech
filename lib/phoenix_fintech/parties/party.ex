@@ -23,6 +23,7 @@ defmodule PhoenixFintech.Parties.Party do
     has_many :members, PartyMember
     has_many :government_ids, GovernmentID
     has_many :compliance_documents, ComplianceDocument
+    has_many :events, PhoenixFintech.Parties.PartyEvent
 
     has_one :compliance_review, PhoenixFintech.Compliance.Review
 

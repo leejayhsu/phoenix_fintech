@@ -8,6 +8,7 @@ defmodule PhoenixFintech.Parties do
     ComplianceDocument,
     GovernmentID,
     Party,
+    PartyEvent,
     PartyMember,
     PartyStateMachine
   }
@@ -45,7 +46,12 @@ defmodule PhoenixFintech.Parties do
       :government_ids,
       :compliance_review,
       members: members_query,
-      compliance_documents: docs_query
+      compliance_documents: docs_query,
+      events:
+        from(e in PartyEvent,
+          order_by: [asc: e.occurred_at, asc: e.inserted_at],
+          preload: [:actor_user]
+        )
     ])
   end
 
@@ -96,11 +102,14 @@ defmodule PhoenixFintech.Parties do
   Persists a party status transition. Invoked by `PartyStateMachine.persist/3`.
   """
   def persist_party_transition!(%Party{} = party, next_status, metadata) do
-    _metadata = normalize_metadata(metadata)
-    _from_status = party.status
+    metadata = normalize_metadata(metadata)
+    from_status = party.status
 
     Multi.new()
     |> Multi.update(:party, Party.changeset(party, %{status: next_status}))
+    |> Multi.insert(:event, fn %{party: party} ->
+      party_event_changeset(party, from_status, next_status, metadata)
+    end)
     |> Repo.transaction()
     |> case do
       {:ok, %{party: party}} ->
@@ -110,6 +119,54 @@ defmodule PhoenixFintech.Parties do
         raise "party transition failed at #{step}: #{inspect(reason)}"
     end
   end
+
+  @doc """
+  Lists the event log for a party, oldest first.
+  """
+  def list_party_events(party_id) do
+    Repo.all(
+      from e in PartyEvent,
+        where: e.party_id == ^party_id,
+        order_by: [asc: e.occurred_at, asc: e.inserted_at],
+        preload: [:actor_user]
+    )
+  end
+
+  @doc """
+  Builds the changeset for a party event without persisting it. Used to
+  compose party transitions into larger transactions.
+  """
+  def build_party_event_changeset(party, from_status, to_status, metadata) do
+    PartyEvent.changeset(%PartyEvent{}, %{
+      party_id: party.id,
+      actor_user_id: Map.get(metadata, :actor_user_id),
+      event_type: Map.get(metadata, :event_type, "#{from_status || "none"}_to_#{to_status}"),
+      from_status: from_status,
+      to_status: to_status,
+      metadata: metadata |> Map.drop([:actor_user_id, :event_type]) |> snapshot(),
+      occurred_at: DateTime.utc_now(:second)
+    })
+  end
+
+  defp party_event_changeset(party, from_status, to_status, metadata) do
+    build_party_event_changeset(party, from_status, to_status, metadata)
+  end
+
+  defp snapshot(value) when is_struct(value, Decimal), do: Decimal.to_string(value, :normal)
+  defp snapshot(value) when is_atom(value), do: Atom.to_string(value)
+
+  defp snapshot(value) when is_list(value) do
+    Enum.map(value, &snapshot/1)
+  end
+
+  defp snapshot(value) when is_map(value) do
+    Map.new(value, fn {key, value} -> {snapshot_key(key), snapshot(value)} end)
+  end
+
+  defp snapshot(value), do: value
+
+  defp snapshot_key(key) when is_atom(key), do: Atom.to_string(key)
+  defp snapshot_key(key), do: key
 
   defp normalize_metadata(metadata) when is_map(metadata), do: metadata
   defp normalize_metadata(_metadata), do: %{}
@@ -188,6 +245,12 @@ defmodule PhoenixFintech.Parties do
     |> maybe_insert_representative_government_id(representative_government_id_attrs)
     |> Multi.insert(:compliance_review, fn %{party: party} ->
       Compliance.change_review(%{"party_id" => party.id, "status" => "created"})
+    end)
+    |> Multi.insert(:event, fn %{party: party} ->
+      party_event_changeset(party, nil, "created", %{
+        actor_user_id: created_by_user_id,
+        event_type: "created"
+      })
     end)
     |> Repo.transaction()
     |> case do
