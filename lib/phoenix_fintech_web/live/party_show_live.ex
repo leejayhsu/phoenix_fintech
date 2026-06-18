@@ -245,7 +245,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
               <h1 class="mt-1 text-3xl font-semibold">
                 {@party.legal_name}
               </h1>
-
             </div>
 
             <.link
@@ -984,8 +983,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     |> Map.take(party_address_fields())
     |> Enum.any?(fn {_field, value} -> value not in [nil, ""] end)
   end
-
-  defp primary_party_government_id(party), do: List.first(party.government_ids)
 
   defp government_id_summary(nil), do: "Not added"
 

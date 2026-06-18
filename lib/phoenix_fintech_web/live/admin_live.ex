@@ -131,83 +131,107 @@ defmodule PhoenixFintechWeb.AdminLive do
                   </div>
 
                   <div class="overflow-x-auto">
-                    <%= if @resource.key == "transfers" do %>
-                      <table class="table table-zebra table-sm">
-                        <thead>
-                          <tr>
-                            <th>ID</th>
-                            <th>Status</th>
-                            <th>Amount</th>
-                            <th>Originator ID</th>
-                            <th class="text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody id="admin-records" phx-update="stream">
-                          <tr :if={@records_empty?} id="admin-records-empty">
-                            <td colspan="5" class="py-8 text-center text-base-content/60">
-                              No records found.
-                            </td>
-                          </tr>
-                          <tr :for={{dom_id, record} <- @streams.records} id={dom_id}>
-                            <td>
-                              <.copy_value
-                                id={"transfer-#{record.id}-id-copy"}
-                                value={record.id}
-                              />
-                            </td>
-                            <td>
-                              <span class="badge badge-sm badge-ghost">{record.status}</span>
-                            </td>
-                            <td>
-                              {format_currency_amount(
-                                record.amount_in_originator_currency,
-                                record.originator_currency_code
-                              )}
-                            </td>
-                            <td>
-                              <.copy_value
-                                id={"transfer-#{record.id}-originator-copy"}
-                                value={record.originator_party_id}
-                              />
-                            </td>
-                            <td class="text-right">
-                              <.actions_dropdown resource_key={@resource.key} record={record} />
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    <% else %>
-                      <table class="table table-zebra table-sm">
-                        <thead>
-                          <tr>
-                            <th :for={field <- @list_fields}>{field}</th>
-                            <th class="text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody id="admin-records" phx-update="stream">
-                          <tr :if={@records_empty?} id="admin-records-empty">
-                            <td
-                              colspan={length(@list_fields) + 1}
-                              class="py-8 text-center text-base-content/60"
-                            >
-                              No records found.
-                            </td>
-                          </tr>
-                          <tr :for={{dom_id, record} <- @streams.records} id={dom_id}>
-                            <td :for={field <- @list_fields} class="max-w-64 truncate">
-                              {format_value(Map.get(record, field))}
-                            </td>
-                            <td class="text-right">
-                              <.link
-                                navigate={~p"/admin/#{@resource.key}/#{record_id(record)}/edit"}
-                                class="btn btn-xs btn-primary"
+                    <%= cond do %>
+                      <% @resource.key == "transfers" -> %>
+                        <table class="table table-zebra table-sm">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>Status</th>
+                              <th>Amount</th>
+                              <th>Originator ID</th>
+                              <th class="text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody id="admin-records" phx-update="stream">
+                            <tr :if={@records_empty?} id="admin-records-empty">
+                              <td colspan="5" class="py-8 text-center text-base-content/60">
+                                No records found.
+                              </td>
+                            </tr>
+                            <tr :for={{dom_id, record} <- @streams.records} id={dom_id}>
+                              <td>
+                                <.copy_value
+                                  id={"transfer-#{record.id}-id-copy"}
+                                  value={record.id}
+                                />
+                              </td>
+                              <td>
+                                <span class="badge badge-sm badge-ghost">{record.status}</span>
+                              </td>
+                              <td>
+                                {format_currency_amount(
+                                  record.amount_in_originator_currency,
+                                  record.originator_currency_code
+                                )}
+                              </td>
+                              <td>
+                                <.copy_value
+                                  id={"transfer-#{record.id}-originator-copy"}
+                                  value={record.originator_party_id}
+                                />
+                              </td>
+                              <td class="text-right">
+                                <.actions_dropdown resource_key={@resource.key} record={record} />
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      <% @resource.key == "parties" -> %>
+                        <table class="table table-zebra table-sm">
+                          <thead>
+                            <tr>
+                              <th>ID</th>
+                              <th>Legal name</th>
+                              <th>Region</th>
+                              <th class="text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody id="admin-records" phx-update="stream">
+                            <tr :if={@records_empty?} id="admin-records-empty">
+                              <td colspan="4" class="py-8 text-center text-base-content/60">
+                                No records found.
+                              </td>
+                            </tr>
+                            <tr :for={{dom_id, record} <- @streams.records} id={dom_id}>
+                              <td>
+                                <.copy_value id={"party-#{record.id}-id-copy"} value={record.id} />
+                              </td>
+                              <td>{record.legal_name}</td>
+                              <td>{record.region}</td>
+                              <td class="text-right">
+                                <.actions_dropdown resource_key={@resource.key} record={record} />
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      <% true -> %>
+                        <table class="table table-zebra table-sm">
+                          <thead>
+                            <tr>
+                              <th :for={field <- @list_fields}>{field}</th>
+                              <th class="text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody id="admin-records" phx-update="stream">
+                            <tr :if={@records_empty?} id="admin-records-empty">
+                              <td
+                                colspan={length(@list_fields) + 1}
+                                class="py-8 text-center text-base-content/60"
                               >
-                                Edit
-                              </.link>
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                                No records found.
+                              </td>
+                            </tr>
+                            <tr :for={{dom_id, record} <- @streams.records} id={dom_id}>
+                              <td :for={field <- @list_fields} class="max-w-64 truncate">
+                                {format_value(Map.get(record, field))}
+                              </td>
+                              <td class="text-right">
+                                <.actions_dropdown resource_key={@resource.key} record={record} />
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                     <% end %>
                   </div>
                 </div>
