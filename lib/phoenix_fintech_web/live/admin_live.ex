@@ -130,7 +130,7 @@ defmodule PhoenixFintechWeb.AdminLive do
                     </p>
                   </div>
 
-                  <div class="overflow-x-auto">
+                  <div class="overflow-x-clip">
                     <%= cond do %>
                       <% @resource.key == "transfers" -> %>
                         <table class="table table-zebra table-sm">
@@ -466,7 +466,7 @@ defmodule PhoenixFintechWeb.AdminLive do
       <summary class="btn btn-xs btn-ghost">
         <.icon name="hero-bars-3" class="size-4" />
       </summary>
-      <ul class="menu dropdown-content z-10 mt-1 w-40 rounded-box border border-base-300 bg-base-100 p-2 shadow">
+      <ul class="menu dropdown-content z-50 mt-1 w-40 rounded-box border border-base-300 bg-base-100 p-2 shadow">
         <li>
           <.link navigate={~p"/admin/#{@resource_key}/#{record_id(@record)}/edit"}>
             <.icon name="hero-pencil-square" class="size-4" /> Edit
