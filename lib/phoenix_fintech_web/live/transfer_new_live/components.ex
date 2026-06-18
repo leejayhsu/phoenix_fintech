@@ -221,7 +221,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         </div>
 
         <div :if={@quote} class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-          <div class="card card-border bg-base-100">
+          <div class="card card-border bg-base-200">
             <div class="card-body p-4">
               <h3 class="font-medium">Transfer summary</h3>
               <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
@@ -349,7 +349,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
   def spot_rate_card(assigns) do
     ~H"""
-    <div class="card card-border mt-4 bg-base-100">
+    <div class="card card-border mt-4 bg-base-200">
       <div class="card-body gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="flex items-center gap-2">
@@ -382,7 +382,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
   def fx_details_card(assigns) do
     ~H"""
-    <div class="card card-border bg-base-100">
+    <div class="card card-border bg-base-200">
       <div class="card-body gap-3 p-4">
         <h3 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
           FX details
@@ -533,7 +533,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
     do: base_party_card_classes() ++ ["border-primary bg-primary/10"]
 
   defp party_card_classes(false),
-    do: base_party_card_classes() ++ ["border-base-300 bg-base-100"]
+    do: base_party_card_classes() ++ ["border-base-300 bg-base-200"]
 
   defp base_party_card_classes,
     do: ["rounded-box border p-4 text-left transition hover:border-primary hover:bg-base-200"]

@@ -2,6 +2,7 @@ defmodule PhoenixFintech.Transfers do
   import Ecto.Query, warn: false
 
   alias Ecto.Multi
+  alias PhoenixFintech.Compliance
   alias PhoenixFintech.Fx.Rates
   alias PhoenixFintech.Repo
   alias PhoenixFintech.Transfers.{Transfer, TransferEvent, TransferQuote, TransferStateMachine}
@@ -58,6 +59,9 @@ defmodule PhoenixFintech.Transfers do
           actor_user_id: user_id,
           event_type: "created"
         })
+      end)
+      |> Multi.insert(:compliance_review, fn %{transfer: transfer} ->
+        Compliance.change_review(%{"transfer_id" => transfer.id, "status" => "created"})
       end)
       |> Repo.transaction()
       |> case do
@@ -116,6 +120,9 @@ defmodule PhoenixFintech.Transfers do
         event_type: "created_from_quote",
         transfer_quote_id: quote.id
       })
+    end)
+    |> Multi.insert(:compliance_review, fn %{transfer: transfer} ->
+      Compliance.change_review(%{"transfer_id" => transfer.id, "status" => "created"})
     end)
     |> Repo.transaction()
     |> case do
@@ -230,6 +237,14 @@ defmodule PhoenixFintech.Transfers do
   end
 
   defp transfer_event_changeset(transfer, from_status, to_status, metadata) do
+    build_transfer_event_changeset(transfer, from_status, to_status, metadata)
+  end
+
+  @doc """
+  Builds the changeset for a transfer event without persisting it. Used to
+  compose transfer transitions into larger transactions.
+  """
+  def build_transfer_event_changeset(transfer, from_status, to_status, metadata) do
     TransferEvent.changeset(%TransferEvent{}, %{
       transfer_id: transfer.id,
       actor_user_id: Map.get(metadata, :actor_user_id),

@@ -2,6 +2,7 @@ defmodule PhoenixFintech.Parties do
   import Ecto.Query, warn: false
 
   alias Ecto.Multi
+  alias PhoenixFintech.Compliance
   alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, Party, PartyMember}
   alias PhoenixFintech.Repo
   alias PhoenixFintech.Storage.MockS3
@@ -32,7 +33,12 @@ defmodule PhoenixFintech.Parties do
 
     Party
     |> Repo.get!(id)
-    |> Repo.preload([:government_ids, members: members_query, compliance_documents: docs_query])
+    |> Repo.preload([
+      :government_ids,
+      :compliance_review,
+      members: members_query,
+      compliance_documents: docs_query
+    ])
   end
 
   def get_party_with_member_tree!(id), do: get_party_with_details!(id)
@@ -119,6 +125,9 @@ defmodule PhoenixFintech.Parties do
     |> maybe_insert_party_government_id(party_government_id_attrs)
     |> maybe_insert_representative(representative_attrs)
     |> maybe_insert_representative_government_id(representative_government_id_attrs)
+    |> Multi.insert(:compliance_review, fn %{party: party} ->
+      Compliance.change_review(%{"party_id" => party.id, "status" => "created"})
+    end)
     |> Repo.transaction()
     |> case do
       {:ok, %{party: party}} -> {:ok, party}

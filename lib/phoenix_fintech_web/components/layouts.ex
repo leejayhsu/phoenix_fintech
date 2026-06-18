@@ -35,6 +35,7 @@ defmodule PhoenixFintechWeb.Layouts do
   attr :section, :atom, default: :app
   attr :admin_resources, :list, default: []
   attr :admin_resource, :map, default: nil
+  attr :admin_compliance_pending_count, :integer, default: nil
 
   slot :inner_block, required: true
 
@@ -58,6 +59,25 @@ defmodule PhoenixFintechWeb.Layouts do
 
             <%= if @section == :admin do %>
               <div class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                Workflow
+              </div>
+              <ul class="menu menu-sm gap-1 p-0 text-sm">
+                <li>
+                  <.link
+                    navigate={~p"/admin/compliance_reviews"}
+                    class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
+                  >
+                    <span class="flex items-center gap-2">
+                      <.icon name="hero-shield-check" class="size-4" /> Compliance reviews
+                    </span>
+                    <span :if={@admin_compliance_pending_count} class="badge badge-warning badge-sm">
+                      {@admin_compliance_pending_count}
+                    </span>
+                  </.link>
+                </li>
+              </ul>
+
+              <div class="mt-4 px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
                 Resources
               </div>
               <ul class="menu menu-sm gap-1 p-0 text-sm">

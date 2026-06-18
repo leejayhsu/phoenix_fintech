@@ -68,6 +68,8 @@ defmodule PhoenixFintechWeb.Router do
         {PhoenixFintechWeb.UserAuth, :require_admin}
       ] do
       live "/", AdminLive, :index
+      live "/compliance_reviews", ComplianceReviewLive, :index
+      live "/compliance_reviews/:id", ComplianceReviewLive, :show
       live "/:resource", AdminLive, :resource
       live "/:resource/:id/edit", AdminLive, :edit
     end

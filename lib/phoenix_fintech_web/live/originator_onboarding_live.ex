@@ -329,7 +329,7 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
 
   defp review_panel(assigns) do
     ~H"""
-    <section class="card card-border bg-base-100">
+    <section class="card card-border bg-base-200">
       <div class="card-body p-4">
         <h2 class="card-title mb-4 text-sm">{@title}</h2>
         <dl class="space-y-3">

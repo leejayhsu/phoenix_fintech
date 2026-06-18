@@ -237,16 +237,27 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     <Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
       <section class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8" id="party-details">
         <div class="space-y-4 border-b border-base-300 pb-5">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-primary">
-              Party profile
-            </p>
-            <h1 class="mt-1 text-3xl font-semibold">
-              {@party.legal_name}
-            </h1>
-            <p class="mt-2 text-sm text-base-content/70">
-              Business government ID: {government_id_summary(primary_party_government_id(@party))}
-            </p>
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wide text-primary">
+                Party profile
+              </p>
+              <h1 class="mt-1 text-3xl font-semibold">
+                {@party.legal_name}
+              </h1>
+              <p class="mt-2 text-sm text-base-content/70">
+                Business government ID: {government_id_summary(primary_party_government_id(@party))}
+              </p>
+            </div>
+
+            <.link
+              :if={@party.compliance_review}
+              id="party-compliance-review-badge"
+              navigate={~p"/admin/compliance_reviews/#{@party.compliance_review.id}"}
+              class={compliance_review_badge_classes(@party.compliance_review.status)}
+            >
+              Compliance: {render_compliance_status(@party.compliance_review.status)}
+            </.link>
           </div>
 
           <.party_tabs party={@party} active_tab={@active_tab} />
@@ -445,21 +456,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   defp overview_panel(assigns) do
     ~H"""
     <div id="party-overview" class="space-y-6">
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <.summary_card
-          label="Onboarding status"
-          value="In review"
-          detail="EDD checklist 72% complete"
-        />
-        <.summary_card label="Risk rating" value="Moderate" detail="Updated after ownership review" />
-        <.summary_card label="Relationship manager" value="Maya Chen" detail="Fintech growth desk" />
-        <.summary_card
-          label="Expected monthly volume"
-          value="$480K"
-          detail="Across card and ACH rails"
-        />
-      </div>
-
       <div class="grid gap-6 lg:grid-cols-2">
         <section class="card card-border bg-base-100">
           <div class="card-body">
@@ -550,7 +546,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
                 No business government IDs added yet.
               </div>
             <% else %>
-              <ul class="list mt-4 rounded-box border border-base-300 bg-base-100">
+              <ul class="list mt-4 rounded-box border border-base-300 bg-base-200">
                 <li :for={government_id <- @party.government_ids} class="list-row">
                   <div class="flex size-10 items-center justify-center rounded-field bg-base-200">
                     <.icon name="hero-identification" class="size-5 text-base-content/60" />
@@ -564,58 +560,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
                 </li>
               </ul>
             <% end %>
-          </div>
-        </section>
-      </div>
-
-      <div class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <section class="card card-border bg-base-100">
-          <div class="card-body">
-            <h2 class="card-title text-lg">Business profile</h2>
-            <dl class="mt-5 grid gap-4 sm:grid-cols-3">
-              <div>
-                <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                  Industry
-                </dt>
-                <dd class="mt-1 text-sm font-medium">
-                  Embedded payments platform
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                  Operating regions
-                </dt>
-                <dd class="mt-1 text-sm font-medium">
-                  United States, Canada
-                </dd>
-              </div>
-              <div>
-                <dt class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                  Primary currency
-                </dt>
-                <dd class="mt-1 text-sm font-medium">USD</dd>
-              </div>
-            </dl>
-          </div>
-        </section>
-
-        <section class="card card-border bg-base-100">
-          <div class="card-body">
-            <h2 class="card-title text-lg">Recent activity</h2>
-            <div class="mt-4 space-y-3">
-              <.activity_item
-                title="Representative verified"
-                detail="Identity match completed this morning"
-              />
-              <.activity_item
-                title="Ownership document requested"
-                detail="Awaiting updated cap table from operations"
-              />
-              <.activity_item
-                title="Risk review queued"
-                detail="Compliance review scheduled for Friday"
-              />
-            </div>
           </div>
         </section>
       </div>
@@ -635,36 +579,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
           count={length(@party.compliance_documents)}
           detail="Upload and inspect onboarding evidence."
         />
-      </div>
-    </div>
-    """
-  end
-
-  attr :label, :string, required: true
-  attr :value, :string, required: true
-  attr :detail, :string, required: true
-
-  defp summary_card(assigns) do
-    ~H"""
-    <div class="card card-border bg-base-100">
-      <div class="card-body p-4">
-        <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">{@label}</p>
-        <p class="mt-2 text-xl font-semibold">{@value}</p>
-        <p class="mt-1 text-sm text-base-content/70">{@detail}</p>
-      </div>
-    </div>
-    """
-  end
-
-  attr :title, :string, required: true
-  attr :detail, :string, required: true
-
-  defp activity_item(assigns) do
-    ~H"""
-    <div class="card card-border bg-base-100">
-      <div class="card-body p-3">
-        <p class="text-sm font-medium">{@title}</p>
-        <p class="mt-1 text-sm text-base-content/70">{@detail}</p>
       </div>
     </div>
     """
@@ -819,7 +733,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
             <div
               :for={{dom_id, doc} <- @streams.documents}
               id={dom_id}
-              class="card card-border bg-base-100 text-sm"
+              class="card card-border bg-base-200 text-sm"
             >
               <div class="card-body flex-row items-center gap-3 p-3">
                 <img
@@ -1086,6 +1000,15 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     |> Enum.reject(&(&1 in [nil, ""]))
     |> Enum.join(" · ")
   end
+
+  defp render_compliance_status(status),
+    do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
+
+  defp compliance_review_badge_classes("created"), do: "badge badge-soft badge-warning"
+  defp compliance_review_badge_classes("manual_review"), do: "badge badge-soft badge-warning"
+  defp compliance_review_badge_classes("approved"), do: "badge badge-soft badge-success"
+  defp compliance_review_badge_classes("rejected"), do: "badge badge-soft badge-error"
+  defp compliance_review_badge_classes(_status), do: "badge badge-soft"
 
   defp assign_member_form(socket, overrides \\ %{}) do
     member_attrs =

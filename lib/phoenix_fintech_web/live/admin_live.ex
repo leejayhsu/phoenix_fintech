@@ -5,6 +5,7 @@ defmodule PhoenixFintechWeb.AdminLive do
 
   alias Ecto.Changeset
   alias PhoenixFintech.Accounts.{User, UserToken}
+  alias PhoenixFintech.Compliance
   alias PhoenixFintech.Ledger.{Account, AccountBalance, Currency, Entry, JournalEntry}
   alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, Party, PartyMember}
   alias PhoenixFintech.Repo
@@ -28,11 +29,14 @@ defmodule PhoenixFintechWeb.AdminLive do
 
   @impl true
   def mount(params, _session, socket) do
+    pending_count = length(Compliance.list_pending_reviews())
+
     socket =
       socket
       |> assign_new(:current_scope, fn -> nil end)
       |> assign(:current_user, socket.assigns.current_scope.user)
       |> assign(:resources, @resources)
+      |> assign(:admin_compliance_pending_count, pending_count)
 
     {:ok, apply_action(socket, socket.assigns.live_action, params)}
   end
