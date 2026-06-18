@@ -7,6 +7,7 @@ defmodule PhoenixFintech.Transfers.Transfer do
 
   schema "transfers" do
     field :status, :string, default: "created"
+    field :direction, Ecto.Enum, values: [:send, :receive], default: :send
     field :originator_currency_code, :string
     field :counterparty_currency_code, :string
     field :amount_in_originator_currency, :decimal
@@ -30,6 +31,7 @@ defmodule PhoenixFintech.Transfers.Transfer do
       :counterparty_currency_code,
       :amount_in_originator_currency,
       :amount_in_counterparty_currency,
+      :direction,
       :status,
       :transfer_quote_id
     ])
@@ -41,7 +43,8 @@ defmodule PhoenixFintech.Transfers.Transfer do
       :originator_currency_code,
       :counterparty_currency_code,
       :amount_in_originator_currency,
-      :amount_in_counterparty_currency
+      :amount_in_counterparty_currency,
+      :direction
     ])
     |> validate_number(:amount_in_originator_currency, greater_than: 0)
     |> validate_number(:amount_in_counterparty_currency, greater_than: 0)

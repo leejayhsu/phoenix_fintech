@@ -3,6 +3,69 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
   attr :panel_class, :any, required: true
   attr :active, :boolean, required: true
+  attr :direction, :atom, default: nil
+
+  def direction_step(assigns) do
+    ~H"""
+    <section class={@panel_class} inert={!@active}>
+      <div class="card-body gap-6">
+        <div>
+          <h2 class="card-title">1. Choose direction</h2>
+          <p class="text-sm text-base-content/70">
+            Should the originator send funds to the counterparty, or receive funds from them?
+          </p>
+        </div>
+
+        <div class="grid gap-3 md:grid-cols-2">
+          <.direction_card
+            direction="send"
+            selected={@direction == :send}
+            title="Send"
+            description="The originator sends money to the counterparty."
+            icon="hero-arrow-up"
+          />
+          <.direction_card
+            direction="receive"
+            selected={@direction == :receive}
+            title="Receive"
+            description="The counterparty sends money to the originator."
+            icon="hero-arrow-down"
+          />
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  attr :direction, :string, required: true
+  attr :selected, :boolean, required: true
+  attr :title, :string, required: true
+  attr :description, :string, required: true
+  attr :icon, :string, required: true
+
+  defp direction_card(assigns) do
+    ~H"""
+    <button
+      type="button"
+      id={"direction-card-#{@direction}"}
+      phx-click="choose_direction"
+      phx-value-direction={@direction}
+      class={direction_card_classes(@selected)}
+    >
+      <span class="flex items-start gap-3">
+        <.icon name={@icon} class="size-6 shrink-0" />
+        <span class="text-left">
+          <span class="block font-medium">{@title}</span>
+          <span class="mt-1 block text-sm text-base-content/60">{@description}</span>
+        </span>
+      </span>
+    </button>
+    """
+  end
+
+  attr :panel_class, :any, required: true
+  attr :active, :boolean, required: true
+  attr :direction, :atom, default: nil
   attr :parties, :list, required: true
   attr :selected_originator_id, :any, required: true
 
@@ -11,9 +74,9 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
     <section class={@panel_class} inert={!@active}>
       <div class="card-body gap-6">
         <div>
-          <h2 class="card-title">1. Choose the originator</h2>
+          <h2 class="card-title">2. Choose the originator</h2>
           <p class="text-sm text-base-content/70">
-            Select the party sending funds.
+            Select the party {originator_role_description(@direction)}.
           </p>
         </div>
 
@@ -30,6 +93,18 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         <div :if={@parties == []} role="alert" class="alert alert-warning">
           <.icon name="hero-exclamation-triangle" class="size-5" />
           <span>Create a party before starting a transfer.</span>
+        </div>
+
+        <div class="card-actions justify-between">
+          <button
+            type="button"
+            id="back-to-direction-button"
+            phx-click="go_to_step"
+            phx-value-step="direction"
+            class="btn btn-ghost"
+          >
+            Back
+          </button>
         </div>
       </div>
     </section>
@@ -48,7 +123,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
       <div class="card-body gap-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 class="card-title">2. Choose counterparties</h2>
+            <h2 class="card-title">3. Choose counterparties</h2>
             <p class="text-sm text-base-content/70">
               The UI is ready for multiple recipients, but this transfer flow currently supports one counterparty.
             </p>
@@ -100,7 +175,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
     <section class={@panel_class} inert={!@active}>
       <div class="card-body gap-6">
         <div>
-          <h2 class="card-title">3. Generate FX quote</h2>
+          <h2 class="card-title">4. Generate FX quote</h2>
           <p class="text-sm text-base-content/70">
             Enter the amount and currencies. The generated quote is binding once you continue.
           </p>
@@ -206,6 +281,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :quote, :any, default: nil
   attr :quote_error, :string, default: nil
   attr :parties, :list, required: true
+  attr :direction, :atom, default: nil
   attr :selected_originator_id, :any, required: true
   attr :selected_counterparty_ids, :list, required: true
 
@@ -214,7 +290,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
     <section class={@panel_class} inert={!@active}>
       <div class="card-body gap-6">
         <div>
-          <h2 class="card-title">4. Review</h2>
+          <h2 class="card-title">5. Review</h2>
           <p class="text-sm text-base-content/70">
             Confirm the binding FX quote and create the transfer for internal review.
           </p>
@@ -225,6 +301,27 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
             <div class="card-body p-4">
               <h3 class="font-medium">Transfer summary</h3>
               <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+                <div>
+                  <dt class="text-base-content/60">Direction</dt>
+                  <dd class="mt-1 font-medium">{format_direction(@direction)}</dd>
+                </div>
+                <div>
+                  <dt class="text-base-content/60">Sender</dt>
+                  <dd class="mt-1 font-medium">
+                    {sender(@direction, @parties, @selected_originator_id, @selected_counterparty_ids).legal_name}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-base-content/60">Recipient</dt>
+                  <dd class="mt-1 font-medium">
+                    {recipient(
+                      @direction,
+                      @parties,
+                      @selected_originator_id,
+                      @selected_counterparty_ids
+                    ).legal_name}
+                  </dd>
+                </div>
                 <div>
                   <dt class="text-base-content/60">Originator</dt>
                   <dd class="mt-1 font-medium">
@@ -422,6 +519,27 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   defp selected_counterparty(parties, selected_counterparty_ids),
     do: Enum.find(parties, &(&1.id in selected_counterparty_ids))
 
+  defp originator_role_description(:receive), do: "who will receive the funds"
+  defp originator_role_description(_direction), do: "who will send the funds"
+
+  defp format_direction(:send), do: "Send"
+  defp format_direction(:receive), do: "Receive"
+  defp format_direction(_), do: "—"
+
+  defp sender(:receive, parties, originator_id, counterparty_ids),
+    do:
+      selected_counterparty(parties, counterparty_ids) ||
+        selected_originator(parties, originator_id)
+
+  defp sender(_direction, parties, originator_id, _counterparty_ids),
+    do: selected_originator(parties, originator_id)
+
+  defp recipient(:receive, parties, originator_id, _counterparty_ids),
+    do: selected_originator(parties, originator_id)
+
+  defp recipient(_direction, parties, _originator_id, counterparty_ids),
+    do: selected_counterparty(parties, counterparty_ids)
+
   defp selected_party_name(parties, party_id)
        when is_binary(party_id) or is_integer(party_id),
        do: party_name(parties, party_id)
@@ -533,6 +651,12 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
     do: base_party_card_classes() ++ ["border-primary bg-primary/10"]
 
   defp party_card_classes(false),
+    do: base_party_card_classes() ++ ["border-base-300 bg-base-200"]
+
+  defp direction_card_classes(true),
+    do: base_party_card_classes() ++ ["border-primary bg-primary/10"]
+
+  defp direction_card_classes(false),
     do: base_party_card_classes() ++ ["border-base-300 bg-base-200"]
 
   defp base_party_card_classes,

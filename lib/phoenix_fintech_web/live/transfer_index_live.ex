@@ -48,13 +48,14 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Direction</th>
                   <th>Originator name</th>
                   <th>Counterparty name</th>
                 </tr>
               </thead>
               <tbody id="transfers-table">
                 <tr :if={@transfers == []}>
-                  <td colspan="3" class="py-8 text-center text-base-content/60">No transfers yet.</td>
+                  <td colspan="4" class="py-8 text-center text-base-content/60">No transfers yet.</td>
                 </tr>
                 <tr
                   :for={transfer <- @transfers}
@@ -64,6 +65,17 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                 >
                   <td>
                     <.copy_value id={"transfer-#{transfer.id}-copy"} value={transfer.id} />
+                  </td>
+                  <td>
+                    <span class="badge badge-soft">
+                      <.icon
+                        name={
+                          if transfer.direction == :send, do: "hero-arrow-up", else: "hero-arrow-down"
+                        }
+                        class="size-4"
+                      />
+                      {transfer.direction |> to_string() |> String.capitalize()}
+                    </span>
                   </td>
                   <td>
                     {transfer.originator_party.legal_name}

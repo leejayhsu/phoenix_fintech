@@ -86,6 +86,25 @@ defmodule PhoenixFintechWeb.TransferShowLive do
             </div>
           </div>
 
+          <div
+            id="transfer-direction"
+            class="flex flex-wrap items-center gap-2 border-b border-base-300 bg-base-200 px-6 py-3 text-sm"
+          >
+            <span class="text-base-content/60">Direction:</span>
+            <span class="badge badge-soft">
+              <.icon
+                name={if @transfer.direction == :send, do: "hero-arrow-up", else: "hero-arrow-down"}
+                class="size-4"
+              />
+              {@transfer.direction |> to_string() |> String.capitalize()}
+            </span>
+            <span class="text-base-content/60">·</span>
+            <span class="text-base-content/70">
+              <span class="font-medium">{sender_party(@transfer).legal_name}</span>
+              sends to <span class="font-medium">{recipient_party(@transfer).legal_name}</span>
+            </span>
+          </div>
+
           <div class="grid gap-6 px-6 py-6 lg:grid-cols-[2fr_1fr]">
             <div class="space-y-6">
               <div id="transfer-parties" class="grid gap-4 sm:grid-cols-2">
@@ -280,6 +299,12 @@ defmodule PhoenixFintechWeb.TransferShowLive do
     do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
 
   defp format_event_type(event_type), do: format_status(event_type)
+
+  defp sender_party(%{direction: :receive, counterparty_party: counterparty}), do: counterparty
+  defp sender_party(%{originator_party: originator}), do: originator
+
+  defp recipient_party(%{direction: :receive, originator_party: originator}), do: originator
+  defp recipient_party(%{counterparty_party: counterparty}), do: counterparty
 
   defp status_badge_classes("created"),
     do: "badge badge-soft badge-warning"

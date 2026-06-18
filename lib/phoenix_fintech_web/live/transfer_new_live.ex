@@ -4,7 +4,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   alias PhoenixFintech.{Fx.SpotRatePublisher, Ledger, Parties, Transfers}
   import PhoenixFintechWeb.TransferNewLive.Components
 
-  @steps [:originator, :counterparties, :quote, :review]
+  @steps [:direction, :originator, :counterparties, :quote, :review]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -25,7 +25,8 @@ defmodule PhoenixFintechWeb.TransferNewLive do
       |> assign(:page_title, "New transfer")
       |> assign(:parties, Parties.list_parties())
       |> assign(:currencies, currencies)
-      |> assign(:step, :originator)
+      |> assign(:step, :direction)
+      |> assign(:direction, nil)
       |> assign(:selected_originator_id, nil)
       |> assign(:selected_counterparty_ids, [])
       |> assign(:quote_form, quote_form)
@@ -37,6 +38,16 @@ defmodule PhoenixFintechWeb.TransferNewLive do
     if connected?(socket), do: SpotRatePublisher.subscribe()
 
     {:ok, socket}
+  end
+
+  @impl true
+  def handle_event("choose_direction", %{"direction" => direction}, socket) do
+    direction = String.to_existing_atom(direction)
+
+    {:noreply,
+     socket
+     |> assign(:direction, direction)
+     |> assign(:step, :originator)}
   end
 
   @impl true
@@ -118,7 +129,8 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   def handle_event("finish_wizard", _params, socket) do
     case Transfers.create_transfer_from_quote(
            socket.assigns.current_user.id,
-           socket.assigns.quote.id
+           socket.assigns.quote.id,
+           %{"direction" => socket.assigns.direction}
          ) do
       {:ok, transfer} ->
         {:noreply,
@@ -164,15 +176,21 @@ defmodule PhoenixFintechWeb.TransferNewLive do
               Choose the parties, lock a binding FX quote, then submit the transfer for operations and compliance review.
             </p>
           </div>
-          <progress class="progress progress-primary max-w-xs" value={step_number(@step)} max="4">
+          <progress class="progress progress-primary max-w-xs" value={step_number(@step)} max="5">
           </progress>
         </div>
 
         <div class="overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-sm">
           <div id="transfer-wizard-track" class={wizard_track_classes(@step)}>
+            <.direction_step
+              panel_class={panel_classes(@step, :direction)}
+              active={@step == :direction}
+              direction={@direction}
+            />
             <.originator_step
               panel_class={panel_classes(@step, :originator)}
               active={@step == :originator}
+              direction={@direction}
               parties={@parties}
               selected_originator_id={@selected_originator_id}
             />
@@ -201,6 +219,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
               quote={@quote}
               quote_error={@quote_error}
               parties={@parties}
+              direction={@direction}
               selected_originator_id={@selected_originator_id}
               selected_counterparty_ids={@selected_counterparty_ids}
             />
@@ -217,6 +236,9 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   defp assign_current_user(socket),
     do: assign(socket, :current_user, current_user(socket.assigns[:current_scope]))
 
+  defp allowed_step(:direction, _assigns), do: :direction
+
+  defp allowed_step(:originator, %{direction: nil}), do: :direction
   defp allowed_step(:originator, _assigns), do: :originator
 
   defp allowed_step(:counterparties, %{selected_originator_id: nil}), do: :originator
@@ -279,17 +301,18 @@ defmodule PhoenixFintechWeb.TransferNewLive do
 
   defp step_number(step), do: Enum.find_index(@steps, &(&1 == step)) + 1
 
-  defp wizard_track_classes(:originator), do: base_track_classes() ++ ["translate-x-0"]
-  defp wizard_track_classes(:counterparties), do: base_track_classes() ++ ["-translate-x-1/4"]
-  defp wizard_track_classes(:quote), do: base_track_classes() ++ ["-translate-x-1/2"]
-  defp wizard_track_classes(:review), do: base_track_classes() ++ ["-translate-x-3/4"]
+  defp wizard_track_classes(:direction), do: base_track_classes() ++ ["translate-x-0"]
+  defp wizard_track_classes(:originator), do: base_track_classes() ++ ["-translate-x-[20%]"]
+  defp wizard_track_classes(:counterparties), do: base_track_classes() ++ ["-translate-x-[40%]"]
+  defp wizard_track_classes(:quote), do: base_track_classes() ++ ["-translate-x-[60%]"]
+  defp wizard_track_classes(:review), do: base_track_classes() ++ ["-translate-x-[80%]"]
 
   defp base_track_classes,
-    do: ["flex w-[400%] transition-transform duration-300 ease-out motion-reduce:transition-none"]
+    do: ["flex w-[500%] transition-transform duration-300 ease-out motion-reduce:transition-none"]
 
   defp panel_classes(current_step, panel_step) do
     [
-      "card min-h-[32rem] w-1/4 shrink-0 transition-opacity duration-200",
+      "card min-h-[32rem] w-1/5 shrink-0 transition-opacity duration-200",
       current_step == panel_step && "opacity-100",
       current_step != panel_step && "pointer-events-none opacity-40"
     ]
