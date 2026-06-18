@@ -7,11 +7,11 @@ defmodule PhoenixFintechWeb.AdminLive do
   alias Ecto.Multi
   alias PhoenixFintech.Accounts.{User, UserToken}
   alias PhoenixFintech.Compliance
-  alias PhoenixFintech.Compliance.Review
+
   alias PhoenixFintech.Ledger.{Account, AccountBalance, Currency, Entry, JournalEntry}
   alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, Party, PartyMember}
   alias PhoenixFintech.Repo
-  alias PhoenixFintech.Transfers.{Transfer, TransferEvent, TransferQuote}
+  alias PhoenixFintech.Transfers.{Transfer, TransferQuote}
 
   @resources [
     %{key: "users", label: "Users", schema: User},
@@ -335,8 +335,6 @@ defmodule PhoenixFintechWeb.AdminLive do
 
   defp delete_record(%{key: "transfers"}, %Transfer{} = transfer) do
     Multi.new()
-    |> Multi.delete_all(:reviews, from(r in Review, where: r.transfer_id == ^transfer.id))
-    |> Multi.delete_all(:events, from(e in TransferEvent, where: e.transfer_id == ^transfer.id))
     |> Multi.delete_all(
       :quotes,
       from(q in TransferQuote, where: q.id == ^transfer.transfer_quote_id)
