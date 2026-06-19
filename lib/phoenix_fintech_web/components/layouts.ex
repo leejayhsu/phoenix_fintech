@@ -150,6 +150,7 @@ defmodule PhoenixFintechWeb.Layouts do
                       {Phoenix.Component.live_render(
                         @live_root,
                         PhoenixFintechWeb.NotificationBadgeLive,
+                        id: "notification-badge",
                         session: %{"current_user_id" => @current_user.id}
                       )}
                     <% end %>
