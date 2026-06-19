@@ -866,13 +866,13 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
   defp can_request_originator_status?(party) do
     onboarding_approved? =
-      party.compliance_review && party.compliance_review.status == "approved"
+      party.compliance_review != nil and party.compliance_review.status == "approved"
 
     onboarding_approved? and not originator_review_in_progress?(party)
   end
 
   defp originator_review_in_progress?(party) do
-    party.originator_compliance_review &&
+    party.originator_compliance_review != nil and
       party.originator_compliance_review.status in ["created", "manual_review"]
   end
 
