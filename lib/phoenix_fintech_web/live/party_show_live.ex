@@ -711,9 +711,9 @@ defmodule PhoenixFintechWeb.PartyShowLive do
                   navigate={~p"/admin/compliance_reviews/#{@party.compliance_review.id}"}
                   class={compliance_review_badge_classes(@party.compliance_review.status)}
                 >
-                  Compliance: {render_compliance_status(@party.compliance_review.status)}
+                  {render_compliance_status(@party.compliance_review.status)}
                 </.link>
-                <span :if={not @party.compliance_review} class="badge badge-soft">
+                <span :if={is_nil(@party.compliance_review)} class="badge badge-soft">
                   Not started
                 </span>
               </div>
@@ -725,7 +725,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
               </p>
               <div class="mt-2 space-y-2">
                 <span :if={@party.can_originate} class="badge badge-soft badge-success">
-                  originator eligible
+                  Eligible
                 </span>
 
                 <.link
@@ -734,9 +734,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
                   navigate={~p"/admin/compliance_reviews/#{@party.originator_compliance_review.id}"}
                   class={compliance_review_badge_classes(@party.originator_compliance_review.status)}
                 >
-                  Originator review: {render_compliance_status(
-                    @party.originator_compliance_review.status
-                  )}
+                  {render_originator_eligibility_status(@party.originator_compliance_review.status)}
                 </.link>
 
                 <button
@@ -1115,6 +1113,12 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   end
 
   defp render_compliance_status(status),
+    do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
+
+  defp render_originator_eligibility_status("approved"), do: "Eligible"
+  defp render_originator_eligibility_status("rejected"), do: "Not Eligible"
+
+  defp render_originator_eligibility_status(status),
     do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
 
   defp compliance_review_badge_classes("created"), do: "badge badge-soft badge-warning"
