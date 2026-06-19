@@ -48,13 +48,14 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
               <thead>
                 <tr>
                   <th>Legal name</th>
-                  <th>Tax ID</th>
-                  <th>Country</th>
+                  <th class="w-32 text-center">Country</th>
+                  <th class="w-32 text-center">Originator status</th>
+                  <th class="w-32 text-center">Compliance status</th>
                 </tr>
               </thead>
               <tbody id="parties-table">
                 <tr :if={@parties == []}>
-                  <td colspan="3" class="py-8 text-center text-sm text-base-content/60">
+                  <td colspan="4" class="py-8 text-center text-sm text-base-content/60">
                     No parties onboarded yet.
                   </td>
                 </tr>
@@ -67,10 +68,11 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
                   <td class="font-medium">
                     {party.legal_name}
                   </td>
-                  <td>{party.tax_id}</td>
-                  <td>
+                  <td class="w-32 text-center">
                     <span class="badge badge-ghost">{party.country_code}</span>
                   </td>
+                  <td class="w-32 text-center"><.originator_status_icon can_originate={party.can_originate} /></td>
+                  <td class="w-32 text-center"><.compliance_status_icon review={party.compliance_review} /></td>
                 </tr>
               </tbody>
             </table>
@@ -92,4 +94,34 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
     do: Parties.list_parties_onboarded_by_user(user_id)
 
   defp list_parties_for_current_user(_), do: []
+
+  defp originator_status_icon(%{can_originate: true} = assigns) do
+    ~H"""
+    <.icon name="hero-check-circle" class="size-5 text-success" />
+    """
+  end
+
+  defp originator_status_icon(assigns) do
+    ~H"""
+    <.icon name="hero-x-circle" class="size-5 text-error" />
+    """
+  end
+
+  defp compliance_status_icon(%{review: %{status: "approved"}} = assigns) do
+    ~H"""
+    <.icon name="hero-check-circle" class="size-5 text-success" />
+    """
+  end
+
+  defp compliance_status_icon(%{review: %{status: "rejected"}} = assigns) do
+    ~H"""
+    <.icon name="hero-x-circle" class="size-5 text-error" />
+    """
+  end
+
+  defp compliance_status_icon(assigns) do
+    ~H"""
+    <.icon name="hero-ellipsis-horizontal-circle" class="size-5 text-warning" />
+    """
+  end
 end

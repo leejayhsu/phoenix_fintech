@@ -26,6 +26,7 @@ defmodule PhoenixFintech.Parties do
         left_join: t in assoc(p, :originator_transfers),
         where: p.created_by_user_id == ^user_id or t.created_by_user_id == ^user_id,
         distinct: p.id,
+        preload: [:compliance_review],
         order_by: [desc: p.inserted_at]
     )
   end
