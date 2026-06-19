@@ -82,7 +82,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
         <div class="grid gap-3 md:grid-cols-2">
           <.party_card
-            :for={party <- @parties}
+            :for={party <- originator_options(@parties)}
             party={party}
             selected={party.id == @selected_originator_id}
             event="choose_originator"
@@ -90,9 +90,9 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
           />
         </div>
 
-        <div :if={@parties == []} role="alert" class="alert alert-warning">
+        <div :if={originator_options(@parties) == []} role="alert" class="alert alert-warning">
           <.icon name="hero-exclamation-triangle" class="size-5" />
-          <span>Create a party before starting a transfer.</span>
+          <span>No parties are eligible to originate transfers yet.</span>
         </div>
 
         <div class="card-actions justify-between">
@@ -508,6 +508,8 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
     </div>
     """
   end
+
+  defp originator_options(parties), do: Enum.filter(parties, & &1.can_originate)
 
   defp counterparty_options(parties, nil), do: parties
 
