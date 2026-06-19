@@ -19,17 +19,27 @@ defmodule PhoenixFintech.Notifications do
 
   @doc """
   Lists the most recent notifications for a user, newest first.
+
+  Options:
+    * `:limit` - maximum number of notifications to return (default 20)
+    * `:filter` - one of `:all` (default), `:unread`, or `:read`
   """
   def list_notifications_for_user(user_id, opts \\ []) do
     limit = Keyword.get(opts, :limit, 20)
+    filter = Keyword.get(opts, :filter, :all)
 
     Repo.all(
       from n in Notification,
         where: n.user_id == ^user_id,
+        where: ^filter_clause(filter),
         order_by: [desc: n.inserted_at],
         limit: ^limit
     )
   end
+
+  defp filter_clause(:unread), do: dynamic([n], is_nil(n.read_at))
+  defp filter_clause(:read), do: dynamic([n], not is_nil(n.read_at))
+  defp filter_clause(:all), do: dynamic([n], true)
 
   @doc """
   Returns the count of unread notifications for a user.

@@ -19,6 +19,7 @@ defmodule PhoenixFintechWeb.NotificationsLive do
       {:ok,
        socket
        |> assign(:page_title, "Notifications")
+       |> assign(:filter, :all)
        |> stream(:notifications, notifications, reset: true)
        |> assign(:notifications_empty?, notifications == [])
        |> assign(:notifications_unread_count, unread_count)}
@@ -31,31 +32,60 @@ defmodule PhoenixFintechWeb.NotificationsLive do
   def handle_event("mark_read", %{"id" => id}, socket) do
     notification = Notifications.get_notification!(id)
 
-    if is_nil(notification.read_at) do
-      {:ok, updated} = Notifications.mark_as_read(notification)
+    cond do
+      is_nil(notification.read_at) ->
+        {:ok, updated} = Notifications.mark_as_read(notification)
+        %{current_user: user, filter: filter} = socket.assigns
 
-      {:noreply,
-       socket
-       |> stream_insert(:notifications, updated)
-       |> assign(
-         :notifications_unread_count,
-         max(socket.assigns.notifications_unread_count - 1, 0)
-       )}
-    else
-      {:noreply, socket}
+        socket =
+          socket
+          |> assign(
+            :notifications_unread_count,
+            max(socket.assigns.notifications_unread_count - 1, 0)
+          )
+
+        if filter == :unread do
+          notifications =
+            Notifications.list_notifications_for_user(user.id, limit: 50, filter: filter)
+
+          {:noreply,
+           socket
+           |> stream(:notifications, notifications, reset: true)
+           |> assign(:notifications_empty?, notifications == [])}
+        else
+          {:noreply, stream_insert(socket, :notifications, updated)}
+        end
+
+      true ->
+        {:noreply, socket}
     end
   end
 
   def handle_event("mark_all_read", _params, socket) do
-    %{current_user: user} = socket.assigns
+    %{current_user: user, filter: filter} = socket.assigns
 
     Notifications.mark_all_as_read(user.id)
-    notifications = Notifications.list_notifications_for_user(user.id, limit: 50)
+    notifications = Notifications.list_notifications_for_user(user.id, limit: 50, filter: filter)
 
     {:noreply,
      socket
      |> stream(:notifications, notifications, reset: true)
+     |> assign(:notifications_empty?, notifications == [])
      |> assign(:notifications_unread_count, 0)}
+  end
+
+  def handle_event("filter", %{"filter" => filter}, socket) do
+    filter = String.to_existing_atom(filter)
+    %{current_user: user} = socket.assigns
+
+    notifications =
+      Notifications.list_notifications_for_user(user.id, limit: 50, filter: filter)
+
+    {:noreply,
+     socket
+     |> assign(:filter, filter)
+     |> stream(:notifications, notifications, reset: true)
+     |> assign(:notifications_empty?, notifications == [])}
   end
 
   @impl true
@@ -75,6 +105,22 @@ defmodule PhoenixFintechWeb.NotificationsLive do
               Updates about your parties and transfers.
             </p>
           </div>
+        </div>
+
+        <div class="mb-4 flex items-center justify-between gap-4">
+          <div role="tablist" class="tabs tabs-boxed tabs-sm w-fit">
+            <button
+              :for={{label, value} <- [All: :all, Unread: :unread, Read: :read]}
+              type="button"
+              role="tab"
+              class={["tab", @filter == value && "tab-active"]}
+              phx-click="filter"
+              phx-value-filter={value}
+            >
+              {label}
+            </button>
+          </div>
+
           <.button
             phx-click="mark_all_read"
             disabled={@notifications_unread_count == 0}
