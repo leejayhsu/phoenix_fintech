@@ -17,6 +17,7 @@ defmodule PhoenixFintech.Parties.Party do
     field :region, :string
     field :postal_code, :string
     field :country_code, :string
+    field :can_originate, :boolean, default: false
 
     belongs_to :created_by_user, PhoenixFintech.Accounts.User
 
@@ -25,7 +26,15 @@ defmodule PhoenixFintech.Parties.Party do
     has_many :compliance_documents, ComplianceDocument
     has_many :events, PhoenixFintech.Parties.PartyEvent
 
-    has_one :compliance_review, PhoenixFintech.Compliance.Review
+    # The original onboarding compliance review. Scoped by `purpose` so a
+    # party can additionally carry an `originator_status` review without the
+    # two `has_one` associations colliding.
+    has_one :compliance_review, PhoenixFintech.Compliance.Review, where: [purpose: "onboarding"]
+
+    # A separate, optional review raised when a party requests enhanced
+    # compliance to be allowed to originate transfers.
+    has_one :originator_compliance_review, PhoenixFintech.Compliance.Review,
+      where: [purpose: "originator_status"]
 
     has_many :originator_transfers, PhoenixFintech.Transfers.Transfer,
       foreign_key: :originator_party_id

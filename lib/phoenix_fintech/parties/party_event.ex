@@ -29,7 +29,7 @@ defmodule PhoenixFintech.Parties.PartyEvent do
       :metadata,
       :occurred_at
     ])
-    |> validate_required([:party_id, :event_type, :to_status, :occurred_at])
+    |> validate_required([:party_id, :event_type, :occurred_at])
     |> validate_length(:event_type, max: 100)
     |> validate_length(:from_status, max: 100)
     |> validate_length(:to_status, max: 100)

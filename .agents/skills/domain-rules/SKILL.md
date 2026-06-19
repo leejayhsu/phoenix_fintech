@@ -48,3 +48,30 @@ Do NOT use this skill for:
 - A user may only access accounts they own or are explicitly granted access to.
 - Admin actions require an admin-scoped session.
 -->
+
+## Parties & originator eligibility
+
+Every party can act as a **counterparty** by default. Acting as an **originator** (the party that initiates a transfer through our system) requires a separate, enhanced compliance check on top of the standard onboarding review.
+
+### `can_originate`
+- The `parties.can_originate` column (boolean, default `false`, never user-editable) gates whether a party may originate transfers.
+- It is flipped to `true` **only** as the side effect of an approved `originator_status` compliance review (see below). It is never set directly from user input — it is applied programmatically via `Ecto.Changeset.change/2`, not through the party's cast changeset.
+
+### Compliance reviews: `purpose`
+- `compliance_reviews.purpose` distinguishes the two kinds of review a party can undergo:
+  - `"onboarding"` — the initial KYC/onboarding review created at party creation. Drives the party **state machine** (advances party to `compliance_approved` / `compliance_rejected` / `compliance_manual_review` and records a `PartyEvent`).
+  - `"originator_status"` — the enhanced review requested later to gain originator eligibility.
+- A party may have at most one review per purpose (enforced by a composite unique index on `(party_id, purpose)` where `party_id IS NOT NULL`).
+
+### Originator status workflow
+- A party may **request originator status** only when:
+  1. its onboarding (`"onboarding"`) compliance review is `approved`, and
+  2. it is not already originator eligible (`can_originate` is `false`), and
+  3. there is no in-progress (`created` or `manual_review`) `"originator_status"` review for the party.
+- Requesting creates a new `compliance_reviews` row with `purpose: "originator_status"`, `status: "created"`. This surfaces in the existing admin compliance review workflow; only admins approve/reject it.
+- **Originator status is NOT modeled in the party state machine.** Approving an `"originator_status"` review does **not** transition the party's `status` (the party stays at whatever onboarding state it reached, typically `compliance_approved`).
+- Instead, on approval two things happen atomically in one transaction:
+  1. `parties.can_originate` is set to `true`, and
+  2. a `PartyEvent` with `event_type: "originator_status_granted"` (and `from_status`/`to_status` left `nil`, since it is not a state-machine transition) is inserted to preserve the audit trail.
+- Rejecting an `"originator_status"` review leaves `can_originate` unchanged and emits no party event.
+- Because the grant is recorded as a `PartyEvent` (not a state transition), it is auditable through the same party event log without polluting the party lifecycle states.

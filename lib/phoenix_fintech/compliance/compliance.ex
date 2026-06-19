@@ -85,9 +85,52 @@ defmodule PhoenixFintech.Compliance do
   """
   def create_review_for_party(party) do
     %Review{}
-    |> Review.changeset(%{party_id: party.id, status: "created"})
+    |> Review.changeset(%{party_id: party.id, status: "created", purpose: "onboarding"})
     |> Repo.insert()
   end
+
+  @doc """
+  Creates an originator-status compliance review for a party.
+
+  Originator status is a separate, enhanced compliance check that a party
+  must pass *after* its onboarding compliance review has been approved in
+  order to be allowed to originate transfers. This raises a fresh review
+  with `purpose: "originator_status"` for admins to approve in the existing
+  compliance review workflow.
+
+  Returns `{:error, reason}` if the party is not yet eligible to request
+  originator status (onboarding review not approved, already eligible, or a
+  pending originator-status review already exists).
+  """
+  def create_originator_review_for_party(%Party{} = party) do
+    party = Repo.preload(party, [:compliance_review, :originator_compliance_review])
+
+    cond do
+      party.can_originate ->
+        {:error, :already_eligible}
+
+      is_nil(party.compliance_review) or party.compliance_review.status != "approved" ->
+        {:error, :onboarding_not_approved}
+
+      existing_review_in_progress?(party.originator_compliance_review) ->
+        {:error, :review_in_progress}
+
+      true ->
+        %Review{}
+        |> Review.changeset(%{
+          party_id: party.id,
+          status: "created",
+          purpose: "originator_status"
+        })
+        |> Repo.insert()
+    end
+  end
+
+  defp existing_review_in_progress?(%Review{status: status})
+       when status in ["created", "manual_review"],
+       do: true
+
+  defp existing_review_in_progress?(_review), do: false
 
   @doc """
   Moves a compliance review to the next status.
@@ -262,6 +305,32 @@ defmodule PhoenixFintech.Compliance do
   # advance the party's lifecycle state and record a party event in the same
   # transaction so the decision is atomic. Mirrors the transfer transition
   # ops above.
+  #
+  # `originator_status` reviews do **not** drive the party state machine.
+  # Instead, on approval we flip `can_originate` to `true` and emit a
+  # `PartyEvent` (`originator_status_granted`). This keeps originator
+  # eligibility out of the party's lifecycle states while still preserving
+  # an auditable trail in `party_events`.
+  defp build_party_transition_ops(
+         %Review{party: %Party{} = party, purpose: "originator_status"},
+         next_status,
+         metadata
+       ) do
+    if next_status == "approved" and not party.can_originate do
+      event_metadata = Map.put(metadata, :event_type, "originator_status_granted")
+
+      fn multi, _review ->
+        multi
+        |> Multi.update(:party, Parties.build_originator_eligibility_changeset(party))
+        |> Multi.insert(:party_event, fn %{party: updated_party} ->
+          Parties.build_party_event_changeset(updated_party, nil, nil, event_metadata)
+        end)
+      end
+    else
+      fn multi, _review -> multi end
+    end
+  end
+
   defp build_party_transition_ops(
          %Review{party: %Party{} = party},
          next_status,

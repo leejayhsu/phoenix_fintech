@@ -1,6 +1,7 @@
 defmodule PhoenixFintechWeb.PartyShowLive do
   use PhoenixFintechWeb, :live_view
 
+  alias PhoenixFintech.Compliance
   alias PhoenixFintech.Parties
   alias PhoenixFintech.Parties.PartyMember
   alias LiveFlow.{Edge, Handle, Node, State}
@@ -231,6 +232,36 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     {:noreply, assign_doc_form(socket, document_params)}
   end
 
+  def handle_event("request_originator_status", _params, socket) do
+    case Compliance.create_originator_review_for_party(socket.assigns.party) do
+      {:ok, _review} ->
+        party = Parties.get_party_with_details!(socket.assigns.party.id)
+
+        {:noreply,
+         socket
+         |> put_flash(:info, "Originator status requested. An admin will review your request.")
+         |> assign(:party, party)}
+
+      {:error, :already_eligible} ->
+        {:noreply, put_flash(socket, :error, "This party is already originator eligible.")}
+
+      {:error, :onboarding_not_approved} ->
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           "Onboarding compliance must be approved before requesting originator status."
+         )}
+
+      {:error, :review_in_progress} ->
+        {:noreply,
+         put_flash(socket, :error, "An originator status review is already in progress.")}
+
+      {:error, _changeset} ->
+        {:noreply, put_flash(socket, :error, "Could not request originator status.")}
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -251,15 +282,6 @@ defmodule PhoenixFintechWeb.PartyShowLive do
                 {@party.legal_name}
               </h1>
             </div>
-
-            <.link
-              :if={@party.compliance_review}
-              id="party-compliance-review-badge"
-              navigate={~p"/admin/compliance_reviews/#{@party.compliance_review.id}"}
-              class={compliance_review_badge_classes(@party.compliance_review.status)}
-            >
-              Compliance: {render_compliance_status(@party.compliance_review.status)}
-            </.link>
           </div>
 
           <.party_tabs party={@party} active_tab={@active_tab} />
@@ -272,8 +294,9 @@ defmodule PhoenixFintechWeb.PartyShowLive do
           party_address_form={@party_address_form}
         />
         <.members_panel :if={@active_tab == :members} members={@members} member_flow={@member_flow} />
-        <.documents_panel
-          :if={@active_tab == :documents}
+        <.compliance_panel
+          :if={@active_tab == :compliance}
+          party={@party}
           document_form={@document_form}
           uploads={@uploads}
           streams={@streams}
@@ -438,14 +461,14 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         Members
       </.link>
       <.link
-        id="party-documents-tab"
+        id="party-compliance-tab"
         navigate={~p"/app/parties/#{@party.id}/documents"}
         class={[
           "tab",
-          @active_tab == :documents && "tab-active"
+          @active_tab == :compliance && "tab-active"
         ]}
       >
-        Documents
+        Compliance
       </.link>
     </nav>
     """
@@ -577,9 +600,9 @@ defmodule PhoenixFintechWeb.PartyShowLive do
         <.overview_link_card
           id="party-documents-overview-link"
           href={~p"/app/parties/#{@party.id}/documents"}
-          title="Compliance documents"
+          title="Compliance"
           count={length(@party.compliance_documents)}
-          detail="Upload and inspect onboarding evidence."
+          detail="Reviews, originator eligibility, and onboarding documents."
         />
       </div>
     </div>
@@ -661,108 +684,198 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     """
   end
 
+  attr :party, :map, required: true
   attr :document_form, :map, required: true
   attr :uploads, :map, required: true
   attr :streams, :map, required: true
 
-  defp documents_panel(assigns) do
+  defp compliance_panel(assigns) do
     ~H"""
-    <div id="party-documents-panel" class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+    <div id="party-compliance-panel" class="space-y-6">
       <section class="card card-border bg-base-100">
         <div class="card-body">
-          <h2 class="card-title text-lg">Upload document</h2>
-          <.form
-            for={@document_form}
-            id="party-document-form"
-            phx-change="validate_document"
-            phx-submit="upload_document"
-            class="mt-4 space-y-3"
-          >
-            <.input
-              field={@document_form[:doc_type]}
-              type="select"
-              label="Document type"
-              options={[
-                {"Certificate of incorporation", "incorporation_certificate"},
-                {"Ownership structure", "ownership_structure"},
-                {"Other", "other"}
-              ]}
-            />
-            <div class="flex flex-wrap items-center gap-2">
-              <.live_file_input upload={@uploads.compliance_document} class="sr-only" />
-              <label for={@uploads.compliance_document.ref} class="btn btn-primary">
-                Choose file
-              </label>
-              <.button id="upload-document-button" type="submit">Upload document</.button>
-            </div>
-            <div
-              :for={entry <- @uploads.compliance_document.entries}
-              id={"document-upload-preview-#{entry.ref}"}
-              class="flex items-center gap-3 rounded-box border border-base-300 bg-base-200 p-3"
-            >
-              <.live_img_preview
-                :if={image_upload_entry?(entry)}
-                entry={entry}
-                class="size-16 rounded-field object-cover"
-              />
-              <div
-                :if={!image_upload_entry?(entry)}
-                class="flex size-16 items-center justify-center rounded-field bg-base-300"
-              >
-                <.icon name="hero-document" class="size-7 text-base-content/60" />
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-medium">{entry.client_name}</p>
-                <p class="text-xs text-base-content/60">{entry.progress}% uploaded</p>
-              </div>
-            </div>
-          </.form>
-        </div>
-      </section>
+          <h2 class="card-title text-lg">Compliance status</h2>
+          <p class="mt-1 text-sm text-base-content/70">
+            Onboarding review and originator eligibility for this party.
+          </p>
 
-      <section class="card card-border bg-base-100">
-        <div class="card-body">
-          <h2 class="card-title text-lg">
-            Compliance documents
-          </h2>
-          <div id="documents" phx-update="stream" class="mt-4 space-y-2">
-            <div
-              id="documents-empty"
-              class="alert alert-info alert-soft hidden only:flex"
-            >
-              No compliance documents uploaded yet.
-            </div>
-            <div
-              :for={{dom_id, doc} <- @streams.documents}
-              id={dom_id}
-              class="card card-border bg-base-200 text-sm"
-            >
-              <div class="card-body flex-row items-center gap-3 p-3">
-                <img
-                  :if={image_document?(doc)}
-                  src={doc.storage_url}
-                  alt={"#{doc.filename} thumbnail"}
-                  class="size-16 rounded-field object-cover"
-                />
-                <div
-                  :if={!image_document?(doc)}
-                  class="flex size-16 shrink-0 items-center justify-center rounded-field bg-base-200"
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="rounded-box border border-base-300 bg-base-200 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                Onboarding review
+              </p>
+              <div class="mt-2">
+                <.link
+                  :if={@party.compliance_review}
+                  id="party-compliance-review-badge"
+                  navigate={~p"/admin/compliance_reviews/#{@party.compliance_review.id}"}
+                  class={compliance_review_badge_classes(@party.compliance_review.status)}
                 >
-                  <.icon name="hero-document" class="size-7 text-base-content/60" />
-                </div>
-                <div class="min-w-0">
-                  <a href={doc.storage_url} class="link link-primary font-medium">
-                    {doc.filename}
-                  </a>
-                  <p class="mt-1 text-xs text-base-content/60">{doc.doc_type}</p>
-                </div>
+                  Compliance: {render_compliance_status(@party.compliance_review.status)}
+                </.link>
+                <span :if={not @party.compliance_review} class="badge badge-soft">
+                  Not started
+                </span>
+              </div>
+            </div>
+
+            <div class="rounded-box border border-base-300 bg-base-200 p-4">
+              <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                Originator eligibility
+              </p>
+              <div class="mt-2 space-y-2">
+                <span :if={@party.can_originate} class="badge badge-soft badge-success">
+                  originator eligible
+                </span>
+
+                <.link
+                  :if={originator_review_in_progress?(@party)}
+                  id="party-originator-review-badge"
+                  navigate={~p"/admin/compliance_reviews/#{@party.originator_compliance_review.id}"}
+                  class={compliance_review_badge_classes(@party.originator_compliance_review.status)}
+                >
+                  Originator review: {render_compliance_status(
+                    @party.originator_compliance_review.status
+                  )}
+                </.link>
+
+                <button
+                  :if={can_request_originator_status?(@party)}
+                  id="request-originator-status-button"
+                  type="button"
+                  phx-click="request_originator_status"
+                  class="btn btn-primary btn-sm"
+                >
+                  Request originator status
+                </button>
+
+                <p
+                  :if={
+                    not @party.can_originate and
+                      not originator_review_in_progress?(@party) and
+                      not can_request_originator_status?(@party)
+                  }
+                  class="text-xs text-base-content/60"
+                >
+                  Onboarding compliance must be approved before requesting originator status.
+                </p>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      <div class="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+        <section class="card card-border bg-base-100">
+          <div class="card-body">
+            <h2 class="card-title text-lg">Upload document</h2>
+            <.form
+              for={@document_form}
+              id="party-document-form"
+              phx-change="validate_document"
+              phx-submit="upload_document"
+              class="mt-4 space-y-3"
+            >
+              <.input
+                field={@document_form[:doc_type]}
+                type="select"
+                label="Document type"
+                options={[
+                  {"Certificate of incorporation", "incorporation_certificate"},
+                  {"Ownership structure", "ownership_structure"},
+                  {"Other", "other"}
+                ]}
+              />
+              <div class="flex flex-wrap items-center gap-2">
+                <.live_file_input upload={@uploads.compliance_document} class="sr-only" />
+                <label for={@uploads.compliance_document.ref} class="btn btn-primary">
+                  Choose file
+                </label>
+                <.button id="upload-document-button" type="submit">Upload document</.button>
+              </div>
+              <div
+                :for={entry <- @uploads.compliance_document.entries}
+                id={"document-upload-preview-#{entry.ref}"}
+                class="flex items-center gap-3 rounded-box border border-base-300 bg-base-200 p-3"
+              >
+                <.live_img_preview
+                  :if={image_upload_entry?(entry)}
+                  entry={entry}
+                  class="size-16 rounded-field object-cover"
+                />
+                <div
+                  :if={!image_upload_entry?(entry)}
+                  class="flex size-16 items-center justify-center rounded-field bg-base-300"
+                >
+                  <.icon name="hero-document" class="size-7 text-base-content/60" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium">{entry.client_name}</p>
+                  <p class="text-xs text-base-content/60">{entry.progress}% uploaded</p>
+                </div>
+              </div>
+            </.form>
+          </div>
+        </section>
+
+        <section class="card card-border bg-base-100">
+          <div class="card-body">
+            <h2 class="card-title text-lg">
+              Compliance documents
+            </h2>
+            <div id="documents" phx-update="stream" class="mt-4 space-y-2">
+              <div
+                id="documents-empty"
+                class="alert alert-info alert-soft hidden only:flex"
+              >
+                No compliance documents uploaded yet.
+              </div>
+              <div
+                :for={{dom_id, doc} <- @streams.documents}
+                id={dom_id}
+                class="card card-border bg-base-200 text-sm"
+              >
+                <div class="card-body flex-row items-center gap-3 p-3">
+                  <img
+                    :if={image_document?(doc)}
+                    src={doc.storage_url}
+                    alt={"#{doc.filename} thumbnail"}
+                    class="size-16 rounded-field object-cover"
+                  />
+                  <div
+                    :if={!image_document?(doc)}
+                    class="flex size-16 shrink-0 items-center justify-center rounded-field bg-base-200"
+                  >
+                    <.icon name="hero-document" class="size-7 text-base-content/60" />
+                  </div>
+                  <div class="min-w-0">
+                    <a href={doc.storage_url} class="link link-primary font-medium">
+                      {doc.filename}
+                    </a>
+                    <p class="mt-1 text-xs text-base-content/60">{doc.doc_type}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
     """
+  end
+
+  defp can_request_originator_status?(%{can_originate: true}), do: false
+
+  defp can_request_originator_status?(party) do
+    onboarding_approved? =
+      party.compliance_review && party.compliance_review.status == "approved"
+
+    onboarding_approved? and not originator_review_in_progress?(party)
+  end
+
+  defp originator_review_in_progress?(party) do
+    party.originator_compliance_review &&
+      party.originator_compliance_review.status in ["created", "manual_review"]
   end
 
   attr :node, :map, required: true

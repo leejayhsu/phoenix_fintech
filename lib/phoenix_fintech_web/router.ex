@@ -51,7 +51,7 @@ defmodule PhoenixFintechWeb.Router do
       live "/app/parties/new", OriginatorOnboardingLive
       live "/app/parties/:id", PartyShowLive, :overview
       live "/app/parties/:id/members", PartyShowLive, :members
-      live "/app/parties/:id/documents", PartyShowLive, :documents
+      live "/app/parties/:id/documents", PartyShowLive, :compliance
       live "/app/transfers", TransferIndexLive
       live "/app/transfers/new", TransferNewLive
       live "/app/transfers/:id", TransferShowLive

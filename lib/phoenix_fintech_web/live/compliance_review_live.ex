@@ -245,6 +245,7 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
               label="Subject reference"
               value={subject_reference(@review)}
             />
+            <.detail_row label="Purpose" value={render_purpose(@review.purpose)} />
             <.detail_row
               label="Reviewer"
               value={reviewer_label(@review.reviewed_by_user)}
@@ -468,6 +469,10 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
 
   defp render_status(status),
     do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
+
+  defp render_purpose("originator_status"), do: "Originator status"
+  defp render_purpose("onboarding"), do: "Onboarding"
+  defp render_purpose(other), do: to_string(other)
 
   defp can_transition?(status, target) do
     target in Compliance.allowed_targets(status)

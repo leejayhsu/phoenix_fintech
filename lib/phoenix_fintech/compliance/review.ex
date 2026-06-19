@@ -6,10 +6,12 @@ defmodule PhoenixFintech.Compliance.Review do
   @foreign_key_type :binary_id
 
   @statuses ["created", "manual_review", "approved", "rejected"]
+  @purposes ["onboarding", "originator_status"]
 
   schema "compliance_reviews" do
     field :status, :string, default: "created"
     field :notes, :string
+    field :purpose, :string, default: "onboarding"
 
     belongs_to :transfer, PhoenixFintech.Transfers.Transfer
     belongs_to :party, PhoenixFintech.Parties.Party
@@ -19,15 +21,19 @@ defmodule PhoenixFintech.Compliance.Review do
   end
 
   def statuses, do: @statuses
+  def purposes, do: @purposes
 
   def changeset(review, attrs) do
     review
-    |> cast(attrs, [:status, :notes, :transfer_id, :party_id, :reviewed_by_user_id])
+    |> cast(attrs, [:status, :notes, :purpose, :transfer_id, :party_id, :reviewed_by_user_id])
     |> validate_required([:status])
     |> validate_inclusion(:status, @statuses)
+    |> validate_inclusion(:purpose, @purposes)
     |> validate_subject_present()
     |> unique_constraint(:transfer_id, name: :compliance_reviews_transfer_id_index)
-    |> unique_constraint(:party_id, name: :compliance_reviews_party_id_unique_index)
+    |> unique_constraint([:party_id, :purpose],
+      name: :compliance_reviews_party_id_purpose_unique_index
+    )
     |> assoc_constraint(:transfer)
     |> assoc_constraint(:party)
     |> assoc_constraint(:reviewed_by_user)

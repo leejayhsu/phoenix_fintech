@@ -45,6 +45,7 @@ defmodule PhoenixFintech.Parties do
     |> Repo.preload([
       :government_ids,
       :compliance_review,
+      :originator_compliance_review,
       members: members_query,
       compliance_documents: docs_query,
       events:
@@ -146,6 +147,22 @@ defmodule PhoenixFintech.Parties do
       metadata: metadata |> Map.drop([:actor_user_id, :event_type]) |> snapshot(),
       occurred_at: DateTime.utc_now(:second)
     })
+  end
+
+  @doc """
+  Builds a changeset that grants a party originator eligibility by flipping
+  `can_originate` to `true`.
+
+  `can_originate` is set programmatically (never via user input), so it is
+  applied with `Ecto.Changeset.change/2` rather than going through the
+  party's public changeset. This is **not** a state-machine transition: the
+  party's `status` is left untouched and the change is instead recorded as
+  a `PartyEvent` with `event_type: "originator_status_granted"` (composed
+  into the caller's transaction via `Parties.build_party_event_changeset/4`).
+  """
+  def build_originator_eligibility_changeset(%Party{} = party) do
+    party
+    |> Ecto.Changeset.change(can_originate: true)
   end
 
   defp party_event_changeset(party, from_status, to_status, metadata) do
