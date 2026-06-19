@@ -490,10 +490,10 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
   defp notify_party_decision(%Review{party: nil}, _decision), do: :ok
   defp notify_party_decision(%Review{party: %{created_by_user_id: nil}}, _decision), do: :ok
 
-  defp notify_party_decision(%Review{party: party}, decision) do
+  defp notify_party_decision(%Review{party: party, purpose: purpose}, decision) do
     case decision do
       :approved ->
-        Notifications.notify_party_approved(party, party.created_by_user_id)
+        Notifications.notify_party_approved(party, purpose, party.created_by_user_id)
 
       :rejected ->
         Notifications.notify_party_rejected(party, party.created_by_user_id)

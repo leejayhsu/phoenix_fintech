@@ -81,11 +81,26 @@ defmodule PhoenixFintech.Notifications do
 
   @doc """
   Builds a notification that a party has been approved by compliance.
+
+  The message is tailored to the review's purpose:
+
+    * `"onboarding"` - the initial compliance review, allowing the party to
+      transact as a counterparty.
+    * `"originator_status"` - grants the party originator privileges.
   """
-  def notify_party_approved(party, user_id) do
+  def notify_party_approved(party, purpose, user_id) do
+    message =
+      case purpose do
+        "originator_status" ->
+          "#{party.legal_name} has been approved to transact as an originator"
+
+        _ ->
+          "#{party.legal_name} has been approved to transact as a counterparty"
+      end
+
     create_notification(%{
       user_id: user_id,
-      message: "Your party \"#{party.legal_name}\" has been approved by compliance.",
+      message: message,
       cta_type: "party",
       cta_id: party.id
     })
