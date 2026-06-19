@@ -29,7 +29,7 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
       current_user={@current_user}
       socket={@socket}
     >
-      <section id="parties-index" class="mx-auto max-w-5xl">
+      <section id="parties-index" class="mx-auto max-w-6xl">
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 class="text-2xl font-semibold">All parties for user</h1>
