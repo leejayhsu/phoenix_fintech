@@ -37,12 +37,20 @@ defmodule PhoenixFintechWeb.Layouts do
   attr :admin_resource, :map, default: nil
   attr :admin_compliance_pending_count, :integer, default: nil
   attr :admin_actionable_transfer_count, :integer, default: nil
-  attr :notifications_unread_count, :integer, default: nil
+
+  # The root LiveView socket (when rendered from a LiveView) or Plug conn
+  # (when rendered from a controller). Used to host the live notification
+  # badge LiveView via `live_render/3`.
+  attr :socket, :any, default: nil
+  attr :conn, :any, default: nil
 
   slot :inner_block, required: true
 
   def app(assigns) do
-    assigns = assign(assigns, :profile_name, profile_name(assigns[:current_user]))
+    assigns =
+      assigns
+      |> assign(:profile_name, profile_name(assigns[:current_user]))
+      |> assign(:live_root, assigns[:socket] || assigns[:conn])
 
     ~H"""
     <div class="min-h-screen bg-base-200 text-base-content">
@@ -138,12 +146,13 @@ defmodule PhoenixFintechWeb.Layouts do
                     <span class="flex items-center gap-2">
                       <.icon name="hero-bell" class="size-4" /> Notifications
                     </span>
-                    <span
-                      :if={@notifications_unread_count && @notifications_unread_count > 0}
-                      class="badge badge-error badge-sm"
-                    >
-                      {@notifications_unread_count}
-                    </span>
+                    <%= if @live_root && @current_user do %>
+                      {Phoenix.Component.live_render(
+                        @live_root,
+                        PhoenixFintechWeb.NotificationBadgeLive,
+                        session: %{"current_user_id" => @current_user.id}
+                      )}
+                    <% end %>
                   </.link>
                 </li>
               </ul>

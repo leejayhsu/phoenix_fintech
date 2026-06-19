@@ -1,4 +1,9 @@
-<Layouts.app flash={@flash} current_scope={@current_scope} current_user={@current_user}>
+<Layouts.app
+  flash={@flash}
+  current_scope={@current_scope}
+  current_user={@current_user}
+  conn={@conn}
+>
   <%= if @current_user do %>
     <div id="home-page" class="space-y-6">
       <section class="hero rounded-box bg-base-100 shadow-sm">

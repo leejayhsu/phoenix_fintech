@@ -27,7 +27,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
       flash={@flash}
       current_scope={@current_scope}
       current_user={@current_user}
-      notifications_unread_count={@notifications_unread_count}
+      socket={@socket}
     >
       <section id="transfers-index" class="mx-auto max-w-6xl">
         <div class="mb-6 flex items-center justify-between gap-4">

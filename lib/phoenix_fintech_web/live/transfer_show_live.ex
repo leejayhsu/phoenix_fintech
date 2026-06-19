@@ -58,7 +58,7 @@ defmodule PhoenixFintechWeb.TransferShowLive do
       flash={@flash}
       current_scope={@current_scope}
       current_user={@current_user}
-      notifications_unread_count={@notifications_unread_count}
+      socket={@socket}
     >
       <section id="transfer-show" class="mx-auto max-w-5xl space-y-6">
         <.link

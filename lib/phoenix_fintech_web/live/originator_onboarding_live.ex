@@ -129,7 +129,7 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
       flash={@flash}
       current_scope={@current_scope}
       current_user={@current_user}
-      notifications_unread_count={@notifications_unread_count}
+      socket={@socket}
     >
       <section id="originator-onboarding" class="mx-auto max-w-5xl">
         <div class="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

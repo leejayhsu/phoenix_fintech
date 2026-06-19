@@ -5,7 +5,17 @@ defmodule PhoenixFintech.Notifications do
   import Ecto.Query, warn: false
 
   alias PhoenixFintech.Notifications.Notification
+  alias PhoenixFintech.PubSub
   alias PhoenixFintech.Repo
+
+  @doc """
+  PubSub topic for a user's notification stream.
+  """
+  def topic(user_id), do: "notifications:user:#{user_id}"
+
+  defp broadcast(user_id, message) do
+    Phoenix.PubSub.broadcast(PubSub, topic(user_id), message)
+  end
 
   @doc """
   Lists the most recent notifications for a user, newest first.
@@ -33,12 +43,16 @@ defmodule PhoenixFintech.Notifications do
   end
 
   @doc """
-  Creates a notification.
+  Creates a notification and broadcasts it to the user's notification stream.
   """
   def create_notification(attrs) do
-    %Notification{}
-    |> Notification.changeset(attrs)
-    |> Repo.insert()
+    with {:ok, notification} <-
+           %Notification{}
+           |> Notification.changeset(attrs)
+           |> Repo.insert() do
+      broadcast(notification.user_id, {:notification_created, notification})
+      {:ok, notification}
+    end
   end
 
   @doc """
@@ -47,24 +61,32 @@ defmodule PhoenixFintech.Notifications do
   def get_notification!(id), do: Repo.get!(Notification, id)
 
   @doc """
-  Marks a single notification as read.
+  Marks a single notification as read and broadcasts the change.
   """
   def mark_as_read(%Notification{} = notification) do
-    notification
-    |> Notification.changeset(%{read_at: DateTime.utc_now() |> DateTime.truncate(:second)})
-    |> Repo.update()
+    with {:ok, updated} <-
+           notification
+           |> Notification.changeset(%{read_at: DateTime.utc_now() |> DateTime.truncate(:second)})
+           |> Repo.update() do
+      broadcast(updated.user_id, {:notification_read, updated})
+      {:ok, updated}
+    end
   end
 
   @doc """
-  Marks all unread notifications for a user as read.
+  Marks all unread notifications for a user as read and broadcasts the change.
   """
   def mark_all_as_read(user_id) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
 
-    Repo.update_all(
-      from(n in Notification, where: n.user_id == ^user_id and is_nil(n.read_at)),
-      set: [read_at: now]
-    )
+    result =
+      Repo.update_all(
+        from(n in Notification, where: n.user_id == ^user_id and is_nil(n.read_at)),
+        set: [read_at: now]
+      )
+
+    broadcast(user_id, {:notifications_all_read, user_id})
+    result
   end
 
   @doc """

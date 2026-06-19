@@ -44,8 +44,7 @@ defmodule PhoenixFintechWeb.Router do
 
     live_session :authenticated,
       on_mount: [
-        {PhoenixFintechWeb.UserAuth, :mount_current_scope},
-        {PhoenixFintechWeb.UserAuth, :assign_notifications_unread_count}
+        {PhoenixFintechWeb.UserAuth, :mount_current_scope}
       ] do
       live "/app/parties", PartyIndexLive
       live "/app/parties/new", OriginatorOnboardingLive
