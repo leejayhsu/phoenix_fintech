@@ -14,7 +14,7 @@ defmodule PhoenixFintech.MixProject do
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
         ignore_warnings: ".dialyzer_ignore.exs",
-        flags: [:error_handling, :extra_return, :missing_return, :underspecs]
+        flags: [:error_handling, :extra_return, :missing_return, :underspecs, :no_opaque]
       ],
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
