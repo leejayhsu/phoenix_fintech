@@ -1,5 +1,7 @@
 defmodule PhoenixFintech.Ledger.Currency do
   use Ecto.Schema
+
+  @type t :: %__MODULE__{}
   import Ecto.Changeset
 
   @primary_key {:code, :string, autogenerate: false}

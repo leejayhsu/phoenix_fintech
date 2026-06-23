@@ -19,6 +19,12 @@ defmodule PhoenixFintech.Transfers do
   alias PhoenixFintech.Transfers.Quotes.{Pipeline, QuoteContext}
   alias PhoenixFintech.Transfers.Quotes.Items
 
+  @type attrs :: %{optional(String.t() | atom()) => term()}
+  @type id :: Ecto.UUID.t()
+  @type status :: String.t()
+  @type transition_result ::
+          {:ok, Transfer.t()} | {:error, atom(), Ecto.Changeset.t() | term(), map()}
+
   def list_transfers do
     Repo.all(base_transfer_query())
   end

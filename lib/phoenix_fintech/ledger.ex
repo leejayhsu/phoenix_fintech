@@ -4,17 +4,31 @@ defmodule PhoenixFintech.Ledger do
   alias PhoenixFintech.Repo
   alias PhoenixFintech.Ledger.{Account, AccountBalance, Currency, Entry, JournalEntry}
 
+  @type attrs :: %{optional(String.t() | atom()) => term()}
+  @type account_id :: Ecto.UUID.t()
+  @type currency_code :: String.t()
+
+  @spec create_currency(attrs()) :: {:ok, Currency.t()} | {:error, Ecto.Changeset.t()}
   def create_currency(attrs), do: %Currency{} |> Currency.changeset(attrs) |> Repo.insert()
 
+  @spec list_currencies(Keyword.t()) :: [Currency.t()]
   def list_currencies(opts \\ []),
     do: Repo.all(from(c in Currency, order_by: [asc: c.code]), opts)
 
+  @spec get_currency!(currency_code()) :: Currency.t()
   def get_currency!(code), do: Repo.get!(Currency, String.upcase(code))
 
+  @spec create_account(attrs()) :: {:ok, Account.t()} | {:error, Ecto.Changeset.t()}
   def create_account(attrs), do: %Account{} |> Account.changeset(attrs) |> Repo.insert()
+
+  @spec get_account!(account_id()) :: Account.t()
   def get_account!(id), do: Repo.get!(Account, id)
+
+  @spec list_accounts() :: [Account.t()]
   def list_accounts, do: Repo.all(from a in Account, order_by: [asc: a.name])
 
+  @spec get_or_create_account_balance(account_id(), currency_code()) ::
+          {:ok, AccountBalance.t()} | {:error, Ecto.Changeset.t()}
   def get_or_create_account_balance(account_id, currency_code) do
     currency_code = String.upcase(currency_code)
 
@@ -32,6 +46,8 @@ defmodule PhoenixFintech.Ledger do
     end
   end
 
+  @spec create_journal_entry(attrs()) ::
+          {:ok, JournalEntry.t()} | {:error, atom(), Ecto.Changeset.t(), map()}
   def create_journal_entry(attrs) do
     entries = Map.get(attrs, "entries", [])
     journal_changeset = JournalEntry.changeset(%JournalEntry{}, attrs)

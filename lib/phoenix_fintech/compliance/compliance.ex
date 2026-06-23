@@ -10,6 +10,12 @@ defmodule PhoenixFintech.Compliance do
   alias PhoenixFintech.Transfers
   alias PhoenixFintech.Transfers.Transfer
 
+  @type attrs :: %{optional(String.t() | atom()) => term()}
+  @type id :: Ecto.UUID.t()
+  @type status :: String.t()
+  @type transition_result ::
+          {:ok, Review.t()} | {:error, atom(), Ecto.Changeset.t() | term(), map()}
+
   @doc """
   Lists all compliance reviews, newest first.
   """

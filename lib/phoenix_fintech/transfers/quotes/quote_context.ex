@@ -3,6 +3,8 @@ defmodule PhoenixFintech.Transfers.Quotes.QuoteContext do
   In-memory state transformed by transfer quote items.
   """
 
+  @type t :: %__MODULE__{}
+
   @enforce_keys [:input]
   defstruct input: %{},
             entities: %{},

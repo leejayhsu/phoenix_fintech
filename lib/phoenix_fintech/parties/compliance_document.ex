@@ -1,5 +1,7 @@
 defmodule PhoenixFintech.Parties.ComplianceDocument do
   use Ecto.Schema
+
+  @type t :: %__MODULE__{}
   import Ecto.Changeset
 
   alias PhoenixFintech.Accounts.User
