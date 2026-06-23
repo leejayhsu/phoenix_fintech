@@ -71,8 +71,12 @@ defmodule PhoenixFintechWeb.PartyIndexLive do
                   <td class="w-32 text-center">
                     <span class="badge badge-ghost">{party.country_code}</span>
                   </td>
-                  <td class="w-32 text-center"><.originator_status_icon can_originate={party.can_originate} /></td>
-                  <td class="w-32 text-center"><.compliance_status_icon review={party.compliance_review} /></td>
+                  <td class="w-32 text-center">
+                    <.originator_status_icon can_originate={party.can_originate} />
+                  </td>
+                  <td class="w-32 text-center">
+                    <.compliance_status_icon review={party.compliance_review} />
+                  </td>
                 </tr>
               </tbody>
             </table>
