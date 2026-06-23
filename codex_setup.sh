@@ -29,8 +29,20 @@ install_ubuntu_packages() {
       ca-certificates \
       curl \
       git \
+      openssl \
       build-essential
+    run_as_root update-ca-certificates
   fi
+}
+
+configure_mix_and_ssl_env() {
+  export MIX_HOME="${HOME}/.mix"
+  export HEX_HOME="${HOME}/.hex"
+  export MIX_ARCHIVES="${MIX_HOME}/archives"
+  export HEX_CACERTS_PATH="/etc/ssl/certs/ca-certificates.crt"
+  export SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"
+
+  mkdir -p "${MIX_HOME}" "${HEX_HOME}" "${MIX_ARCHIVES}"
 }
 
 elixir_bin_dir() {
@@ -87,19 +99,23 @@ install_elixir() {
 }
 
 persist_elixir_path() {
-  local otp_bin elixir_bin path_line marker_start marker_end
+  local otp_bin elixir_bin marker_start marker_end
   otp_bin="$(otp_bin_dir)"
   elixir_bin="$(elixir_bin_dir)"
-  path_line="export PATH=\"${otp_bin}:${elixir_bin}:\$PATH\""
-  marker_start="# >>> phoenix_fintech codex elixir >>>"
-  marker_end="# <<< phoenix_fintech codex elixir <<<"
+  marker_start="# >>> phoenix_fintech codex elixir v2 >>>"
+  marker_end="# <<< phoenix_fintech codex elixir v2 <<<"
 
   for profile in "${HOME}/.profile" "${HOME}/.bashrc"; do
     touch "${profile}"
     if ! grep -Fq "${marker_start}" "${profile}"; then
       {
         printf '\n%s\n' "${marker_start}"
-        printf '%s\n' "${path_line}"
+        printf 'export PATH="%s:%s:$PATH"\n' "${otp_bin}" "${elixir_bin}"
+        printf 'export MIX_HOME="$HOME/.mix"\n'
+        printf 'export HEX_HOME="$HOME/.hex"\n'
+        printf 'export MIX_ARCHIVES="$MIX_HOME/archives"\n'
+        printf 'export HEX_CACERTS_PATH="/etc/ssl/certs/ca-certificates.crt"\n'
+        printf 'export SSL_CERT_FILE="/etc/ssl/certs/ca-certificates.crt"\n'
         printf '%s\n' "${marker_end}"
       } >>"${profile}"
     fi
@@ -136,6 +152,7 @@ install_project_deps() {
 
 install_ubuntu_packages
 install_elixir
+configure_mix_and_ssl_env
 persist_elixir_path
 link_elixir_bins
 
