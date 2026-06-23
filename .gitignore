@@ -41,3 +41,6 @@ priv/static/mock_s3/
 npm-debug.log
 /assets/node_modules/
 .env
+
+# Dialyzer PLTs are local build artifacts.
+/priv/plts/

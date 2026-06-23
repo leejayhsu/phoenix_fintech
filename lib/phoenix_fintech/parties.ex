@@ -16,6 +16,12 @@ defmodule PhoenixFintech.Parties do
   alias PhoenixFintech.Repo
   alias PhoenixFintech.Storage.MockS3
 
+  @type attrs :: %{optional(String.t() | atom()) => term()}
+  @type id :: Ecto.UUID.t()
+  @type status :: String.t()
+  @type transition_result ::
+          {:ok, Party.t()} | {:error, atom(), Ecto.Changeset.t() | term(), map()}
+
   def list_parties do
     Repo.all(from p in Party, order_by: [desc: p.inserted_at])
   end

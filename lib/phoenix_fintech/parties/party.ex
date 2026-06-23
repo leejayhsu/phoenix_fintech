@@ -1,5 +1,7 @@
 defmodule PhoenixFintech.Parties.Party do
   use Ecto.Schema
+
+  @type t :: %__MODULE__{}
   import Ecto.Changeset
 
   alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, PartyMember}

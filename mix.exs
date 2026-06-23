@@ -10,6 +10,12 @@ defmodule PhoenixFintech.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      dialyzer: [
+        plt_add_apps: [:ex_unit, :mix],
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+        ignore_warnings: ".dialyzer_ignore.exs",
+        flags: [:error_handling, :extra_return, :missing_return, :underspecs]
+      ],
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader]
     ]
@@ -60,7 +66,8 @@ defmodule PhoenixFintech.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:bcrypt_elixir, "~> 3.2"}
+      {:bcrypt_elixir, "~> 3.2"},
+      {:dialyxir, "~> 1.4", only: [:dev], runtime: false}
     ]
   end
 
@@ -82,7 +89,7 @@ defmodule PhoenixFintech.MixProject do
         "esbuild phoenix_fintech --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format"]
+      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "dialyzer"]
     ]
   end
 end
