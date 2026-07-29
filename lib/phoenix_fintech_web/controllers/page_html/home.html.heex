@@ -119,6 +119,16 @@
         </div>
       </section>
 
+      <section class="card bg-base-100 shadow-sm">
+        <div class="card-body">
+          {Phoenix.Component.live_render(
+            @conn,
+            PhoenixFintechWeb.HomeFxRatesLive,
+            id: "home-live-fx-rates"
+          )}
+        </div>
+      </section>
+
       <section>
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body">
