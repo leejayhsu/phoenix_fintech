@@ -24,8 +24,6 @@ defmodule PhoenixFintechWeb.PageHTML do
 
   def transfer_status_badge_classes(_status), do: "badge badge-info badge-soft"
 
-  def short_transfer_id(id), do: "TRF-" <> (id |> String.slice(0, 8) |> String.upcase())
-
   attr :points, :list, required: true
   attr :bar_class, :string, required: true
   attr :value_formatter, :any, default: nil

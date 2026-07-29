@@ -159,11 +159,11 @@
                   <tr
                     :for={transfer <- @dashboard.recent_transfers}
                     id={"home-transfer-#{transfer.id}"}
+                    phx-click={JS.navigate(~p"/app/transfers/#{transfer.id}")}
+                    class="hover cursor-pointer"
                   >
-                    <td class="font-medium">
-                      <.link navigate={~p"/app/transfers/#{transfer.id}"} class="link link-hover">
-                        {short_transfer_id(transfer.id)}
-                      </.link>
+                    <td>
+                      <.copy_value id={"home-transfer-#{transfer.id}-copy"} value={transfer.id} />
                     </td>
                     <td>
                       <div class="font-medium">{transfer.originator_party.legal_name}</div>
