@@ -28,88 +28,116 @@
 
           <div class="stats stats-vertical w-full bg-base-200 shadow lg:w-96">
             <div class="stat">
-              <div class="stat-title">Today's volume</div>
-              <div class="stat-value text-primary">$842K</div>
-              <div class="stat-desc">+18.4% from yesterday</div>
+              <div class="stat-title">Today's transfer volume</div>
+              <div :if={@dashboard.today_volume == []} class="stat-value text-primary">0</div>
+              <div
+                :for={{currency_code, amount} <- @dashboard.today_volume}
+                class="stat-value text-primary"
+              >
+                {format_currency_amount(amount, currency_code)}
+              </div>
+              <div class="stat-desc">
+                {@dashboard.today_transfer_count} {if @dashboard.today_transfer_count == 1,
+                  do: "transfer",
+                  else: "transfers"} created today
+              </div>
             </div>
             <div class="stat">
-              <div class="stat-title">Fee revenue</div>
-              <div class="stat-value">$6,314</div>
-              <div class="stat-desc">Blended margin 74 bps</div>
+              <div class="stat-title">Transfer completion</div>
+              <div class="stat-value">{@dashboard.completed_transfers}</div>
+              <div class="stat-desc">
+                of {@dashboard.total_transfers} total transfers completed
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section class="grid gap-4 md:grid-cols-3">
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body gap-3">
             <div class="flex items-center justify-between">
-              <span class="text-sm text-base-content/60">Active parties</span>
+              <span class="text-sm text-base-content/60">Transfer activity</span>
               <span class="rounded-box bg-primary/10 p-2 text-primary">
-                <.icon name="hero-building-office-2" class="size-4" />
+                <.icon name="hero-chart-bar" class="size-4" />
               </span>
             </div>
-            <div class="text-3xl font-semibold">128</div>
-            <progress class="progress progress-primary" value="76" max="100"></progress>
-            <p class="text-sm text-base-content/60">17 awaiting final verification</p>
+            <div>
+              <div class="text-3xl font-semibold">{@dashboard.activity_chart.total}</div>
+              <p class="text-sm text-base-content/60">Transfers created in the last 7 days</p>
+            </div>
+            <.mini_bar_chart points={@dashboard.activity_chart.points} bar_class="bg-primary" />
           </div>
         </div>
 
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body gap-3">
             <div class="flex items-center justify-between">
-              <span class="text-sm text-base-content/60">Transfers in flight</span>
+              <span class="text-sm text-base-content/60">Spread revenue</span>
               <span class="rounded-box bg-info/10 p-2 text-info">
-                <.icon name="hero-arrows-right-left" class="size-4" />
+                <.icon name="hero-banknotes" class="size-4" />
               </span>
             </div>
-            <div class="text-3xl font-semibold">43</div>
-            <progress class="progress progress-info" value="62" max="100"></progress>
-            <p class="text-sm text-base-content/60">$1.9M pending settlement</p>
+            <div>
+              <div :if={@dashboard.spread_revenue.currency_code} class="text-3xl font-semibold">
+                {format_currency_amount(
+                  @dashboard.spread_revenue.total,
+                  @dashboard.spread_revenue.currency_code
+                )}
+              </div>
+              <div :if={!@dashboard.spread_revenue.currency_code} class="text-3xl font-semibold">
+                0
+              </div>
+              <p class="text-sm text-base-content/60">Accepted quote spread over 7 days</p>
+            </div>
+            <.mini_bar_chart
+              points={@dashboard.spread_revenue.points}
+              bar_class="bg-info"
+              value_formatter={
+                fn amount ->
+                  format_currency_amount(amount, @dashboard.spread_revenue.currency_code || "")
+                end
+              }
+            />
           </div>
         </div>
 
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body gap-3">
             <div class="flex items-center justify-between">
-              <span class="text-sm text-base-content/60">Compliance SLA</span>
+              <span class="text-sm text-base-content/60">Completed transfers</span>
               <span class="rounded-box bg-success/10 p-2 text-success">
-                <.icon name="hero-shield-check" class="size-4" />
+                <.icon name="hero-check-circle" class="size-4" />
               </span>
             </div>
-            <div class="text-3xl font-semibold">94%</div>
-            <progress class="progress progress-success" value="94" max="100"></progress>
-            <p class="text-sm text-base-content/60">Median review time 11 min</p>
-          </div>
-        </div>
-
-        <div class="card bg-base-100 shadow-sm">
-          <div class="card-body gap-3">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-base-content/60">Exceptions</span>
-              <span class="rounded-box bg-warning/10 p-2 text-warning">
-                <.icon name="hero-exclamation-circle" class="size-4" />
-              </span>
+            <div>
+              <div class="text-3xl font-semibold">{@dashboard.completion_chart.total}</div>
+              <p class="text-sm text-base-content/60">Transfers completed in the last 7 days</p>
             </div>
-            <div class="text-3xl font-semibold">8</div>
-            <progress class="progress progress-warning" value="28" max="100"></progress>
-            <p class="text-sm text-base-content/60">3 need same-day action</p>
+            <.mini_bar_chart points={@dashboard.completion_chart.points} bar_class="bg-success" />
           </div>
         </div>
       </section>
 
-      <section class="grid gap-4 xl:grid-cols-[1.5fr_1fr]">
+      <section>
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 class="card-title">Transfer pipeline</h2>
                 <p class="text-sm text-base-content/60">
-                  Hardcoded sample activity until real dashboard metrics are wired.
+                  Current transfer volume by operational stage.
                 </p>
               </div>
               <.link navigate={~p"/app/transfers"} class="btn btn-sm btn-outline">View all</.link>
+            </div>
+
+            <div class="mt-2 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div :for={stage <- @dashboard.pipeline} class="stat rounded-box bg-base-200">
+                <div class="stat-title">{stage.label}</div>
+                <div class="stat-value text-2xl">{stage.count}</div>
+                <div class="stat-desc">transfers</div>
+              </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -117,74 +145,47 @@
                 <thead>
                   <tr>
                     <th>Transfer</th>
-                    <th>Route</th>
+                    <th>Parties</th>
                     <th>Status</th>
                     <th class="text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td class="font-medium">TRF-1048</td>
-                    <td>USD to MXN</td>
-                    <td><span class="badge badge-info badge-soft">Awaiting payout</span></td>
-                    <td class="text-right">$42,800</td>
+                  <tr :if={@dashboard.recent_transfers == []}>
+                    <td colspan="4" class="py-10 text-center text-base-content/60">
+                      No transfers yet. Create a transfer to start the pipeline.
+                    </td>
                   </tr>
-                  <tr>
-                    <td class="font-medium">TRF-1047</td>
-                    <td>USD to PHP</td>
-                    <td><span class="badge badge-warning badge-soft">Review</span></td>
-                    <td class="text-right">$18,250</td>
-                  </tr>
-                  <tr>
-                    <td class="font-medium">TRF-1046</td>
-                    <td>EUR to USD</td>
-                    <td><span class="badge badge-success badge-soft">Settled</span></td>
-                    <td class="text-right">EUR 73,400</td>
+                  <tr
+                    :for={transfer <- @dashboard.recent_transfers}
+                    id={"home-transfer-#{transfer.id}"}
+                  >
+                    <td class="font-medium">
+                      <.link navigate={~p"/app/transfers/#{transfer.id}"} class="link link-hover">
+                        {short_transfer_id(transfer.id)}
+                      </.link>
+                    </td>
+                    <td>
+                      <div class="font-medium">{transfer.originator_party.legal_name}</div>
+                      <div class="text-xs text-base-content/60">
+                        to {transfer.counterparty_party.legal_name}
+                      </div>
+                    </td>
+                    <td>
+                      <span class={transfer_status_badge_classes(transfer.status)}>
+                        {transfer_status_label(transfer.status)}
+                      </span>
+                    </td>
+                    <td class="text-right font-medium">
+                      {format_currency_amount(
+                        transfer.amount_in_originator_currency,
+                        transfer.originator_currency_code
+                      )}
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
-
-        <div class="card bg-base-100 shadow-sm">
-          <div class="card-body">
-            <h2 class="card-title">Operating checklist</h2>
-            <ul class="list rounded-box bg-base-100">
-              <li class="list-row px-0">
-                <div class="rounded-box bg-warning/10 p-2 text-warning">
-                  <.icon name="hero-document" class="size-5" />
-                </div>
-                <div>
-                  <div class="font-medium">KYB document expiry</div>
-                  <div class="text-sm text-base-content/60">
-                    4 parties need updated tax documents
-                  </div>
-                </div>
-              </li>
-              <li class="list-row px-0">
-                <div class="rounded-box bg-info/10 p-2 text-info">
-                  <.icon name="hero-banknotes" class="size-5" />
-                </div>
-                <div>
-                  <div class="font-medium">Prefund balance</div>
-                  <div class="text-sm text-base-content/60">
-                    MXN corridor has 1.6 days of coverage
-                  </div>
-                </div>
-              </li>
-              <li class="list-row px-0">
-                <div class="rounded-box bg-success/10 p-2 text-success">
-                  <.icon name="hero-check-circle" class="size-5" />
-                </div>
-                <div>
-                  <div class="font-medium">Ledger health</div>
-                  <div class="text-sm text-base-content/60">
-                    All journal entries balanced overnight
-                  </div>
-                </div>
-              </li>
-            </ul>
           </div>
         </div>
       </section>
