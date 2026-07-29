@@ -3,36 +3,16 @@ defmodule PhoenixFintechWeb.TransferShowLive do
 
   alias PhoenixFintech.Transfers
 
-  @status_steps [
-    "created",
-    "originator_set",
-    "counterparty_set",
-    "fx_quote_confirmed",
-    "compliance_review",
+  @workflow_milestones [
     "compliance_approved",
-    "deposit_pending",
     "deposit_received",
-    "disbursement_pending",
-    "disbursement_initiated",
-    "disbursement_settled",
-    "completed"
+    "disbursement_settled"
   ]
 
   @status_copy %{
-    "created" => "Transfer record created",
-    "originator_set" => "Originator selected",
-    "counterparty_set" => "Counterparty selected",
-    "fx_quote_confirmed" => "FX quote locked",
-    "compliance_review" => "Awaiting compliance review",
     "compliance_approved" => "Compliance approved",
-    "compliance_rejected" => "Compliance rejected",
-    "deposit_pending" => "Awaiting incoming funds",
     "deposit_received" => "Incoming funds received",
-    "disbursement_pending" => "Ready for disbursement",
-    "disbursement_initiated" => "Disbursement initiated",
-    "disbursement_settled" => "Disbursement settled",
-    "completed" => "Transfer completed",
-    "cancelled" => "Transfer cancelled"
+    "disbursement_settled" => "Disbursement settled"
   }
 
   @impl true
@@ -44,7 +24,7 @@ defmodule PhoenixFintechWeb.TransferShowLive do
       |> assign_new(:current_scope, fn -> nil end)
       |> assign_current_user()
       |> assign(:transfer, transfer)
-      |> assign(:status_steps, status_steps_for(transfer.status))
+      |> assign(:status_steps, status_steps_for(transfer))
       |> assign(:status_copy, @status_copy)
       |> assign(:page_title, "Transfer details")
 
@@ -231,9 +211,6 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                     </div>
                   </li>
                 </ol>
-                <p class="mt-4 text-xs text-base-content/60">
-                  Created by {@transfer.created_by_user.email}
-                </p>
               </div>
             </aside>
 
@@ -284,30 +261,17 @@ defmodule PhoenixFintechWeb.TransferShowLive do
   defp assign_current_user(socket),
     do: assign(socket, :current_user, current_user(socket.assigns[:current_scope]))
 
-  defp status_steps_for(status) do
-    status_steps = status_steps_for_current_status(status)
-    current_index = Enum.find_index(status_steps, &(&1 == status)) || 0
+  defp status_steps_for(transfer) do
+    reached_statuses =
+      transfer.events
+      |> Enum.map(& &1.to_status)
+      |> MapSet.new()
+      |> MapSet.put(transfer.status)
 
-    Enum.with_index(status_steps)
-    |> Enum.map(fn {step, index} ->
-      state =
-        cond do
-          index < current_index -> :complete
-          index == current_index -> :current
-          true -> :upcoming
-        end
-
-      %{status: step, state: state}
-    end)
+    for status <- @workflow_milestones, MapSet.member?(reached_statuses, status) do
+      %{status: status, state: :complete}
+    end
   end
-
-  defp status_steps_for_current_status("cancelled"), do: @status_steps ++ ["cancelled"]
-
-  defp status_steps_for_current_status("compliance_rejected") do
-    Enum.take_while(@status_steps, &(&1 != "compliance_approved")) ++ ["compliance_rejected"]
-  end
-
-  defp status_steps_for_current_status(_status), do: @status_steps
 
   defp format_status(status),
     do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
@@ -339,10 +303,4 @@ defmodule PhoenixFintechWeb.TransferShowLive do
     do: "badge badge-soft badge-info"
 
   defp timeline_dot_classes(:complete), do: "status status-success"
-
-  defp timeline_dot_classes(:current),
-    do: "status status-info status-lg"
-
-  defp timeline_dot_classes(:upcoming),
-    do: "status"
 end
