@@ -12,6 +12,10 @@ defmodule PhoenixFintech.Transfers.TransferQuote do
     field :counterparty_currency_code, :string
     field :amount_in_originator_currency, :decimal
     field :amount_in_counterparty_currency, :decimal
+    field :spread_basis_points, :integer
+    field :spread_amount, :decimal
+    field :spot_fx_rate, :decimal
+    field :customer_fx_rate, :decimal
     field :input_snapshot, :map
     field :calculation_snapshot, :map
     field :expires_at, :utc_datetime
@@ -33,6 +37,10 @@ defmodule PhoenixFintech.Transfers.TransferQuote do
       :counterparty_currency_code,
       :amount_in_originator_currency,
       :amount_in_counterparty_currency,
+      :spread_basis_points,
+      :spread_amount,
+      :spot_fx_rate,
+      :customer_fx_rate,
       :input_snapshot,
       :calculation_snapshot,
       :expires_at,
@@ -48,11 +56,22 @@ defmodule PhoenixFintech.Transfers.TransferQuote do
       :counterparty_currency_code,
       :amount_in_originator_currency,
       :amount_in_counterparty_currency,
+      :spread_basis_points,
+      :spread_amount,
+      :spot_fx_rate,
+      :customer_fx_rate,
       :input_snapshot,
       :calculation_snapshot
     ])
     |> validate_number(:amount_in_originator_currency, greater_than: 0)
     |> validate_number(:amount_in_counterparty_currency, greater_than: 0)
+    |> validate_number(:spread_basis_points,
+      greater_than_or_equal_to: 0,
+      less_than: 10_000
+    )
+    |> validate_number(:spread_amount, greater_than_or_equal_to: 0)
+    |> validate_number(:spot_fx_rate, greater_than: 0)
+    |> validate_number(:customer_fx_rate, greater_than: 0)
     |> validate_length(:originator_currency_code, is: 3)
     |> validate_length(:counterparty_currency_code, is: 3)
     |> assoc_constraint(:created_by_user)

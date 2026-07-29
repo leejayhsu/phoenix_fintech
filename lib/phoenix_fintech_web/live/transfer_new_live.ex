@@ -14,7 +14,8 @@ defmodule PhoenixFintechWeb.TransferNewLive do
     quote_form =
       %{
         "originator_currency_code" => default_currency_code(currencies),
-        "counterparty_currency_code" => default_currency_code(currencies)
+        "counterparty_currency_code" => default_currency_code(currencies),
+        "spread_basis_points" => "100"
       }
       |> to_form(as: :quote)
 
@@ -55,10 +56,19 @@ defmodule PhoenixFintechWeb.TransferNewLive do
     selected_counterparty_ids =
       Enum.reject(socket.assigns.selected_counterparty_ids, &(&1 == party_id))
 
+    default_spread =
+      Transfers.default_spread_basis_points(socket.assigns.current_user.id, party_id)
+
+    quote_form =
+      socket.assigns.quote_form.params
+      |> Map.put("spread_basis_points", Integer.to_string(default_spread))
+      |> to_form(as: :quote)
+
     {:noreply,
      socket
      |> assign(:selected_originator_id, party_id)
      |> assign(:selected_counterparty_ids, selected_counterparty_ids)
+     |> assign(:quote_form, quote_form)
      |> assign(:step, :counterparties)
      |> clear_quote()}
   end
@@ -272,7 +282,20 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   defp validate_quote_params(%{"amount_in_originator_currency" => amount})
        when amount in [nil, ""], do: {:error, "Enter an amount to send."}
 
-  defp validate_quote_params(%{"amount_in_originator_currency" => amount}) do
+  defp validate_quote_params(%{"spread_basis_points" => basis_points})
+       when basis_points in [nil, ""], do: {:error, "Enter a spread in basis points."}
+
+  defp validate_quote_params(%{"spread_basis_points" => basis_points} = attrs) do
+    case Integer.parse(basis_points) do
+      {value, ""} when value >= 0 and value < 10_000 ->
+        validate_quote_amount(attrs)
+
+      _ ->
+        {:error, "Spread must be an integer from 0 to 9,999 basis points."}
+    end
+  end
+
+  defp validate_quote_amount(%{"amount_in_originator_currency" => amount}) do
     case Decimal.parse(amount) do
       {decimal, ""} ->
         if Decimal.compare(decimal, 0) == :gt,

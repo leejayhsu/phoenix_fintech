@@ -168,9 +168,23 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                   <h2 class="card-title text-sm">Transfer quote</h2>
                   <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
                     <div>
-                      <dt class="text-base-content/60">FX rate</dt>
+                      <dt class="text-base-content/60">Customer FX rate</dt>
                       <dd class="mt-1 font-medium">
-                        {@transfer.transfer_quote.calculation_snapshot["facts"]["fx_rate"]}
+                        {@transfer.transfer_quote.customer_fx_rate}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="text-base-content/60">Spot FX rate</dt>
+                      <dd class="mt-1 font-medium">
+                        {@transfer.transfer_quote.spot_fx_rate}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt class="text-base-content/60">Spread</dt>
+                      <dd class="mt-1 font-medium">
+                        {@transfer.transfer_quote.spread_basis_points} bps ({format_basis_points_as_percentage(
+                          @transfer.transfer_quote.spread_basis_points
+                        )})
                       </dd>
                     </div>
                     <div>

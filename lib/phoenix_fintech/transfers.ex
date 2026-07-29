@@ -12,6 +12,7 @@ defmodule PhoenixFintech.Transfers do
     TransferEvent,
     TransferQuote,
     TransferStateMachine,
+    UserOriginatorConfig,
     Deposit,
     Disbursement
   }
@@ -94,7 +95,10 @@ defmodule PhoenixFintech.Transfers do
   end
 
   def quote_transfer(user_id, attrs) do
-    input = normalize_quote_input(attrs)
+    input =
+      attrs
+      |> put_default_spread(user_id)
+      |> normalize_quote_input()
 
     input
     |> QuoteContext.new()
@@ -108,6 +112,33 @@ defmodule PhoenixFintech.Transfers do
   def get_transfer_quote!(id) do
     Repo.get!(TransferQuote, id)
     |> Repo.preload([:created_by_user, :originator_party, :counterparty_party])
+  end
+
+  def get_user_originator_config(user_id, originator_party_id) do
+    Repo.get_by(UserOriginatorConfig,
+      user_id: user_id,
+      originator_party_id: originator_party_id
+    )
+  end
+
+  def get_user_originator_config_or_default(user_id, originator_party_id) do
+    get_user_originator_config(user_id, originator_party_id) ||
+      %UserOriginatorConfig{user_id: user_id, originator_party_id: originator_party_id}
+  end
+
+  def default_spread_basis_points(user_id, originator_party_id) do
+    get_user_originator_config_or_default(user_id, originator_party_id).default_spread_basis_points
+  end
+
+  def change_user_originator_config(%UserOriginatorConfig{} = config, attrs \\ %{}) do
+    UserOriginatorConfig.changeset(config, attrs)
+  end
+
+  def save_user_originator_config(user_id, originator_party_id, attrs) do
+    user_id
+    |> get_user_originator_config_or_default(originator_party_id)
+    |> UserOriginatorConfig.changeset(attrs)
+    |> Repo.insert_or_update()
   end
 
   def requote_transfer_quote(user_id, quote_id) do
@@ -541,6 +572,10 @@ defmodule PhoenixFintech.Transfers do
       "counterparty_currency_code" => ctx.input.counterparty_currency_code,
       "amount_in_originator_currency" => ctx.input.amount_in_originator_currency,
       "amount_in_counterparty_currency" => ctx.facts.amount_in_counterparty_currency,
+      "spread_basis_points" => ctx.facts.spread_basis_points,
+      "spread_amount" => ctx.facts.spread_amount,
+      "spot_fx_rate" => ctx.facts.spot_fx_rate,
+      "customer_fx_rate" => ctx.facts.fx_rate,
       "input_snapshot" => snapshot(ctx.input),
       "calculation_snapshot" =>
         snapshot(%{
@@ -577,13 +612,28 @@ defmodule PhoenixFintech.Transfers do
       counterparty_currency_code: counterparty_currency_code,
       amount_in_originator_currency:
         attrs |> Map.get("amount_in_originator_currency") |> Decimal.new(),
-      fx_rate:
+      spread_basis_points:
+        attrs
+        |> Map.get("spread_basis_points", "100")
+        |> parse_basis_points(),
+      spot_fx_rate:
         attrs
         |> Map.get("fx_rate")
         |> blank_to_nil()
         |> maybe_decimal()
         |> maybe_generated_fx_rate(originator_currency_code, counterparty_currency_code)
     }
+  end
+
+  defp put_default_spread(attrs, user_id) do
+    if Map.get(attrs, "spread_basis_points") in [nil, ""] do
+      default =
+        default_spread_basis_points(user_id, Map.get(attrs, "originator_party_id"))
+
+      Map.put(attrs, "spread_basis_points", default)
+    else
+      attrs
+    end
   end
 
   defp maybe_generated_fx_rate(
@@ -598,6 +648,9 @@ defmodule PhoenixFintech.Transfers do
   defp maybe_generated_fx_rate(nil, originator_currency_code, counterparty_currency_code) do
     Rates.spot_rate(originator_currency_code, counterparty_currency_code)
   end
+
+  defp parse_basis_points(value) when is_integer(value), do: value
+  defp parse_basis_points(value) when is_binary(value), do: String.to_integer(value)
 
   defp normalize_legacy_quote_attrs(attrs) do
     fx_quote = Map.get(attrs, "fx_quote", %{})

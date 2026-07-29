@@ -7,6 +7,22 @@ defmodule PhoenixFintechWeb.NumberHelpers do
     "#{format_number(amount)} #{currency_code}"
   end
 
+  def format_basis_points_as_percentage(nil), do: "—"
+
+  def format_basis_points_as_percentage(basis_points) do
+    case Integer.parse(to_string(basis_points)) do
+      {basis_points, ""} ->
+        basis_points
+        |> Decimal.div(100)
+        |> Decimal.round(2)
+        |> Decimal.to_string(:normal)
+        |> Kernel.<>("%")
+
+      _ ->
+        "—"
+    end
+  end
+
   def format_number(%Decimal{} = amount),
     do: amount |> Decimal.to_string(:normal) |> format_number()
 

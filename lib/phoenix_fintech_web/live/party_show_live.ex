@@ -2,7 +2,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
   use PhoenixFintechWeb, :live_view
 
   alias PhoenixFintech.Compliance
-  alias PhoenixFintech.Parties
+  alias PhoenixFintech.{Parties, Transfers}
   alias PhoenixFintech.Parties.PartyMember
   alias LiveFlow.{Edge, Handle, Node, State}
 
@@ -16,6 +16,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       |> assign(:party, party)
       |> assign(:page_title, party.legal_name)
       |> assign_current_user()
+      |> assign_originator_config_form()
       |> assign(:members, party.members)
       |> assign(:active_tab, socket.assigns[:live_action] || :overview)
       |> assign_member_flow(party, party.members)
@@ -262,6 +263,32 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     end
   end
 
+  def handle_event(
+        "save_originator_config",
+        %{"originator_config" => config_params},
+        socket
+      ) do
+    case Transfers.save_user_originator_config(
+           socket.assigns.current_user.id,
+           socket.assigns.party.id,
+           config_params
+         ) do
+      {:ok, config} ->
+        {:noreply,
+         socket
+         |> put_flash(:info, "Default transfer spread updated.")
+         |> assign_originator_config_form(config)}
+
+      {:error, changeset} ->
+        {:noreply,
+         assign(
+           socket,
+           :originator_config_form,
+           to_form(%{changeset | action: :validate}, as: :originator_config)
+         )}
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -300,6 +327,11 @@ defmodule PhoenixFintechWeb.PartyShowLive do
           document_form={@document_form}
           uploads={@uploads}
           streams={@streams}
+        />
+        <.configuration_panel
+          :if={@active_tab == :configuration}
+          party={@party}
+          originator_config_form={@originator_config_form}
         />
       </section>
 
@@ -439,7 +471,7 @@ defmodule PhoenixFintechWeb.PartyShowLive do
 
   defp party_tabs(assigns) do
     ~H"""
-    <nav class="tabs tabs-box w-fit" aria-label="Party sections">
+    <nav class="tabs tabs-box max-w-full w-fit overflow-x-auto" aria-label="Party sections">
       <.link
         id="party-overview-tab"
         navigate={~p"/app/parties/#{@party.id}"}
@@ -470,7 +502,71 @@ defmodule PhoenixFintechWeb.PartyShowLive do
       >
         Compliance
       </.link>
+      <.link
+        id="party-configuration-tab"
+        navigate={~p"/app/parties/#{@party.id}/configuration"}
+        class={[
+          "tab",
+          @active_tab == :configuration && "tab-active"
+        ]}
+      >
+        Configuration
+      </.link>
     </nav>
+    """
+  end
+
+  attr :party, :map, required: true
+  attr :originator_config_form, :map, required: true
+
+  defp configuration_panel(assigns) do
+    ~H"""
+    <div id="party-configuration" class="space-y-6">
+      <section class="card card-border max-w-2xl bg-base-100">
+        <div class="card-body">
+          <div>
+            <h2 class="card-title text-lg">Transfer pricing</h2>
+            <p class="mt-1 text-sm text-base-content/70">
+              These settings apply only to transfers you create with {@party.legal_name} as the originator.
+            </p>
+          </div>
+
+          <div :if={!@party.can_originate} role="alert" class="alert alert-soft alert-warning mt-2">
+            <.icon name="hero-exclamation-triangle" class="size-5" />
+            <span>
+              This party cannot originate transfers yet. The setting will take effect once originator status is approved.
+            </span>
+          </div>
+
+          <.form
+            for={@originator_config_form}
+            id="originator-config-form"
+            phx-submit="save_originator_config"
+            class="mt-2 space-y-4"
+          >
+            <.input
+              field={@originator_config_form[:default_spread_basis_points]}
+              type="number"
+              min="0"
+              max="9999"
+              step="1"
+              label="Default spread (bps)"
+            />
+            <p class="text-sm text-base-content/60">
+              This pre-fills the spread when you select this originator. You can still change it for an individual transfer.
+            </p>
+            <button
+              id="save-originator-config"
+              type="submit"
+              class="btn btn-primary"
+              phx-disable-with="Saving..."
+            >
+              Save configuration
+            </button>
+          </.form>
+        </div>
+      </section>
+    </div>
     """
   end
 
@@ -1081,6 +1177,21 @@ defmodule PhoenixFintechWeb.PartyShowLive do
     changeset = Parties.change_party(Map.take(socket.assigns.party, party_address_fields()))
 
     assign(socket, :party_address_form, to_form(changeset, as: :party_address))
+  end
+
+  defp assign_originator_config_form(socket, config \\ nil) do
+    config =
+      config ||
+        Transfers.get_user_originator_config_or_default(
+          socket.assigns.current_user.id,
+          socket.assigns.party.id
+        )
+
+    assign(
+      socket,
+      :originator_config_form,
+      to_form(Transfers.change_user_originator_config(config), as: :originator_config)
+    )
   end
 
   defp assign_party_government_id_form(socket, attrs \\ %{}) do

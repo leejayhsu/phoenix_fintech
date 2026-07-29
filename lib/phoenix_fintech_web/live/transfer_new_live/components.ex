@@ -221,6 +221,20 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
                 label="Amount to send"
               />
 
+              <.input
+                field={@quote_form[:spread_basis_points]}
+                type="number"
+                min="0"
+                max="9999"
+                step="1"
+                label="Spread (bps)"
+              />
+              <p class="text-xs text-base-content/60">
+                Equivalent to {format_basis_points_as_percentage(
+                  quote_form_value(@quote_form, :spread_basis_points)
+                )}.
+              </p>
+
               <div class="grid gap-4 sm:grid-cols-2">
                 <.input
                   field={@quote_form[:originator_currency_code]}
@@ -358,7 +372,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
           <div class="card bg-primary text-primary-content">
             <div class="card-body p-4">
-              <h3 class="font-medium">Locked FX rate</h3>
+              <h3 class="font-medium">Locked customer FX rate</h3>
               <p class="mt-3 text-3xl font-semibold">
                 {@quote.calculation_snapshot["facts"]["fx_rate"]}
               </p>
@@ -485,6 +499,12 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
           FX details
         </h3>
         <div class="flex items-center justify-between gap-4">
+          <span class="text-sm text-base-content/70">Customer rate</span>
+          <span class="font-medium tabular-nums">
+            {format_spot_rate(@details.customer_rate)}
+          </span>
+        </div>
+        <div class="flex items-center justify-between gap-4">
           <span class="text-sm text-base-content/70">Destination amount</span>
           <span class="font-medium tabular-nums">
             <%= if @details.destination_amount do %>
@@ -492,6 +512,14 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
             <% else %>
               —
             <% end %>
+          </span>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-sm text-base-content/70">
+            Spread ({@details.spread_basis_points} bps / {@details.spread_percentage})
+          </span>
+          <span class="font-medium tabular-nums">
+            {format_currency_amount(@details.spread_amount, @details.spread_currency)}
           </span>
         </div>
         <div class="flex items-center justify-between gap-4">
@@ -565,6 +593,11 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
     %{
       destination_amount: quote.amount_in_counterparty_currency,
       destination_currency: quote.counterparty_currency_code,
+      customer_rate: quote.customer_fx_rate,
+      spread_basis_points: quote.spread_basis_points,
+      spread_percentage: format_basis_points_as_percentage(quote.spread_basis_points),
+      spread_amount: quote.spread_amount,
+      spread_currency: quote.originator_currency_code,
       fx_fee: fee_line && fee_line["amount"],
       fx_fee_currency: fee_line && fee_line["currency_code"]
     }
@@ -573,18 +606,28 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   defp fx_details(assigns) do
     amount = quote_form_value(assigns.quote_form, :amount_in_originator_currency)
     rate = selected_spot_rate(assigns.spot_rates, assigns.quote_form)
+    spread_basis_points = quote_form_value(assigns.quote_form, :spread_basis_points)
     from_code = quote_form_value(assigns.quote_form, :originator_currency_code)
     to_code = quote_form_value(assigns.quote_form, :counterparty_currency_code)
 
     if is_nil(from_code) or is_nil(to_code) do
       nil
     else
-      destination_amount = preview_destination_amount(amount, rate)
+      identity_fx? = from_code == to_code
+      effective_basis_points = if(identity_fx?, do: 0, else: spread_basis_points)
+      customer_rate = preview_customer_rate(rate, effective_basis_points)
+      destination_amount = preview_destination_amount(amount, customer_rate)
       fx_fee = preview_fx_fee(amount, rate)
+      spread_amount = preview_spread_amount(amount, effective_basis_points)
 
       %{
         destination_amount: destination_amount,
         destination_currency: to_code,
+        customer_rate: customer_rate,
+        spread_basis_points: effective_basis_points,
+        spread_percentage: format_basis_points_as_percentage(effective_basis_points),
+        spread_amount: spread_amount,
+        spread_currency: from_code,
         fx_fee: fx_fee,
         fx_fee_currency: from_code
       }
@@ -597,6 +640,31 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
          rate when not is_nil(rate) <- rate,
          {rate_dec, ""} <- parse_decimal(rate) do
       Decimal.mult(amount_dec, rate_dec) |> Decimal.round(2)
+    else
+      _ -> nil
+    end
+  end
+
+  defp preview_customer_rate(rate, basis_points) do
+    with rate when not is_nil(rate) <- rate,
+         {rate_dec, ""} <- parse_decimal(rate),
+         {basis_points, ""} <- Integer.parse(to_string(basis_points)),
+         true <- basis_points >= 0 and basis_points < 10_000 do
+      spread_ratio = Decimal.div(basis_points, 10_000)
+      Decimal.mult(rate_dec, Decimal.sub(1, spread_ratio)) |> Decimal.round(6)
+    else
+      _ -> nil
+    end
+  end
+
+  defp preview_spread_amount(amount, basis_points) do
+    with amount when not is_nil(amount) and amount != "" <- amount,
+         {amount_dec, ""} <- parse_decimal(amount),
+         {basis_points, ""} <- Integer.parse(to_string(basis_points)),
+         true <- basis_points >= 0 and basis_points < 10_000 do
+      amount_dec
+      |> Decimal.mult(Decimal.div(basis_points, 10_000))
+      |> Decimal.round(2)
     else
       _ -> nil
     end
