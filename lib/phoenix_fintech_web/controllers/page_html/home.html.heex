@@ -9,14 +9,14 @@
       <section class="grid gap-4 md:grid-cols-3">
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body gap-3">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-base-content/60">Transfers Created</span>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex min-w-0 items-baseline gap-2">
+                <span class="text-sm text-base-content/60">Transfers Created</span>
+                <span class="text-xl font-semibold">{@dashboard.activity_chart.total}</span>
+              </div>
               <span class="rounded-box bg-primary/10 p-2 text-primary">
                 <.icon name="hero-chart-bar" class="size-4" />
               </span>
-            </div>
-            <div>
-              <div class="text-3xl font-semibold">{@dashboard.activity_chart.total}</div>
             </div>
             <.mini_bar_chart points={@dashboard.activity_chart.points} bar_class="bg-primary" />
           </div>
@@ -24,22 +24,28 @@
 
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body gap-3">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-base-content/60">Spread revenue</span>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex min-w-0 items-baseline gap-2">
+                <span class="shrink-0 text-sm text-base-content/60">Spread revenue</span>
+                <span
+                  :if={@dashboard.spread_revenue.currency_code}
+                  class="truncate text-xl font-semibold"
+                >
+                  {format_currency_amount(
+                    @dashboard.spread_revenue.total,
+                    @dashboard.spread_revenue.currency_code
+                  )}
+                </span>
+                <span
+                  :if={!@dashboard.spread_revenue.currency_code}
+                  class="text-xl font-semibold"
+                >
+                  0
+                </span>
+              </div>
               <span class="rounded-box bg-info/10 p-2 text-info">
                 <.icon name="hero-banknotes" class="size-4" />
               </span>
-            </div>
-            <div>
-              <div :if={@dashboard.spread_revenue.currency_code} class="text-3xl font-semibold">
-                {format_currency_amount(
-                  @dashboard.spread_revenue.total,
-                  @dashboard.spread_revenue.currency_code
-                )}
-              </div>
-              <div :if={!@dashboard.spread_revenue.currency_code} class="text-3xl font-semibold">
-                0
-              </div>
             </div>
             <.mini_bar_chart
               points={@dashboard.spread_revenue.points}
@@ -55,14 +61,14 @@
 
         <div class="card bg-base-100 shadow-sm">
           <div class="card-body gap-3">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-base-content/60">Completed transfers</span>
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex min-w-0 items-baseline gap-2">
+                <span class="text-sm text-base-content/60">Completed transfers</span>
+                <span class="text-xl font-semibold">{@dashboard.completion_chart.total}</span>
+              </div>
               <span class="rounded-box bg-success/10 p-2 text-success">
                 <.icon name="hero-check-circle" class="size-4" />
               </span>
-            </div>
-            <div>
-              <div class="text-3xl font-semibold">{@dashboard.completion_chart.total}</div>
             </div>
             <.mini_bar_chart points={@dashboard.completion_chart.points} bar_class="bg-success" />
           </div>
