@@ -173,27 +173,25 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
             <table class="table table-zebra table-sm">
               <thead>
                 <tr>
-                  <th>Subject</th>
                   <th>Type</th>
-                  <th>Status</th>
-                  <th>Reviewer</th>
+                  <th>Originator</th>
+                  <th>Counterparty</th>
                   <th>Submitted</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody id="compliance-reviews-table" phx-update="stream">
                 <tr :if={@reviews_empty?} id="compliance-reviews-empty">
-                  <td colspan="6" class="py-8 text-center text-base-content/60">
+                  <td colspan="5" class="py-8 text-center text-base-content/60">
                     No compliance reviews found.
                   </td>
                 </tr>
                 <tr :for={{dom_id, review} <- @reviews} id={dom_id} class="hover">
-                  <td>{subject_label(review)}</td>
                   <td>
-                    <span class="badge badge-soft badge-sm">{subject_type(review)}</span>
+                    <span class="badge badge-soft badge-sm">{review.subject_type}</span>
                   </td>
-                  <td>{render_status(review.status)}</td>
-                  <td>{review.reviewer_name}</td>
+                  <td>{review.originator_name}</td>
+                  <td>{review.counterparty_name}</td>
                   <td>
                     <time class="text-xs text-base-content/60">
                       {Calendar.strftime(review.submitted_at, "%b %-d, %Y")}
@@ -444,10 +442,9 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
   defp decorate_review(review) do
     %{
       id: review.id,
-      status: review.status,
       subject_type: subject_type(review),
-      subject_label: subject_label(review),
-      reviewer_name: reviewer_label(review.reviewed_by_user),
+      originator_name: originator_name(review),
+      counterparty_name: counterparty_name(review),
       submitted_at: review.inserted_at
     }
   end
@@ -455,6 +452,17 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
   defp subject_type(%Review{transfer_id: nil, party_id: nil}), do: "-"
   defp subject_type(%Review{transfer_id: id}) when not is_nil(id), do: "Transfer"
   defp subject_type(_review), do: "Party"
+
+  defp originator_name(%Review{transfer: %{originator_party: %{legal_name: legal_name}}}),
+    do: legal_name
+
+  defp originator_name(%Review{party: %{legal_name: legal_name}}), do: legal_name
+  defp originator_name(_review), do: "-"
+
+  defp counterparty_name(%Review{transfer: %{counterparty_party: %{legal_name: legal_name}}}),
+    do: legal_name
+
+  defp counterparty_name(_review), do: nil
 
   defp subject_label(%Review{transfer: %{} = transfer}), do: transfer.id
   defp subject_label(%Review{party: %{} = party}), do: party.legal_name
