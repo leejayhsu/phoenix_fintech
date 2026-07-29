@@ -32,19 +32,15 @@ defmodule PhoenixFintechWeb.HomeFxRatesLive do
   def render(assigns) do
     ~H"""
     <section id="live-fx-rates" class="space-y-4">
-      <div>
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-2 sm:flex-nowrap">
         <h2 class="text-2xl font-semibold tracking-tight">FX Rates</h2>
-        <div class="mt-2 flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex items-center gap-2">
-            <span class="badge badge-success badge-soft gap-1.5">
-              <span class="size-1.5 rounded-full bg-success"></span> Live
-            </span>
-            <p class="text-sm text-base-content/60">Refreshes every 5 seconds.</p>
-          </div>
-          <p class="text-xs text-base-content/60 sm:text-right" aria-live="polite">
-            Last tick {format_updated_at(@updated_at)}
-          </p>
-        </div>
+        <span class="badge badge-success badge-soft gap-1.5">
+          <span class="size-1.5 rounded-full bg-success"></span> Live
+        </span>
+        <p class="text-sm text-base-content/60">Refreshes every 5 seconds.</p>
+        <p class="ml-auto text-xs text-base-content/60 sm:text-right" aria-live="polite">
+          Last tick {format_updated_at(@updated_at)}
+        </p>
       </div>
 
       <div
