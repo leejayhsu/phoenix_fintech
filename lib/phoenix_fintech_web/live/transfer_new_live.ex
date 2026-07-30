@@ -207,6 +207,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
             <.counterparties_step
               panel_class={panel_classes(@step, :counterparties)}
               active={@step == :counterparties}
+              direction={@direction}
               parties={@parties}
               selected_originator_id={@selected_originator_id}
               selected_counterparty_ids={@selected_counterparty_ids}

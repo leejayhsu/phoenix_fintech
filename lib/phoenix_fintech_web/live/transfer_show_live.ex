@@ -95,8 +95,15 @@ defmodule PhoenixFintechWeb.TransferShowLive do
           >
             <div class="grid gap-6 lg:row-span-3 lg:grid-rows-subgrid">
               <div id="transfer-parties" class="grid gap-4 sm:grid-cols-2">
-                <article class="card card-border bg-base-100">
-                  <div class="card-body p-4">
+                <article class="card card-border relative overflow-hidden bg-base-100">
+                  <img
+                    :if={@transfer.originator_party.country_code}
+                    src={flag_url(@transfer.originator_party.country_code)}
+                    alt=""
+                    aria-hidden="true"
+                    class="pointer-events-none absolute inset-y-0 -right-6 h-full w-2/3 scale-125 object-cover opacity-15 [mask-image:linear-gradient(to_right,transparent,black_35%)]"
+                  />
+                  <div class="card-body relative z-10 p-4">
                     <h2 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
                       Originator
                     </h2>
@@ -105,8 +112,15 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                     </p>
                   </div>
                 </article>
-                <article class="card card-border bg-base-100">
-                  <div class="card-body p-4">
+                <article class="card card-border relative overflow-hidden bg-base-100">
+                  <img
+                    :if={@transfer.counterparty_party.country_code}
+                    src={flag_url(@transfer.counterparty_party.country_code)}
+                    alt=""
+                    aria-hidden="true"
+                    class="pointer-events-none absolute inset-y-0 -right-6 h-full w-2/3 scale-125 object-cover opacity-15 [mask-image:linear-gradient(to_right,transparent,black_35%)]"
+                  />
+                  <div class="card-body relative z-10 p-4">
                     <h2 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
                       Counterparty
                     </h2>
@@ -332,6 +346,9 @@ defmodule PhoenixFintechWeb.TransferShowLive do
     do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
 
   defp format_event_type(event_type), do: format_status(event_type)
+
+  defp flag_url(country_code),
+    do: "https://flagcdn.com/#{String.downcase(country_code)}.svg"
 
   defp status_badge_classes("created"),
     do: "badge badge-soft badge-warning"

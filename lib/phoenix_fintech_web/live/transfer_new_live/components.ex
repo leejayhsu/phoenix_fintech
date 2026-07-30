@@ -8,7 +8,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   def direction_step(assigns) do
     ~H"""
     <section class={@panel_class} inert={!@active}>
-      <div class="card-body gap-6">
+      <div class="card-body mx-auto w-full max-w-3xl gap-6">
         <div>
           <h2 class="card-title">1. Choose direction</h2>
           <p class="text-sm text-base-content/70">
@@ -72,7 +72,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   def originator_step(assigns) do
     ~H"""
     <section class={@panel_class} inert={!@active}>
-      <div class="card-body gap-6">
+      <div class="card-body mx-auto w-full max-w-3xl gap-6">
         <div>
           <h2 class="card-title">2. Choose the originator</h2>
           <p class="text-sm text-base-content/70">
@@ -113,6 +113,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
   attr :panel_class, :any, required: true
   attr :active, :boolean, required: true
+  attr :direction, :atom, required: true
   attr :parties, :list, required: true
   attr :selected_originator_id, :any, required: true
   attr :selected_counterparty_ids, :list, required: true
@@ -120,17 +121,12 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   def counterparties_step(assigns) do
     ~H"""
     <section class={@panel_class} inert={!@active}>
-      <div class="card-body gap-6">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 class="card-title">3. Choose counterparties</h2>
-            <p class="text-sm text-base-content/70">
-              The UI is ready for multiple recipients, but this transfer flow currently supports one counterparty.
-            </p>
-          </div>
-          <span class="badge badge-soft badge-info">
-            {length(@selected_counterparty_ids)} selected
-          </span>
+      <div class="card-body mx-auto w-full max-w-3xl gap-6">
+        <div>
+          <h2 class="card-title">3. Choose counterparty</h2>
+          <p class="text-sm text-base-content/70">
+            {counterparty_instruction(@direction)}
+          </p>
         </div>
 
         <div class="grid gap-3 md:grid-cols-2">
@@ -436,9 +432,16 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
       id={"#{@id_prefix}-#{@party.id}"}
       phx-click={@event}
       phx-value-id={@party.id}
-      class={party_card_classes(@selected)}
+      class={["relative overflow-hidden", party_card_classes(@selected)]}
     >
-      <span class="flex items-start justify-between gap-3">
+      <img
+        :if={@party.country_code}
+        src={flag_url(@party.country_code)}
+        alt=""
+        aria-hidden="true"
+        class="pointer-events-none absolute inset-y-0 -right-6 h-full w-2/3 scale-125 object-cover opacity-15 [mask-image:linear-gradient(to_right,transparent,black_35%)]"
+      />
+      <span class="relative z-10 flex items-start justify-between gap-3">
         <span>
           <span class="block font-medium">{@party.legal_name}</span>
           <span class="mt-1 block text-sm text-base-content/60">
@@ -551,6 +554,9 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
   defp originator_role_description(:receive), do: "who will receive the funds"
   defp originator_role_description(_direction), do: "who will send the funds"
+
+  defp counterparty_instruction(:receive), do: "Choose the party who will send the funds."
+  defp counterparty_instruction(_direction), do: "Select the party who will receive the funds."
 
   defp format_direction(:send), do: "Send"
   defp format_direction(:receive), do: "Receive"
@@ -710,6 +716,9 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   defp spot_rate_input_value(nil), do: nil
   defp spot_rate_input_value(%Decimal{} = rate), do: Decimal.to_string(rate, :normal)
   defp spot_rate_input_value(rate), do: to_string(rate)
+
+  defp flag_url(country_code),
+    do: "https://flagcdn.com/#{String.downcase(country_code)}.svg"
 
   defp format_spot_updated_at(nil), do: "on next tick"
 
