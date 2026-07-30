@@ -178,6 +178,11 @@ defmodule PhoenixFintechWeb.Layouts do
                     <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
                   </.link>
                 </li>
+                <li>
+                  <.link href={~p"/users/log_out"} method="delete">
+                    <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Sign out
+                  </.link>
+                </li>
                 <li :if={@current_user.is_admin && @section != :admin}>
                   <.link navigate={~p"/admin"}>
                     <.icon name="hero-shield-check" class="size-4" /> Admin
