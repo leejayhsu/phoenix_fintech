@@ -54,7 +54,8 @@ defmodule PhoenixFintechWeb.Router do
       live "/app/parties/:id/configuration", PartyShowLive, :configuration
       live "/app/transfers", TransferIndexLive
       live "/app/transfers/new", TransferNewLive
-      live "/app/transfers/:id", TransferShowLive
+      live "/app/transfers/:id", TransferShowLive, :details
+      live "/app/transfers/:id/history", TransferShowLive, :history
       live "/app/notifications", NotificationsLive, :index
     end
 

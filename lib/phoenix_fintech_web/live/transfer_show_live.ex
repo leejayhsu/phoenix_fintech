@@ -26,9 +26,15 @@ defmodule PhoenixFintechWeb.TransferShowLive do
       |> assign(:transfer, transfer)
       |> assign(:status_steps, status_steps_for(transfer))
       |> assign(:status_copy, @status_copy)
+      |> assign(:active_tab, socket.assigns.live_action)
       |> assign(:page_title, "Transfer details")
 
     {:ok, socket}
+  end
+
+  @impl true
+  def handle_params(_params, _uri, socket) do
+    {:noreply, assign(socket, :active_tab, socket.assigns.live_action)}
   end
 
   @impl true
@@ -49,14 +55,44 @@ defmodule PhoenixFintechWeb.TransferShowLive do
         </.link>
 
         <div class="card card-border bg-base-200">
-          <div class="border-b border-base-300 bg-base-200 px-6 py-5">
-            <div class="flex flex-wrap items-center gap-3">
-              <h1 class="text-2xl font-semibold">Transfer details</h1>
-              <.copy_value id="transfer-reference" value={@transfer.id} />
-            </div>
+          <div class="flex items-center justify-between gap-4 px-6 pt-6">
+            <nav
+              role="tablist"
+              class="tabs tabs-box w-fit"
+              aria-label="Transfer sections"
+            >
+              <.link
+                id="transfer-details-tab"
+                patch={~p"/app/transfers/#{@transfer.id}"}
+                role="tab"
+                aria-selected={@active_tab == :details}
+                aria-controls="transfer-details-panel"
+                class={["tab", @active_tab == :details && "tab-active"]}
+              >
+                Details
+              </.link>
+              <.link
+                id="transfer-history-tab"
+                patch={~p"/app/transfers/#{@transfer.id}/history"}
+                role="tab"
+                aria-selected={@active_tab == :history}
+                aria-controls="transfer-history-panel"
+                class={["tab", @active_tab == :history && "tab-active"]}
+              >
+                History
+              </.link>
+            </nav>
+
+            <.copy_value id="transfer-reference" value={@transfer.id} class="shrink-0" />
           </div>
 
-          <div class="grid gap-6 px-6 py-6 lg:grid-cols-[2fr_1fr]">
+          <div
+            :if={@active_tab == :details}
+            id="transfer-details-panel"
+            role="tabpanel"
+            aria-labelledby="transfer-details-tab"
+            class="grid gap-6 px-6 py-6 lg:grid-cols-[2fr_1fr]"
+          >
             <div class="grid gap-6 lg:row-span-3 lg:grid-rows-subgrid">
               <div id="transfer-parties" class="grid gap-4 sm:grid-cols-2">
                 <article class="card card-border bg-base-100">
@@ -226,42 +262,48 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                 </div>
               </section>
             </aside>
+          </div>
 
-            <section id="transfer-events" class="lg:col-span-2">
-              <div class="card card-border bg-base-100">
-                <div class="card-body p-4">
-                  <h2 class="card-title text-sm">Event history</h2>
-                  <div class="mt-4 space-y-3">
-                    <div :if={@transfer.events == []} class="text-sm text-base-content/60">
-                      No events recorded yet.
-                    </div>
-                    <article
-                      :for={event <- @transfer.events}
-                      id={"transfer-event-#{event.id}"}
-                      class="rounded-box border border-base-300 bg-base-100 p-3"
-                    >
-                      <div class="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p class="text-sm font-medium">{format_event_type(event.event_type)}</p>
-                          <p class="text-xs text-base-content/60">
-                            {format_status(event.from_status || "none")} → {format_status(
-                              event.to_status
-                            )}
-                          </p>
-                        </div>
-                        <time class="text-xs text-base-content/60">
-                          {Calendar.strftime(event.occurred_at, "%b %-d, %Y %-I:%M %p")}
-                        </time>
-                      </div>
-                      <p :if={event.actor_user} class="mt-2 text-xs text-base-content/60">
-                        Actor: {event.actor_user.email}
-                      </p>
-                    </article>
+          <section
+            :if={@active_tab == :history}
+            id="transfer-history-panel"
+            role="tabpanel"
+            aria-labelledby="transfer-history-tab"
+            class="px-6 py-6"
+          >
+            <div id="transfer-events" class="card card-border bg-base-100">
+              <div class="card-body p-4">
+                <h2 class="card-title text-sm">Event history</h2>
+                <div class="mt-4 space-y-3">
+                  <div :if={@transfer.events == []} class="text-sm text-base-content/60">
+                    No events recorded yet.
                   </div>
+                  <article
+                    :for={event <- @transfer.events}
+                    id={"transfer-event-#{event.id}"}
+                    class="rounded-box border border-base-300 bg-base-100 p-3"
+                  >
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p class="text-sm font-medium">{format_event_type(event.event_type)}</p>
+                        <p class="text-xs text-base-content/60">
+                          {format_status(event.from_status || "none")} → {format_status(
+                            event.to_status
+                          )}
+                        </p>
+                      </div>
+                      <time class="text-xs text-base-content/60">
+                        {Calendar.strftime(event.occurred_at, "%b %-d, %Y %-I:%M %p")}
+                      </time>
+                    </div>
+                    <p :if={event.actor_user} class="mt-2 text-xs text-base-content/60">
+                      Actor: {event.actor_user.email}
+                    </p>
+                  </article>
                 </div>
               </div>
-            </section>
-          </div>
+            </div>
+          </section>
         </div>
       </section>
     </Layouts.app>
