@@ -5,30 +5,12 @@ defmodule PhoenixFintechWeb.AdminLive do
 
   alias Ecto.Changeset
   alias Ecto.Multi
-  alias PhoenixFintech.Accounts.{User, UserToken}
   alias PhoenixFintech.Compliance
-
-  alias PhoenixFintech.Ledger.{Account, AccountBalance, Currency, Entry, JournalEntry}
-  alias PhoenixFintech.Parties.{ComplianceDocument, GovernmentID, Party, PartyMember}
+  alias PhoenixFintech.Parties.Party
   alias PhoenixFintech.Repo
   alias PhoenixFintech.Transfers
   alias PhoenixFintech.Transfers.{Transfer, TransferQuote}
-
-  @resources [
-    %{key: "users", label: "Users", schema: User},
-    %{key: "user_tokens", label: "User tokens", schema: UserToken},
-    %{key: "parties", label: "Parties", schema: Party},
-    %{key: "party_members", label: "Party members", schema: PartyMember},
-    %{key: "government_ids", label: "Government IDs", schema: GovernmentID},
-    %{key: "compliance_documents", label: "Compliance documents", schema: ComplianceDocument},
-    %{key: "transfers", label: "Transfers", schema: Transfer},
-    %{key: "transfer_quotes", label: "Transfer quotes", schema: TransferQuote},
-    %{key: "ledger_accounts", label: "Ledger accounts", schema: Account},
-    %{key: "ledger_account_balances", label: "Ledger account balances", schema: AccountBalance},
-    %{key: "ledger_entries", label: "Ledger entries", schema: Entry},
-    %{key: "ledger_journal_entries", label: "Ledger journal entries", schema: JournalEntry},
-    %{key: "currencies", label: "Currencies", schema: Currency}
-  ]
+  alias PhoenixFintechWeb.AdminResources
 
   @impl true
   def mount(params, _session, socket) do
@@ -39,7 +21,6 @@ defmodule PhoenixFintechWeb.AdminLive do
       socket
       |> assign_new(:current_scope, fn -> nil end)
       |> assign(:current_user, socket.assigns.current_scope.user)
-      |> assign(:resources, @resources)
       |> assign(:admin_compliance_pending_count, pending_count)
       |> assign(:admin_actionable_transfer_count, actionable_transfer_count)
 
@@ -99,7 +80,6 @@ defmodule PhoenixFintechWeb.AdminLive do
       current_scope={@current_scope}
       current_user={@current_user}
       section={:admin}
-      admin_resources={@resources}
       admin_resource={@resource}
       admin_compliance_pending_count={@admin_compliance_pending_count}
       admin_actionable_transfer_count={@admin_actionable_transfer_count}
@@ -334,7 +314,7 @@ defmodule PhoenixFintechWeb.AdminLive do
   end
 
   defp get_resource!(key) do
-    Enum.find(@resources, &(&1.key == key)) ||
+    Enum.find(AdminResources.all(), &(&1.key == key)) ||
       raise Phoenix.Router.NoRouteError, conn: nil, router: PhoenixFintechWeb.Router
   end
 

@@ -33,7 +33,6 @@ defmodule PhoenixFintechWeb.Layouts do
 
   attr :current_user, :map, default: nil
   attr :section, :atom, default: :app
-  attr :admin_resources, :list, default: []
   attr :admin_resource, :map, default: nil
   attr :admin_compliance_pending_count, :integer, default: nil
   attr :admin_actionable_transfer_count, :integer, default: nil
@@ -51,6 +50,7 @@ defmodule PhoenixFintechWeb.Layouts do
       assigns
       |> assign(:profile_name, profile_name(assigns[:current_user]))
       |> assign(:live_root, assigns[:socket] || assigns[:conn])
+      |> assign(:admin_resource_groups, PhoenixFintechWeb.AdminResources.groups())
 
     ~H"""
     <div class="min-h-screen bg-base-200 text-base-content">
@@ -60,7 +60,7 @@ defmodule PhoenixFintechWeb.Layouts do
             <.admin_sidebar
               current_user={@current_user}
               profile_name={@profile_name}
-              resources={@admin_resources}
+              resource_groups={@admin_resource_groups}
               resource={@admin_resource}
               compliance_pending_count={@admin_compliance_pending_count}
               actionable_transfer_count={@admin_actionable_transfer_count}
@@ -190,7 +190,7 @@ defmodule PhoenixFintechWeb.Layouts do
 
   attr :current_user, :map, required: true
   attr :profile_name, :string, required: true
-  attr :resources, :list, default: []
+  attr :resource_groups, :list, required: true
   attr :resource, :map, default: nil
   attr :compliance_pending_count, :integer, default: nil
   attr :actionable_transfer_count, :integer, default: nil
@@ -243,17 +243,28 @@ defmodule PhoenixFintechWeb.Layouts do
       <div class="mt-4 px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
         Resources
       </div>
-      <ul class="menu menu-sm gap-1 p-0 text-sm">
-        <li :for={resource <- @resources}>
-          <.link
-            navigate={~p"/admin/#{resource.key}"}
-            class={[
-              "rounded-lg px-2 py-2 font-medium",
-              @resource && @resource.key == resource.key && "menu-active"
-            ]}
-          >
-            {resource.label}
-          </.link>
+      <ul id="admin-resource-groups" class="menu menu-sm w-full min-w-0 gap-1 p-0 text-sm">
+        <li
+          :for={group <- @resource_groups}
+          id={"admin-resource-group-#{group.key}"}
+          class="w-full min-w-0"
+        >
+          <details class="w-full min-w-0" open={resource_group_active?(group, @resource)}>
+            <summary class="rounded-lg px-2 py-2 font-medium">{group.label}</summary>
+            <ul class="gap-1">
+              <li :for={resource <- group.resources}>
+                <.link
+                  navigate={~p"/admin/#{resource.key}"}
+                  class={[
+                    "rounded-lg px-2 py-2 font-medium",
+                    @resource && @resource.key == resource.key && "menu-active"
+                  ]}
+                >
+                  {resource.label}
+                </.link>
+              </li>
+            </ul>
+          </details>
         </li>
       </ul>
 
@@ -312,6 +323,12 @@ defmodule PhoenixFintechWeb.Layouts do
   end
 
   defp profile_name(_user), do: "Account"
+
+  defp resource_group_active?(_group, nil), do: false
+
+  defp resource_group_active?(group, resource) do
+    Enum.any?(group.resources, &(&1.key == resource.key))
+  end
 
   @doc """
   Shows the flash group with standard titles and content.

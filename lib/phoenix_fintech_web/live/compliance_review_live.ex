@@ -106,7 +106,6 @@ defmodule PhoenixFintechWeb.ComplianceReviewLive do
       current_scope={@current_scope}
       current_user={@current_user}
       section={:admin}
-      admin_resources={[]}
       admin_compliance_pending_count={@admin_compliance_pending_count}
       admin_actionable_transfer_count={@admin_actionable_transfer_count}
     >
