@@ -56,154 +56,22 @@ defmodule PhoenixFintechWeb.Layouts do
     <div class="min-h-screen bg-base-200 text-base-content">
       <%= if @current_user do %>
         <div class="flex h-screen overflow-hidden">
-          <aside class="hidden h-screen w-64 shrink-0 border-r border-base-300 bg-base-100 p-2 lg:flex lg:flex-col">
-            <a
-              href={if @section == :admin, do: ~p"/admin", else: ~p"/app"}
-              class="mb-4 flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium tracking-tight transition-colors hover:bg-base-200"
-            >
-              <span class="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-content">
-                <.icon name="hero-banknotes" class="size-4" />
-              </span>
-              <span>Phoenix Fintech</span>
-            </a>
-
-            <%= if @section == :admin do %>
-              <div class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                Workflow
-              </div>
-              <ul class="menu menu-sm gap-1 p-0 text-sm">
-                <li>
-                  <.link
-                    navigate={~p"/admin/compliance_reviews"}
-                    class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
-                  >
-                    <span class="flex items-center gap-2">
-                      <.icon name="hero-shield-check" class="size-4" /> Compliance reviews
-                    </span>
-                    <span :if={@admin_compliance_pending_count} class="badge badge-warning badge-sm">
-                      {@admin_compliance_pending_count}
-                    </span>
-                  </.link>
-                </li>
-                <li>
-                  <.link
-                    navigate={~p"/admin/transfers_processing"}
-                    class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
-                  >
-                    <span class="flex items-center gap-2">
-                      <.icon name="hero-banknotes" class="size-4" /> Transfer processing
-                    </span>
-                    <span :if={@admin_actionable_transfer_count} class="badge badge-warning badge-sm">
-                      {@admin_actionable_transfer_count}
-                    </span>
-                  </.link>
-                </li>
-              </ul>
-
-              <div class="mt-4 px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-                Resources
-              </div>
-              <ul class="menu menu-sm gap-1 p-0 text-sm">
-                <li :for={resource <- @admin_resources}>
-                  <.link
-                    navigate={~p"/admin/#{resource.key}"}
-                    class={[
-                      "rounded-lg px-2 py-2 font-medium",
-                      @admin_resource && @admin_resource.key == resource.key && "menu-active"
-                    ]}
-                  >
-                    {resource.label}
-                  </.link>
-                </li>
-              </ul>
-            <% else %>
-              <ul class="menu menu-sm gap-1 p-0 text-sm">
-                <li>
-                  <.link navigate={~p"/app"} class="gap-2 rounded-lg px-2 py-2 font-medium">
-                    <.icon name="hero-home" class="size-4" /> Dashboard
-                  </.link>
-                </li>
-                <li>
-                  <.link navigate={~p"/app/parties"} class="gap-2 rounded-lg px-2 py-2 font-medium">
-                    <.icon name="hero-building-office-2" class="size-4" /> Parties
-                  </.link>
-                </li>
-                <li>
-                  <.link navigate={~p"/app/transfers"} class="gap-2 rounded-lg px-2 py-2 font-medium">
-                    <.icon name="hero-arrows-right-left" class="size-4" /> Transfers
-                  </.link>
-                </li>
-                <li>
-                  <.link navigate={~p"/users/settings"} class="gap-2 rounded-lg px-2 py-2 font-medium">
-                    <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
-                  </.link>
-                </li>
-                <li>
-                  <.link
-                    navigate={~p"/app/notifications"}
-                    class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
-                  >
-                    <span class="flex items-center gap-2">
-                      <.icon name="hero-bell" class="size-4" /> Notifications
-                    </span>
-                    <%= if @live_root && @current_user do %>
-                      {Phoenix.Component.live_render(
-                        @live_root,
-                        PhoenixFintechWeb.NotificationBadgeLive,
-                        id: "notification-badge",
-                        session: %{"current_user_id" => @current_user.id}
-                      )}
-                    <% end %>
-                  </.link>
-                </li>
-              </ul>
-            <% end %>
-
-            <button
-              type="button"
-              popovertarget="profile-menu"
-              style="anchor-name:--profile-menu"
-              class="mt-auto flex w-full cursor-pointer items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-base-200"
-            >
-              <div class="avatar avatar-placeholder">
-                <div class="size-8 rounded-lg bg-neutral text-neutral-content">
-                  <span class="text-xs font-medium">{String.first(@profile_name)}</span>
-                </div>
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="truncate text-sm font-medium leading-tight">{@profile_name}</div>
-                <div class="truncate text-xs text-base-content/60">{@current_user.email}</div>
-              </div>
-              <.icon name="hero-chevron-up-down" class="size-4 shrink-0 text-base-content/60" />
-            </button>
-            <ul
-              popover
-              id="profile-menu"
-              style="position-anchor:--profile-menu"
-              class="dropdown dropdown-top menu mb-2 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow"
-            >
-              <li>
-                <.link navigate={~p"/users/settings"}>
-                  <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
-                </.link>
-              </li>
-              <li>
-                <.link href={~p"/users/log_out"} method="delete">
-                  <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Sign out
-                </.link>
-              </li>
-              <li :if={@current_user.is_admin && @section != :admin}>
-                <.link navigate={~p"/admin"}>
-                  <.icon name="hero-shield-check" class="size-4" /> Admin
-                </.link>
-              </li>
-              <li :if={@current_user.is_admin && @section == :admin}>
-                <.link navigate={~p"/app"}>
-                  <.icon name="hero-arrow-left" class="size-4" /> Back to app
-                </.link>
-              </li>
-            </ul>
-          </aside>
+          <%= if @section == :admin do %>
+            <.admin_sidebar
+              current_user={@current_user}
+              profile_name={@profile_name}
+              resources={@admin_resources}
+              resource={@admin_resource}
+              compliance_pending_count={@admin_compliance_pending_count}
+              actionable_transfer_count={@admin_actionable_transfer_count}
+            />
+          <% else %>
+            <.app_sidebar
+              current_user={@current_user}
+              profile_name={@profile_name}
+              live_root={@live_root}
+            />
+          <% end %>
           <main class="min-w-0 flex-1 overflow-y-auto p-4">
             {render_slot(@inner_block)}
           </main>
@@ -216,6 +84,219 @@ defmodule PhoenixFintechWeb.Layouts do
 
       <.flash_group flash={@flash} />
     </div>
+    """
+  end
+
+  attr :current_user, :map, required: true
+  attr :profile_name, :string, required: true
+  attr :live_root, :any, default: nil
+
+  defp app_sidebar(assigns) do
+    ~H"""
+    <aside class="hidden h-screen w-64 shrink-0 border-r border-base-300 bg-base-100 p-2 lg:flex lg:flex-col">
+      <a
+        href={~p"/app"}
+        class="mb-4 flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium tracking-tight transition-colors hover:bg-base-200"
+      >
+        <span class="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-content">
+          <.icon name="hero-banknotes" class="size-4" />
+        </span>
+        <span>Phoenix Fintech</span>
+      </a>
+
+      <ul class="menu menu-sm gap-1 p-0 text-sm">
+        <li>
+          <.link navigate={~p"/app"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+            <.icon name="hero-home" class="size-4" /> Dashboard
+          </.link>
+        </li>
+        <li>
+          <.link navigate={~p"/app/parties"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+            <.icon name="hero-building-office-2" class="size-4" /> Parties
+          </.link>
+        </li>
+        <li>
+          <.link navigate={~p"/app/transfers"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+            <.icon name="hero-arrows-right-left" class="size-4" /> Transfers
+          </.link>
+        </li>
+        <li>
+          <.link navigate={~p"/users/settings"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+            <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+          </.link>
+        </li>
+        <li>
+          <.link
+            navigate={~p"/app/notifications"}
+            class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
+          >
+            <span class="flex items-center gap-2">
+              <.icon name="hero-bell" class="size-4" /> Notifications
+            </span>
+            <%= if @live_root do %>
+              {Phoenix.Component.live_render(
+                @live_root,
+                PhoenixFintechWeb.NotificationBadgeLive,
+                id: "notification-badge",
+                session: %{"current_user_id" => @current_user.id}
+              )}
+            <% end %>
+          </.link>
+        </li>
+      </ul>
+
+      <button
+        type="button"
+        popovertarget="app-profile-menu"
+        style="anchor-name:--app-profile-menu"
+        class="mt-auto flex w-full cursor-pointer items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-base-200"
+      >
+        <div class="avatar avatar-placeholder">
+          <div class="size-8 rounded-lg bg-neutral text-neutral-content">
+            <span class="text-xs font-medium">{String.first(@profile_name)}</span>
+          </div>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="truncate text-sm font-medium leading-tight">{@profile_name}</div>
+          <div class="truncate text-xs text-base-content/60">{@current_user.email}</div>
+        </div>
+        <.icon name="hero-chevron-up-down" class="size-4 shrink-0 text-base-content/60" />
+      </button>
+      <ul
+        popover
+        id="app-profile-menu"
+        style="position-anchor:--app-profile-menu"
+        class="dropdown dropdown-top menu mb-2 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow"
+      >
+        <li>
+          <.link navigate={~p"/users/settings"}>
+            <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+          </.link>
+        </li>
+        <li>
+          <.link href={~p"/users/log_out"} method="delete">
+            <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Sign out
+          </.link>
+        </li>
+        <li :if={@current_user.is_admin}>
+          <.link navigate={~p"/admin"}>
+            <.icon name="hero-shield-check" class="size-4" /> Admin
+          </.link>
+        </li>
+      </ul>
+    </aside>
+    """
+  end
+
+  attr :current_user, :map, required: true
+  attr :profile_name, :string, required: true
+  attr :resources, :list, default: []
+  attr :resource, :map, default: nil
+  attr :compliance_pending_count, :integer, default: nil
+  attr :actionable_transfer_count, :integer, default: nil
+
+  defp admin_sidebar(assigns) do
+    ~H"""
+    <aside class="hidden h-screen w-64 shrink-0 border-r border-base-300 bg-base-100 p-2 lg:flex lg:flex-col">
+      <a
+        href={~p"/admin"}
+        class="mb-4 flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium tracking-tight transition-colors hover:bg-base-200"
+      >
+        <span class="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-content">
+          <.icon name="hero-banknotes" class="size-4" />
+        </span>
+        <span>Phoenix Fintech</span>
+      </a>
+
+      <div class="px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+        Workflow
+      </div>
+      <ul class="menu menu-sm gap-1 p-0 text-sm">
+        <li>
+          <.link
+            navigate={~p"/admin/compliance_reviews"}
+            class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
+          >
+            <span class="flex items-center gap-2">
+              <.icon name="hero-shield-check" class="size-4" /> Compliance reviews
+            </span>
+            <span :if={@compliance_pending_count} class="badge badge-warning badge-sm">
+              {@compliance_pending_count}
+            </span>
+          </.link>
+        </li>
+        <li>
+          <.link
+            navigate={~p"/admin/transfers_processing"}
+            class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
+          >
+            <span class="flex items-center gap-2">
+              <.icon name="hero-banknotes" class="size-4" /> Transfer processing
+            </span>
+            <span :if={@actionable_transfer_count} class="badge badge-warning badge-sm">
+              {@actionable_transfer_count}
+            </span>
+          </.link>
+        </li>
+      </ul>
+
+      <div class="mt-4 px-2 pb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+        Resources
+      </div>
+      <ul class="menu menu-sm gap-1 p-0 text-sm">
+        <li :for={resource <- @resources}>
+          <.link
+            navigate={~p"/admin/#{resource.key}"}
+            class={[
+              "rounded-lg px-2 py-2 font-medium",
+              @resource && @resource.key == resource.key && "menu-active"
+            ]}
+          >
+            {resource.label}
+          </.link>
+        </li>
+      </ul>
+
+      <button
+        type="button"
+        popovertarget="admin-profile-menu"
+        style="anchor-name:--admin-profile-menu"
+        class="mt-auto flex w-full cursor-pointer items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-base-200"
+      >
+        <div class="avatar avatar-placeholder">
+          <div class="size-8 rounded-lg bg-neutral text-neutral-content">
+            <span class="text-xs font-medium">{String.first(@profile_name)}</span>
+          </div>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="truncate text-sm font-medium leading-tight">{@profile_name}</div>
+          <div class="truncate text-xs text-base-content/60">{@current_user.email}</div>
+        </div>
+        <.icon name="hero-chevron-up-down" class="size-4 shrink-0 text-base-content/60" />
+      </button>
+      <ul
+        popover
+        id="admin-profile-menu"
+        style="position-anchor:--admin-profile-menu"
+        class="dropdown dropdown-top menu mb-2 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow"
+      >
+        <li>
+          <.link navigate={~p"/users/settings"}>
+            <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+          </.link>
+        </li>
+        <li>
+          <.link href={~p"/users/log_out"} method="delete">
+            <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Sign out
+          </.link>
+        </li>
+        <li>
+          <.link navigate={~p"/app"}>
+            <.icon name="hero-arrow-left" class="size-4" /> Back to app
+          </.link>
+        </li>
+      </ul>
+    </aside>
     """
   end
 
