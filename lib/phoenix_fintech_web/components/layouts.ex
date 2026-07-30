@@ -159,42 +159,50 @@ defmodule PhoenixFintechWeb.Layouts do
               </ul>
             <% end %>
 
-            <details class="dropdown dropdown-top mt-auto w-full">
-              <summary class="flex cursor-pointer list-none items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-base-200">
-                <div class="avatar avatar-placeholder">
-                  <div class="size-8 rounded-lg bg-neutral text-neutral-content">
-                    <span class="text-xs font-medium">{String.first(@profile_name)}</span>
-                  </div>
+            <button
+              type="button"
+              popovertarget="profile-menu"
+              style="anchor-name:--profile-menu"
+              class="mt-auto flex w-full cursor-pointer items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-base-200"
+            >
+              <div class="avatar avatar-placeholder">
+                <div class="size-8 rounded-lg bg-neutral text-neutral-content">
+                  <span class="text-xs font-medium">{String.first(@profile_name)}</span>
                 </div>
-                <div class="min-w-0 flex-1">
-                  <div class="truncate text-sm font-medium leading-tight">{@profile_name}</div>
-                  <div class="truncate text-xs text-base-content/60">{@current_user.email}</div>
-                </div>
-                <.icon name="hero-chevron-up-down" class="size-4 shrink-0 text-base-content/60" />
-              </summary>
-              <ul class="menu dropdown-content z-10 mb-2 w-full rounded-box border border-base-300 bg-base-100 p-2 shadow">
-                <li>
-                  <.link navigate={~p"/users/settings"}>
-                    <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
-                  </.link>
-                </li>
-                <li>
-                  <.link href={~p"/users/log_out"} method="delete">
-                    <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Sign out
-                  </.link>
-                </li>
-                <li :if={@current_user.is_admin && @section != :admin}>
-                  <.link navigate={~p"/admin"}>
-                    <.icon name="hero-shield-check" class="size-4" /> Admin
-                  </.link>
-                </li>
-                <li :if={@current_user.is_admin && @section == :admin}>
-                  <.link navigate={~p"/app"}>
-                    <.icon name="hero-arrow-left" class="size-4" /> Back to app
-                  </.link>
-                </li>
-              </ul>
-            </details>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-medium leading-tight">{@profile_name}</div>
+                <div class="truncate text-xs text-base-content/60">{@current_user.email}</div>
+              </div>
+              <.icon name="hero-chevron-up-down" class="size-4 shrink-0 text-base-content/60" />
+            </button>
+            <ul
+              popover
+              id="profile-menu"
+              style="position-anchor:--profile-menu"
+              class="dropdown dropdown-top menu mb-2 w-60 rounded-box border border-base-300 bg-base-100 p-2 shadow"
+            >
+              <li>
+                <.link navigate={~p"/users/settings"}>
+                  <.icon name="hero-cog-6-tooth" class="size-4" /> Settings
+                </.link>
+              </li>
+              <li>
+                <.link href={~p"/users/log_out"} method="delete">
+                  <.icon name="hero-arrow-right-start-on-rectangle" class="size-4" /> Sign out
+                </.link>
+              </li>
+              <li :if={@current_user.is_admin && @section != :admin}>
+                <.link navigate={~p"/admin"}>
+                  <.icon name="hero-shield-check" class="size-4" /> Admin
+                </.link>
+              </li>
+              <li :if={@current_user.is_admin && @section == :admin}>
+                <.link navigate={~p"/app"}>
+                  <.icon name="hero-arrow-left" class="size-4" /> Back to app
+                </.link>
+              </li>
+            </ul>
           </aside>
           <main class="min-w-0 flex-1 overflow-y-auto p-4">
             {render_slot(@inner_block)}

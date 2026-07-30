@@ -467,29 +467,37 @@ defmodule PhoenixFintechWeb.AdminLive do
 
   defp actions_dropdown(assigns) do
     ~H"""
-    <details class="dropdown dropdown-end">
-      <summary class="btn btn-xs btn-ghost">
-        <.icon name="hero-bars-3" class="size-4" />
-      </summary>
-      <ul class="menu dropdown-content z-50 mt-1 w-40 rounded-box border border-base-300 bg-base-100 p-2 shadow">
-        <li>
-          <.link navigate={~p"/admin/#{@resource_key}/#{record_id(@record)}/edit"}>
-            <.icon name="hero-pencil-square" class="size-4" /> Edit
-          </.link>
-        </li>
-        <li>
-          <button
-            type="button"
-            phx-click="delete"
-            phx-value-id={record_id(@record)}
-            data-confirm="Are you sure you want to delete this record?"
-            class="text-error"
-          >
-            <.icon name="hero-trash" class="size-4" /> Delete
-          </button>
-        </li>
-      </ul>
-    </details>
+    <button
+      type="button"
+      popovertarget={"actions-menu-#{record_id(@record)}"}
+      style={"anchor-name:--actions-menu-#{record_id(@record)}"}
+      class="btn btn-xs btn-ghost"
+    >
+      <.icon name="hero-bars-3" class="size-4" />
+    </button>
+    <ul
+      popover
+      id={"actions-menu-#{record_id(@record)}"}
+      style={"position-anchor:--actions-menu-#{record_id(@record)}"}
+      class="dropdown dropdown-end menu mt-1 w-40 rounded-box border border-base-300 bg-base-100 p-2 shadow"
+    >
+      <li>
+        <.link navigate={~p"/admin/#{@resource_key}/#{record_id(@record)}/edit"}>
+          <.icon name="hero-pencil-square" class="size-4" /> Edit
+        </.link>
+      </li>
+      <li>
+        <button
+          type="button"
+          phx-click="delete"
+          phx-value-id={record_id(@record)}
+          data-confirm="Are you sure you want to delete this record?"
+          class="text-error"
+        >
+          <.icon name="hero-trash" class="size-4" /> Delete
+        </button>
+      </li>
+    </ul>
     """
   end
 end
