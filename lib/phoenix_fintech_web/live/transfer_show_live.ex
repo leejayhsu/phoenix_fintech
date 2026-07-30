@@ -50,43 +50,14 @@ defmodule PhoenixFintechWeb.TransferShowLive do
 
         <div class="card card-border bg-base-200">
           <div class="border-b border-base-300 bg-base-200 px-6 py-5">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h1 class="text-2xl font-semibold">Transfer details</h1>
-                <p class="mt-1 text-sm text-base-content/60">
-                  Transfer reference:
-                  <span id="transfer-reference" class="font-mono text-base-content">
-                    {@transfer.id}
-                  </span>
-                </p>
-              </div>
-              <span id="transfer-status-badge" class={status_badge_classes(@transfer.status)}>
-                {format_status(@transfer.status)}
-              </span>
+            <div class="flex flex-wrap items-center gap-3">
+              <h1 class="text-2xl font-semibold">Transfer details</h1>
+              <.copy_value id="transfer-reference" value={@transfer.id} />
             </div>
           </div>
 
-          <div
-            id="transfer-direction"
-            class="flex flex-wrap items-center gap-2 border-b border-base-300 bg-base-200 px-6 py-3 text-sm"
-          >
-            <span class="text-base-content/60">Direction:</span>
-            <span class="badge badge-soft">
-              <.icon
-                name={if @transfer.direction == :send, do: "hero-arrow-up", else: "hero-arrow-down"}
-                class="size-4"
-              />
-              {@transfer.direction |> to_string() |> String.capitalize()}
-            </span>
-            <span class="text-base-content/60">·</span>
-            <span class="text-base-content/70">
-              <span class="font-medium">{sender_party(@transfer).legal_name}</span>
-              sends to <span class="font-medium">{recipient_party(@transfer).legal_name}</span>
-            </span>
-          </div>
-
           <div class="grid gap-6 px-6 py-6 lg:grid-cols-[2fr_1fr]">
-            <div class="space-y-6">
+            <div class="grid gap-6 lg:row-span-3 lg:grid-rows-subgrid">
               <div id="transfer-parties" class="grid gap-4 sm:grid-cols-2">
                 <article class="card card-border bg-base-100">
                   <div class="card-body p-4">
@@ -115,7 +86,9 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                 class="card card-border bg-base-100"
               >
                 <div class="card-body p-4">
-                  <h2 class="card-title text-sm">Transfer amounts</h2>
+                  <h2 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Transfer amounts
+                  </h2>
                   <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
                     <div>
                       <dt class="text-base-content/60">Originator amount</dt>
@@ -145,7 +118,9 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                 class="card card-border bg-base-100"
               >
                 <div class="card-body p-4">
-                  <h2 class="card-title text-sm">Transfer quote</h2>
+                  <h2 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Transfer quote
+                  </h2>
                   <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
                     <div>
                       <dt class="text-base-content/60">Customer FX rate</dt>
@@ -189,29 +164,67 @@ defmodule PhoenixFintechWeb.TransferShowLive do
               </div>
             </div>
 
-            <aside
-              id="transfer-status-timeline"
-              class="card card-border bg-base-100"
-            >
-              <div class="card-body p-4">
-                <h2 class="card-title text-sm">Workflow progress</h2>
-                <ol class="timeline timeline-compact timeline-vertical mt-4">
-                  <li
-                    :for={step <- @status_steps}
-                    id={"status-step-#{step.status}"}
-                  >
-                    <div class="timeline-middle">
-                      <span class={timeline_dot_classes(step.state)}></span>
-                    </div>
-                    <div class="timeline-end pb-4">
-                      <p class="text-sm font-medium">
-                        {format_status(step.status)}
-                      </p>
-                      <p class="text-xs text-base-content/60">{@status_copy[step.status]}</p>
-                    </div>
-                  </li>
-                </ol>
-              </div>
+            <aside class="grid gap-6 lg:row-span-3 lg:grid-rows-subgrid">
+              <section id="transfer-status" class="card card-border bg-base-100">
+                <div class="card-body p-4">
+                  <h2 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Status
+                  </h2>
+                  <div class="mt-2">
+                    <span id="transfer-status-badge" class={status_badge_classes(@transfer.status)}>
+                      {format_status(@transfer.status)}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              <section id="transfer-direction" class="card card-border bg-base-100">
+                <div class="card-body p-4">
+                  <h2 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Direction
+                  </h2>
+                  <div class="mt-2">
+                    <span class="badge badge-soft">
+                      <.icon
+                        name={
+                          if @transfer.direction == :send,
+                            do: "hero-arrow-up",
+                            else: "hero-arrow-down"
+                        }
+                        class="size-4"
+                      />
+                      {@transfer.direction |> to_string() |> String.capitalize()}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                id="transfer-status-timeline"
+                class="card card-border bg-base-100"
+              >
+                <div class="card-body p-4">
+                  <h2 class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                    Workflow progress
+                  </h2>
+                  <ol class="timeline timeline-compact timeline-vertical mt-4">
+                    <li
+                      :for={step <- @status_steps}
+                      id={"status-step-#{step.status}"}
+                    >
+                      <div class="timeline-middle">
+                        <span class={timeline_dot_classes(step.state)}></span>
+                      </div>
+                      <div class="timeline-end pb-4">
+                        <p class="text-sm font-medium">
+                          {format_status(step.status)}
+                        </p>
+                        <p class="text-xs text-base-content/60">{@status_copy[step.status]}</p>
+                      </div>
+                    </li>
+                  </ol>
+                </div>
+              </section>
             </aside>
 
             <section id="transfer-events" class="lg:col-span-2">
@@ -277,12 +290,6 @@ defmodule PhoenixFintechWeb.TransferShowLive do
     do: status |> to_string() |> String.replace("_", " ") |> String.capitalize()
 
   defp format_event_type(event_type), do: format_status(event_type)
-
-  defp sender_party(%{direction: :receive, counterparty_party: counterparty}), do: counterparty
-  defp sender_party(%{originator_party: originator}), do: originator
-
-  defp recipient_party(%{direction: :receive, originator_party: originator}), do: originator
-  defp recipient_party(%{counterparty_party: counterparty}), do: counterparty
 
   defp status_badge_classes("created"),
     do: "badge badge-soft badge-warning"
