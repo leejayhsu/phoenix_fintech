@@ -11,6 +11,7 @@ defmodule PhoenixFintech.Transfers do
     Transfer,
     TransferEvent,
     TransferQuote,
+    TransferTemplate,
     TransferStateMachine,
     UserOriginatorConfig,
     Deposit,
@@ -40,6 +41,78 @@ defmodule PhoenixFintech.Transfers do
   def get_transfer!(id) do
     Repo.get!(Transfer, id)
     |> Repo.preload(transfer_preloads())
+  end
+
+  def list_transfer_templates_for_user(user_id) do
+    Repo.all(
+      from template in TransferTemplate,
+        where: template.user_id == ^user_id,
+        order_by: [desc: template.inserted_at],
+        preload: [:originator_party, :counterparty_party]
+    )
+  end
+
+  def get_transfer_template_for_user(user_id, id) do
+    with {:ok, id} <- Ecto.UUID.cast(id) do
+      Repo.one(
+        from template in TransferTemplate,
+          where: template.id == ^id and template.user_id == ^user_id,
+          preload: [:originator_party, :counterparty_party]
+      )
+    else
+      :error -> nil
+    end
+  end
+
+  def create_transfer_template(user_id, transfer_id, spread_basis_points) do
+    transfer =
+      Repo.one(
+        from transfer in Transfer,
+          where:
+            transfer.id == ^transfer_id and transfer.created_by_user_id == ^user_id and
+              transfer.status == "completed",
+          preload: [:transfer_quote]
+      )
+
+    case transfer do
+      %Transfer{transfer_quote: %TransferQuote{}} = transfer ->
+        attrs = %{
+          originator_party_id: transfer.originator_party_id,
+          counterparty_party_id: transfer.counterparty_party_id,
+          originator_currency_code: transfer.originator_currency_code,
+          counterparty_currency_code: transfer.counterparty_currency_code,
+          spread_basis_points: spread_basis_points,
+          direction: transfer.direction
+        }
+
+        %TransferTemplate{user_id: user_id}
+        |> TransferTemplate.changeset(attrs)
+        |> Repo.insert()
+
+      _ ->
+        {:error, :invalid_source_transfer}
+    end
+  end
+
+  def create_transfer_from_template(user_id, template_id, amount) do
+    case get_transfer_template_for_user(user_id, template_id) do
+      %TransferTemplate{} = template ->
+        attrs = %{
+          "originator_party_id" => template.originator_party_id,
+          "counterparty_party_id" => template.counterparty_party_id,
+          "originator_currency_code" => template.originator_currency_code,
+          "counterparty_currency_code" => template.counterparty_currency_code,
+          "amount_in_originator_currency" => amount,
+          "spread_basis_points" => template.spread_basis_points
+        }
+
+        with {:ok, quote} <- quote_transfer(user_id, attrs) do
+          create_transfer_from_quote(user_id, quote.id, %{"direction" => template.direction})
+        end
+
+      nil ->
+        {:error, :template, :not_found, %{}}
+    end
   end
 
   def list_transfer_events(transfer_id) do
