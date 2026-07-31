@@ -326,10 +326,14 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :currency_prompt, :string, default: nil
   attr :currency_codes_only, :boolean, default: false
   attr :stacked, :boolean, default: false
+  attr :split, :boolean, default: false
 
   def quote_terms_fields(assigns) do
     ~H"""
-    <div class="space-y-4 [&_.fieldset]:mb-0">
+    <div class={[
+      "[&_.fieldset]:mb-0",
+      if(@split, do: "grid grid-cols-2 items-start gap-4", else: "space-y-4")
+    ]}>
       <.input
         field={@form[:spread_basis_points]}
         type="number"
@@ -341,7 +345,11 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
       <div class={[
         "grid",
-        if(@stacked, do: "gap-0", else: "gap-4 sm:grid-cols-2")
+        cond do
+          @split -> "gap-0"
+          @stacked -> "gap-0"
+          true -> "gap-4 sm:grid-cols-2"
+        end
       ]}>
         <.input
           field={@form[:originator_currency_code]}
@@ -547,7 +555,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
     ~H"""
     <div class={[
       "card card-border bg-base-200 relative overflow-hidden",
-      @vertical && "min-h-60",
+      @vertical && "h-24",
       !@vertical && "mt-4"
     ]}>
       <img
@@ -555,19 +563,19 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         src={@from_flag_url}
         alt=""
         aria-hidden="true"
-        class="pointer-events-none absolute -top-6 -left-8 h-3/5 w-3/5 scale-125 object-cover opacity-20 [mask-image:radial-gradient(circle_at_top_left,black_15%,transparent_72%)]"
+        class="pointer-events-none absolute inset-y-0 -left-4 h-full w-1/2 object-cover opacity-20 [mask-image:linear-gradient(to_right,black_0%,rgba(0,0,0,0.8)_20%,rgba(0,0,0,0.35)_50%,transparent_80%)]"
       />
       <img
         :if={@vertical && @to_flag_url}
         src={@to_flag_url}
         alt=""
         aria-hidden="true"
-        class="pointer-events-none absolute -right-8 -bottom-6 h-3/5 w-3/5 scale-125 object-cover opacity-20 [mask-image:radial-gradient(circle_at_bottom_right,black_15%,transparent_72%)]"
+        class="pointer-events-none absolute inset-y-0 -right-4 h-full w-1/2 object-cover opacity-20 [mask-image:linear-gradient(to_left,black_0%,rgba(0,0,0,0.8)_20%,rgba(0,0,0,0.35)_50%,transparent_80%)]"
       />
       <div class={[
-        "card-body relative z-10 gap-3 p-4",
-        @vertical && "items-center justify-center text-center",
-        !@vertical && "sm:flex-row sm:items-center sm:justify-between"
+        "card-body relative z-10",
+        @vertical && "h-full items-center justify-between px-4 py-3 text-center",
+        !@vertical && "gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
       ]}>
         <div>
           <div class={[
@@ -575,7 +583,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
             @vertical && "flex-col"
           ]}>
             <span class="badge badge-success badge-soft">Live spot</span>
-            <span :if={!@vertical} class="flex items-center gap-2">
+            <span :if={!@vertical} class="flex items-center">
               <span class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
                 {@from_currency_code}/{@to_currency_code}
               </span>
@@ -590,18 +598,18 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         </div>
         <div class={[
           "text-left",
-          @vertical && "mt-2 text-center",
+          @vertical && "text-center",
           !@vertical && "sm:text-right"
         ]}>
           <p class={[
             "font-semibold tabular-nums",
-            @vertical && "text-4xl",
-            !@vertical && "text-3xl"
+            cond do
+              @vertical && is_nil(@rate) -> "text-2xl leading-none"
+              @vertical -> "text-4xl leading-none"
+              true -> "text-3xl"
+            end
           ]}>
-            {format_spot_rate(@rate)}
-          </p>
-          <p class="mt-1 text-xs text-center text-base-content/60">
-            Updated {format_spot_updated_at(@updated_at)}
+            {if(@vertical && is_nil(@rate), do: "Select pair", else: format_spot_rate(@rate))}
           </p>
         </div>
       </div>
@@ -849,12 +857,6 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
       "MXN" -> flag_url("MX")
       _currency_code -> nil
     end
-  end
-
-  defp format_spot_updated_at(nil), do: "on next tick"
-
-  defp format_spot_updated_at(%DateTime{} = updated_at) do
-    Calendar.strftime(updated_at, "%H:%M:%S UTC")
   end
 
   defp party_card_classes(true),

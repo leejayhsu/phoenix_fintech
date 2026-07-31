@@ -31,22 +31,6 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
   end
 
   @impl true
-  def handle_event("open_create_quote", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:form, quote_form(socket.assigns.currencies))
-     |> assign(:form_error, nil)
-     |> push_event("open_dialog", %{id: "create-day-quote-dialog"})}
-  end
-
-  def handle_event("close_create_quote", _params, socket) do
-    {:noreply,
-     socket
-     |> assign(:form, quote_form(socket.assigns.currencies))
-     |> assign(:form_error, nil)}
-  end
-
-  @impl true
   def handle_event("quote_changed", %{"quote" => params}, socket) do
     {:noreply,
      socket
@@ -65,7 +49,6 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
          |> assign(:form, quote_form(socket.assigns.currencies))
          |> assign(:form_error, nil)
          |> stream_insert(:quotes, quote, at: 0)
-         |> push_event("close_dialog", %{id: "create-day-quote-dialog"})
          |> put_flash(:info, "Day Quote created and available until the end of today.")}
 
       {:error, :invalid_terms} ->
@@ -124,87 +107,11 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
       current_user={@current_user}
       socket={@socket}
     >
-      <section id="day-quotes-index" class="mx-auto max-w-7xl space-y-6">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p class="text-sm font-medium text-primary">FX pricing</p>
-            <h1 class="mt-1 text-3xl font-semibold">Day Quotes</h1>
-            <p class="mt-2 max-w-2xl text-sm text-base-content/70">
-              Lock currency terms once, then reuse them across transfers until 11:59 PM UTC today.
-            </p>
-          </div>
-          <button
-            id="open-create-day-quote-button"
-            type="button"
-            phx-click="open_create_quote"
-            class="btn btn-primary shrink-0"
-          >
-            <.icon name="hero-plus" class="size-4" /> Create Day Quote
-          </button>
-        </div>
+      <section id="day-quotes-index" class="mx-auto max-w-7xl space-y-4">
+        <h1 class="text-3xl font-semibold">Day Quotes</h1>
 
-        <div class="card card-border bg-base-100">
-          <div class="card-body gap-4">
-            <div>
-              <h2 class="card-title">Quote history</h2>
-              <p class="text-sm text-base-content/60">Current and expired reusable quotes.</p>
-            </div>
-
-            <div class="overflow-x-auto">
-              <table class="table table-zebra">
-                <thead>
-                  <tr>
-                    <th>Pair</th>
-                    <th>Customer rate</th>
-                    <th>Spread</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th><span class="sr-only">Actions</span></th>
-                  </tr>
-                </thead>
-                <tbody id="day-quotes-table" phx-update="stream">
-                  <tr id="day-quotes-empty" class="hidden only:table-row">
-                    <td colspan="6" class="py-10 text-center text-base-content/60">
-                      No Day Quotes yet. Create your first one using the form.
-                    </td>
-                  </tr>
-                  <tr :for={{id, quote} <- @streams.quotes} id={id}>
-                    <td class="font-semibold">
-                      {quote.originator_currency_code}/{quote.counterparty_currency_code}
-                    </td>
-                    <td class="font-mono text-sm">{format_rate(quote.customer_fx_rate)}</td>
-                    <td>{quote.spread_basis_points} bps</td>
-                    <td>
-                      <span class={status_badge_classes(quote)}>{quote_status(quote)}</span>
-                    </td>
-                    <td class="whitespace-nowrap text-sm text-base-content/70">
-                      {format_datetime(quote.inserted_at)}
-                    </td>
-                    <td class="text-right">
-                      <button
-                        id={"recreate-day-quote-#{quote.id}"}
-                        type="button"
-                        phx-click="recreate_quote"
-                        phx-value-id={quote.id}
-                        class="btn btn-ghost btn-sm"
-                      >
-                        <.icon name="hero-arrow-path" class="size-4" /> Recreate
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <dialog
-          id="create-day-quote-dialog"
-          class="modal"
-          phx-hook=".DayQuoteDialog"
-          data-close-event="close_create_quote"
-        >
-          <div class="modal-box w-[calc(100%-2rem)] max-w-lg! p-0">
+        <div class="grid items-start gap-6 lg:grid-cols-[minmax(20rem,0.8fr)_minmax(0,1.6fr)]">
+          <div class="card card-border bg-base-100">
             <.form
               for={@form}
               id="create-day-quote-form"
@@ -212,43 +119,26 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
               phx-submit="create_quote"
             >
               <div class="p-5 sm:p-6">
-                <div class="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 class="text-xl font-semibold">Create a Day Quote</h2>
-                    <p class="mt-1 text-sm text-base-content/60">
-                      The current spot rate is captured when you create it.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    phx-click={JS.dispatch("phx:close-dialog", to: "#create-day-quote-dialog")}
-                    class="btn btn-ghost btn-circle btn-sm"
-                    aria-label="Close dialog"
-                  >
-                    <.icon name="hero-x-mark" class="size-5" />
-                  </button>
-                </div>
+                <h2 class="text-xl font-semibold">Create a Day Quote</h2>
 
-                <div class="mt-5 space-y-5">
+                <div class="mt-4 space-y-5">
                   <div :if={@form_error} role="alert" class="alert alert-error alert-soft text-sm">
                     <.icon name="hero-exclamation-circle" class="size-5" />
                     <span>{@form_error}</span>
                   </div>
 
-                  <div class="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:items-center">
-                    <div>
-                      <.quote_terms_fields
-                        form={@form}
-                        currencies={@currencies}
-                        currency_prompt="Choose"
-                        currency_codes_only={true}
-                        stacked={true}
-                      />
-                    </div>
+                  <div class="space-y-5">
+                    <.quote_terms_fields
+                      form={@form}
+                      currencies={@currencies}
+                      currency_prompt="Choose"
+                      currency_codes_only={true}
+                      split={true}
+                    />
 
-                    <div class="min-w-0">
+                    <div>
                       <.spot_rate_card
-                        :if={currencies_selected?(@form)}
+                        :if={any_currency_selected?(@form)}
                         rate={selected_spot_rate(@spot_rates, @form.params)}
                         from_currency_code={@form.params["originator_currency_code"]}
                         to_currency_code={@form.params["counterparty_currency_code"]}
@@ -256,17 +146,14 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
                         vertical={true}
                       />
                       <div
-                        :if={!currencies_selected?(@form)}
-                        class="card card-border h-full bg-base-200"
+                        :if={!any_currency_selected?(@form)}
+                        class="card card-border bg-base-200"
                       >
-                        <div class="card-body min-h-60 items-center justify-center text-center">
+                        <div class="card-body h-24 items-center justify-center text-center">
                           <span class="flex size-10 items-center justify-center rounded-box bg-base-300">
                             <.icon name="hero-chart-bar" class="size-5 text-base-content/60" />
                           </span>
                           <p class="flex-none font-medium">Live FX rate</p>
-                          <p class="flex-none text-sm text-base-content/60">
-                            Choose both currencies to see the current rate.
-                          </p>
                         </div>
                       </div>
                     </div>
@@ -277,14 +164,7 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
                       <.icon name="hero-clock" class="size-5 shrink-0" />
                       <span>Expires today at 11:59 PM UTC</span>
                     </div>
-                    <div class="flex justify-end gap-3">
-                      <button
-                        type="button"
-                        phx-click={JS.dispatch("phx:close-dialog", to: "#create-day-quote-dialog")}
-                        class="btn btn-ghost"
-                      >
-                        Cancel
-                      </button>
+                    <div class="flex justify-end">
                       <button
                         id="create-day-quote-button"
                         type="submit"
@@ -299,41 +179,62 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
               </div>
             </.form>
           </div>
-          <button
-            type="button"
-            phx-click={JS.dispatch("phx:close-dialog", to: "#create-day-quote-dialog")}
-            class="modal-backdrop"
-            aria-label="Close dialog"
-          >
-            close
-          </button>
-        </dialog>
 
-        <script :type={Phoenix.LiveView.ColocatedHook} name=".DayQuoteDialog">
-          export default {
-            mounted() {
-              this.handleEvent("open_dialog", ({id}) => {
-                if (id === this.el.id && !this.el.open) this.el.showModal()
-              })
-              this.handleEvent("close_dialog", ({id}) => {
-                if (id === this.el.id && this.el.open) this.el.close()
-              })
-              this.el.addEventListener("phx:close-dialog", () => {
-                if (this.el.open) this.el.close()
-              })
-              this.el.addEventListener("close", () => this.pushEvent(this.el.dataset.closeEvent, {}))
-            },
-            beforeUpdate() {
-              this.wasOpen = this.el.open
-              this.focusedElementId = document.activeElement?.id
-            },
-            updated() {
-              if (this.wasOpen && !this.el.open) this.el.showModal()
-              const focusedElement = document.getElementById(this.focusedElementId)
-              if (focusedElement && document.activeElement !== focusedElement) focusedElement.focus()
-            }
-          }
-        </script>
+          <div class="card card-border min-w-0 bg-base-100">
+            <div class="card-body gap-4">
+              <div>
+                <h2 class="card-title">Quote history</h2>
+                <p class="text-sm text-base-content/60">Current and expired reusable quotes.</p>
+              </div>
+
+              <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                  <thead>
+                    <tr>
+                      <th>Pair</th>
+                      <th>Customer rate</th>
+                      <th>Spread</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                      <th><span class="sr-only">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="day-quotes-table" phx-update="stream">
+                    <tr id="day-quotes-empty" class="hidden only:table-row">
+                      <td colspan="6" class="py-10 text-center text-base-content/60">
+                        No Day Quotes yet. Create your first one using the form.
+                      </td>
+                    </tr>
+                    <tr :for={{id, quote} <- @streams.quotes} id={id}>
+                      <td class="font-semibold">
+                        {quote.originator_currency_code}/{quote.counterparty_currency_code}
+                      </td>
+                      <td class="font-mono text-sm">{format_rate(quote.customer_fx_rate)}</td>
+                      <td>{quote.spread_basis_points} bps</td>
+                      <td>
+                        <span class={status_badge_classes(quote)}>{quote_status(quote)}</span>
+                      </td>
+                      <td class="whitespace-nowrap text-sm text-base-content/70">
+                        {format_datetime(quote.inserted_at)}
+                      </td>
+                      <td class="text-right">
+                        <button
+                          id={"recreate-day-quote-#{quote.id}"}
+                          type="button"
+                          phx-click="recreate_quote"
+                          phx-value-id={quote.id}
+                          class="btn btn-ghost btn-sm"
+                        >
+                          <.icon name="hero-arrow-path" class="size-4" /> Recreate
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
     </Layouts.app>
     """
@@ -352,6 +253,11 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
 
   defp currencies_selected?(form) do
     form.params["originator_currency_code"] not in [nil, ""] and
+      form.params["counterparty_currency_code"] not in [nil, ""]
+  end
+
+  defp any_currency_selected?(form) do
+    form.params["originator_currency_code"] not in [nil, ""] or
       form.params["counterparty_currency_code"] not in [nil, ""]
   end
 
