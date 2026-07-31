@@ -539,14 +539,33 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :vertical, :boolean, default: false
 
   def spot_rate_card(assigns) do
+    assigns =
+      assigns
+      |> assign(:from_flag_url, currency_flag_url(assigns.from_currency_code))
+      |> assign(:to_flag_url, currency_flag_url(assigns.to_currency_code))
+
     ~H"""
     <div class={[
-      "card card-border bg-base-200",
+      "card card-border bg-base-200 relative overflow-hidden",
       @vertical && "min-h-60",
       !@vertical && "mt-4"
     ]}>
+      <img
+        :if={@vertical && @from_flag_url}
+        src={@from_flag_url}
+        alt=""
+        aria-hidden="true"
+        class="pointer-events-none absolute -top-6 -left-8 h-3/5 w-3/5 scale-125 object-cover opacity-20 [mask-image:radial-gradient(circle_at_top_left,black_15%,transparent_72%)]"
+      />
+      <img
+        :if={@vertical && @to_flag_url}
+        src={@to_flag_url}
+        alt=""
+        aria-hidden="true"
+        class="pointer-events-none absolute -right-8 -bottom-6 h-3/5 w-3/5 scale-125 object-cover opacity-20 [mask-image:radial-gradient(circle_at_bottom_right,black_15%,transparent_72%)]"
+      />
       <div class={[
-        "card-body gap-3 p-4",
+        "card-body relative z-10 gap-3 p-4",
         @vertical && "items-center justify-center text-center",
         !@vertical && "sm:flex-row sm:items-center sm:justify-between"
       ]}>
@@ -818,6 +837,19 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
   defp flag_url(country_code),
     do: "https://flagcdn.com/#{String.downcase(country_code)}.svg"
+
+  defp currency_flag_url(currency_code) do
+    case currency_code do
+      "USD" -> flag_url("US")
+      "EUR" -> flag_url("EU")
+      "GBP" -> flag_url("GB")
+      "JPY" -> flag_url("JP")
+      "CNY" -> flag_url("CN")
+      "BRL" -> flag_url("BR")
+      "MXN" -> flag_url("MX")
+      _currency_code -> nil
+    end
+  end
 
   defp format_spot_updated_at(nil), do: "on next tick"
 
