@@ -182,6 +182,116 @@ defmodule PhoenixFintech.Transfers do
     end
   end
 
+  def create_reusable_quote(user_id, attrs) do
+    with {:ok, terms} <- reusable_quote_terms(attrs) do
+      spot_rate =
+        attrs
+        |> Map.get("fx_rate")
+        |> blank_to_nil()
+        |> maybe_decimal()
+        |> maybe_generated_fx_rate(
+          terms.originator_currency_code,
+          terms.counterparty_currency_code
+        )
+
+      {customer_rate, spread_basis_points} =
+        reusable_customer_rate(
+          spot_rate,
+          terms.spread_basis_points,
+          terms.originator_currency_code,
+          terms.counterparty_currency_code
+        )
+
+      input_snapshot = %{
+        originator_currency_code: terms.originator_currency_code,
+        counterparty_currency_code: terms.counterparty_currency_code,
+        spread_basis_points: spread_basis_points,
+        spot_fx_rate: spot_rate
+      }
+
+      quote_attrs = %{
+        "originator_currency_code" => terms.originator_currency_code,
+        "counterparty_currency_code" => terms.counterparty_currency_code,
+        "spread_basis_points" => spread_basis_points,
+        "spot_fx_rate" => spot_rate,
+        "customer_fx_rate" => customer_rate,
+        "input_snapshot" => snapshot(input_snapshot),
+        "calculation_snapshot" =>
+          snapshot(%{spot_fx_rate: spot_rate, customer_fx_rate: customer_rate}),
+        "expires_at" => end_of_today()
+      }
+
+      %TransferQuote{created_by_user_id: user_id}
+      |> TransferQuote.reusable_changeset(quote_attrs)
+      |> Repo.insert()
+    else
+      {:error, _reason} = error -> error
+    end
+  end
+
+  def recreate_reusable_quote(user_id, quote_id, fx_rate \\ nil) do
+    case get_reusable_quote_for_user(user_id, quote_id) do
+      nil ->
+        {:error, :not_found}
+
+      quote ->
+        create_reusable_quote(user_id, %{
+          "originator_currency_code" => quote.originator_currency_code,
+          "counterparty_currency_code" => quote.counterparty_currency_code,
+          "spread_basis_points" => quote.spread_basis_points,
+          "fx_rate" => fx_rate
+        })
+    end
+  end
+
+  def list_reusable_quotes_for_user(user_id) do
+    Repo.all(
+      from quote in TransferQuote,
+        where: quote.created_by_user_id == ^user_id and quote.reusable,
+        order_by: [desc: quote.inserted_at]
+    )
+  end
+
+  def list_active_reusable_quotes_for_user(user_id) do
+    now = DateTime.utc_now(:second)
+
+    Repo.all(
+      from quote in TransferQuote,
+        where:
+          quote.created_by_user_id == ^user_id and quote.reusable and
+            quote.expires_at > ^now,
+        order_by: [asc: quote.originator_currency_code, asc: quote.counterparty_currency_code]
+    )
+  end
+
+  def get_reusable_quote_for_user(user_id, quote_id) do
+    Repo.get_by(TransferQuote, id: quote_id, created_by_user_id: user_id, reusable: true)
+  end
+
+  def quote_transfer_from_reusable(user_id, quote_id, attrs) do
+    now = DateTime.utc_now(:second)
+
+    case get_reusable_quote_for_user(user_id, quote_id) do
+      %TransferQuote{} = quote ->
+        if DateTime.after?(quote.expires_at, now) do
+          attrs =
+            attrs
+            |> Map.put("originator_currency_code", quote.originator_currency_code)
+            |> Map.put("counterparty_currency_code", quote.counterparty_currency_code)
+            |> Map.put("spread_basis_points", quote.spread_basis_points)
+            |> Map.put("fx_rate", quote.spot_fx_rate)
+            |> Map.put("source_quote_id", quote.id)
+
+          quote_transfer(user_id, attrs)
+        else
+          {:error, :quote, :reusable_quote_unavailable, %{}}
+        end
+
+      _quote ->
+        {:error, :quote, :reusable_quote_unavailable, %{}}
+    end
+  end
+
   def get_transfer_quote!(id) do
     Repo.get!(TransferQuote, id)
     |> Repo.preload([:created_by_user, :originator_party, :counterparty_party])
@@ -220,8 +330,17 @@ defmodule PhoenixFintech.Transfers do
   end
 
   def create_transfer_from_quote(user_id, quote_id, attrs \\ %{}) do
-    quote = get_transfer_quote!(quote_id)
+    case Repo.get_by(TransferQuote,
+           id: quote_id,
+           created_by_user_id: user_id,
+           reusable: false
+         ) do
+      nil -> {:error, :quote, :quote_unavailable, %{}}
+      quote -> create_transfer_from_owned_quote(user_id, quote, attrs)
+    end
+  end
 
+  defp create_transfer_from_owned_quote(user_id, quote, attrs) do
     transfer_attrs =
       attrs
       |> Map.delete("status")
@@ -656,7 +775,8 @@ defmodule PhoenixFintech.Transfers do
           lines: ctx.lines,
           totals: ctx.totals,
           metadata: ctx.metadata
-        })
+        }),
+      "source_quote_id" => Map.get(ctx.input, :source_quote_id)
     }
 
     %TransferQuote{created_by_user_id: user_id}
@@ -694,7 +814,8 @@ defmodule PhoenixFintech.Transfers do
         |> Map.get("fx_rate")
         |> blank_to_nil()
         |> maybe_decimal()
-        |> maybe_generated_fx_rate(originator_currency_code, counterparty_currency_code)
+        |> maybe_generated_fx_rate(originator_currency_code, counterparty_currency_code),
+      source_quote_id: Map.get(attrs, "source_quote_id")
     }
   end
 
@@ -724,6 +845,59 @@ defmodule PhoenixFintech.Transfers do
 
   defp parse_basis_points(value) when is_integer(value), do: value
   defp parse_basis_points(value) when is_binary(value), do: String.to_integer(value)
+
+  defp reusable_quote_terms(attrs) do
+    originator_currency_code =
+      attrs |> Map.get("originator_currency_code") |> normalize_currency_code()
+
+    counterparty_currency_code =
+      attrs |> Map.get("counterparty_currency_code") |> normalize_currency_code()
+
+    with code when is_binary(code) <- originator_currency_code,
+         code when is_binary(code) <- counterparty_currency_code,
+         {:ok, spread_basis_points} <-
+           parse_reusable_basis_points(Map.get(attrs, "spread_basis_points")) do
+      {:ok,
+       %{
+         originator_currency_code: originator_currency_code,
+         counterparty_currency_code: counterparty_currency_code,
+         spread_basis_points: spread_basis_points
+       }}
+    else
+      _invalid -> {:error, :invalid_terms}
+    end
+  end
+
+  defp normalize_currency_code(code) when is_binary(code) and byte_size(code) == 3,
+    do: String.upcase(code)
+
+  defp normalize_currency_code(_code), do: nil
+
+  defp parse_reusable_basis_points(value) when is_integer(value) and value in 0..9999,
+    do: {:ok, value}
+
+  defp parse_reusable_basis_points(value) when is_binary(value) do
+    case Integer.parse(value) do
+      {basis_points, ""} when basis_points in 0..9999 -> {:ok, basis_points}
+      _invalid -> {:error, :invalid_spread}
+    end
+  end
+
+  defp parse_reusable_basis_points(_value), do: {:error, :invalid_spread}
+
+  defp reusable_customer_rate(_spot_rate, _spread, currency_code, currency_code),
+    do: {Decimal.new(1), 0}
+
+  defp reusable_customer_rate(spot_rate, spread, _originator_currency, _counterparty_currency) do
+    {customer_rate, _spread_ratio} = Items.FXRate.calculate_rate(spot_rate, spread)
+    {customer_rate, spread}
+  end
+
+  defp end_of_today do
+    DateTime.utc_now()
+    |> DateTime.to_date()
+    |> DateTime.new!(~T[23:59:59], "Etc/UTC")
+  end
 
   defp normalize_legacy_quote_attrs(attrs) do
     fx_quote = Map.get(attrs, "fx_quote", %{})

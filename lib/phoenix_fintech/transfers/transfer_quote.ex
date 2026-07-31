@@ -20,10 +20,12 @@ defmodule PhoenixFintech.Transfers.TransferQuote do
     field :calculation_snapshot, :map
     field :expires_at, :utc_datetime
     field :accepted_at, :utc_datetime
+    field :reusable, :boolean, default: false
 
     belongs_to :created_by_user, PhoenixFintech.Accounts.User
     belongs_to :originator_party, PhoenixFintech.Parties.Party
     belongs_to :counterparty_party, PhoenixFintech.Parties.Party
+    belongs_to :source_quote, __MODULE__
 
     timestamps(type: :utc_datetime)
   end
@@ -44,7 +46,8 @@ defmodule PhoenixFintech.Transfers.TransferQuote do
       :input_snapshot,
       :calculation_snapshot,
       :expires_at,
-      :accepted_at
+      :accepted_at,
+      :source_quote_id
     ])
     |> update_change(:originator_currency_code, &String.upcase/1)
     |> update_change(:counterparty_currency_code, &String.upcase/1)
@@ -77,6 +80,46 @@ defmodule PhoenixFintech.Transfers.TransferQuote do
     |> assoc_constraint(:created_by_user)
     |> assoc_constraint(:originator_party)
     |> assoc_constraint(:counterparty_party)
+    |> foreign_key_constraint(:source_quote_id)
+    |> foreign_key_constraint(:originator_currency_code)
+    |> foreign_key_constraint(:counterparty_currency_code)
+  end
+
+  def reusable_changeset(quote, attrs) do
+    quote
+    |> cast(attrs, [
+      :originator_currency_code,
+      :counterparty_currency_code,
+      :spread_basis_points,
+      :spot_fx_rate,
+      :customer_fx_rate,
+      :input_snapshot,
+      :calculation_snapshot,
+      :expires_at
+    ])
+    |> put_change(:reusable, true)
+    |> update_change(:originator_currency_code, &String.upcase/1)
+    |> update_change(:counterparty_currency_code, &String.upcase/1)
+    |> validate_required([
+      :created_by_user_id,
+      :originator_currency_code,
+      :counterparty_currency_code,
+      :spread_basis_points,
+      :spot_fx_rate,
+      :customer_fx_rate,
+      :input_snapshot,
+      :calculation_snapshot,
+      :expires_at
+    ])
+    |> validate_number(:spread_basis_points,
+      greater_than_or_equal_to: 0,
+      less_than: 10_000
+    )
+    |> validate_number(:spot_fx_rate, greater_than: 0)
+    |> validate_number(:customer_fx_rate, greater_than: 0)
+    |> validate_length(:originator_currency_code, is: 3)
+    |> validate_length(:counterparty_currency_code, is: 3)
+    |> assoc_constraint(:created_by_user)
     |> foreign_key_constraint(:originator_currency_code)
     |> foreign_key_constraint(:counterparty_currency_code)
   end

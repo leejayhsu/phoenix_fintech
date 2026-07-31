@@ -165,6 +165,8 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :currencies, :list, required: true
   attr :spot_rates, :map, required: true
   attr :spot_rates_updated_at, :any, default: nil
+  attr :reusable_quotes, :list, default: []
+  attr :selected_reusable_quote_id, :string, default: nil
 
   def quote_step(assigns) do
     ~H"""
@@ -180,6 +182,66 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         <div :if={@quote_error} role="alert" class="alert alert-error alert-soft">
           <.icon name="hero-exclamation-circle" class="size-5" />
           <span>{@quote_error}</span>
+        </div>
+
+        <div class="rounded-box border border-base-300 bg-base-200/50 p-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 class="font-semibold">Use a Day Quote</h3>
+              <p class="text-sm text-base-content/60">
+                Apply terms you locked earlier today, or continue with a fresh live quote below.
+              </p>
+            </div>
+            <.link navigate={~p"/app/quotes"} class="btn btn-ghost btn-sm shrink-0">
+              Manage Day Quotes
+            </.link>
+          </div>
+
+          <div
+            :if={@reusable_quotes != []}
+            id="reusable-quote-options"
+            role="radiogroup"
+            aria-label="Available Day Quotes"
+            class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            <button
+              :for={quote <- @reusable_quotes}
+              id={"choose-day-quote-#{quote.id}"}
+              type="button"
+              role="radio"
+              aria-checked={to_string(@selected_reusable_quote_id == quote.id)}
+              phx-click="choose_reusable_quote"
+              phx-value-id={quote.id}
+              class={[
+                "card card-sm cursor-pointer border text-left transition-colors hover:border-primary",
+                @selected_reusable_quote_id == quote.id && "border-primary bg-primary/10",
+                @selected_reusable_quote_id != quote.id && "border-base-300 bg-base-100"
+              ]}
+            >
+              <span class="card-body gap-1">
+                <span class="flex items-center justify-between gap-2">
+                  <span class="font-semibold">
+                    {quote.originator_currency_code}/{quote.counterparty_currency_code}
+                  </span>
+                  <.icon
+                    :if={@selected_reusable_quote_id == quote.id}
+                    name="hero-check-circle"
+                    class="size-5 text-primary"
+                  />
+                </span>
+                <span class="font-mono text-sm">
+                  1 {quote.originator_currency_code} = {format_spot_rate(quote.customer_fx_rate)} {quote.counterparty_currency_code}
+                </span>
+                <span class="text-xs text-base-content/60">
+                  {quote.spread_basis_points} bps spread
+                </span>
+              </span>
+            </button>
+          </div>
+
+          <p :if={@reusable_quotes == []} class="mt-3 text-sm text-base-content/60">
+            You have no active Day Quotes.
+          </p>
         </div>
 
         <.form
@@ -217,34 +279,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
                 label="Amount to send"
               />
 
-              <.input
-                field={@quote_form[:spread_basis_points]}
-                type="number"
-                min="0"
-                max="9999"
-                step="1"
-                label="Spread (bps)"
-              />
-              <p class="text-xs text-base-content/60">
-                Equivalent to {format_basis_points_as_percentage(
-                  quote_form_value(@quote_form, :spread_basis_points)
-                )}.
-              </p>
-
-              <div class="grid gap-4 sm:grid-cols-2">
-                <.input
-                  field={@quote_form[:originator_currency_code]}
-                  type="select"
-                  label="Send currency"
-                  options={currency_options(@currencies)}
-                />
-                <.input
-                  field={@quote_form[:counterparty_currency_code]}
-                  type="select"
-                  label="Destination currency"
-                  options={currency_options(@currencies)}
-                />
-              </div>
+              <.quote_terms_fields form={@quote_form} currencies={@currencies} />
             </div>
 
             <div class="space-y-4">
@@ -283,6 +318,47 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         </.form>
       </div>
     </section>
+    """
+  end
+
+  attr :form, Phoenix.HTML.Form, required: true
+  attr :currencies, :list, required: true
+  attr :currency_prompt, :string, default: nil
+  attr :currency_codes_only, :boolean, default: false
+  attr :stacked, :boolean, default: false
+
+  def quote_terms_fields(assigns) do
+    ~H"""
+    <div class="space-y-4 [&_.fieldset]:mb-0">
+      <.input
+        field={@form[:spread_basis_points]}
+        type="number"
+        min="0"
+        max="9999"
+        step="1"
+        label="Spread (bps)"
+      />
+
+      <div class={[
+        "grid",
+        if(@stacked, do: "gap-0", else: "gap-4 sm:grid-cols-2")
+      ]}>
+        <.input
+          field={@form[:originator_currency_code]}
+          type="select"
+          label="Send currency"
+          prompt={@currency_prompt}
+          options={currency_options(@currencies, @currency_codes_only)}
+        />
+        <.input
+          field={@form[:counterparty_currency_code]}
+          type="select"
+          label="Destination currency"
+          prompt={@currency_prompt}
+          options={currency_options(@currencies, @currency_codes_only)}
+        />
+      </div>
+    </div>
     """
   end
 
@@ -460,30 +536,52 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :from_currency_code, :string, required: true
   attr :to_currency_code, :string, required: true
   attr :updated_at, :any, default: nil
+  attr :vertical, :boolean, default: false
 
   def spot_rate_card(assigns) do
     ~H"""
-    <div class="card card-border mt-4 bg-base-200">
-      <div class="card-body gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class={[
+      "card card-border bg-base-200",
+      @vertical && "min-h-60",
+      !@vertical && "mt-4"
+    ]}>
+      <div class={[
+        "card-body gap-3 p-4",
+        @vertical && "items-center justify-center text-center",
+        !@vertical && "sm:flex-row sm:items-center sm:justify-between"
+      ]}>
         <div>
-          <div class="flex items-center gap-2">
+          <div class={[
+            "flex items-center gap-2",
+            @vertical && "flex-col"
+          ]}>
             <span class="badge badge-success badge-soft">Live spot</span>
-            <span class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-              {@from_currency_code}/{@to_currency_code}
-            </span>
-            <span
-              class="tooltip tooltip-right text-base-content/60"
-              data-tip="This rate refreshes every 5 seconds and will be locked when you generate the binding quote."
-            >
-              <.icon name="hero-information-circle" class="size-4" />
+            <span :if={!@vertical} class="flex items-center gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                {@from_currency_code}/{@to_currency_code}
+              </span>
+              <span
+                class="tooltip tooltip-right text-base-content/60"
+                data-tip="This rate refreshes every 5 seconds and will be locked when you generate the binding quote."
+              >
+                <.icon name="hero-information-circle" class="size-4" />
+              </span>
             </span>
           </div>
         </div>
-        <div class="text-left sm:text-right">
-          <p class="text-3xl font-semibold tabular-nums">
+        <div class={[
+          "text-left",
+          @vertical && "mt-2 text-center",
+          !@vertical && "sm:text-right"
+        ]}>
+          <p class={[
+            "font-semibold tabular-nums",
+            @vertical && "text-4xl",
+            !@vertical && "text-3xl"
+          ]}>
             {format_spot_rate(@rate)}
           </p>
-          <p class="mt-1 text-xs text-base-content/60">
+          <p class="mt-1 text-xs text-center text-base-content/60">
             Updated {format_spot_updated_at(@updated_at)}
           </p>
         </div>
@@ -519,7 +617,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         </div>
         <div class="flex items-center justify-between gap-4">
           <span class="text-sm text-base-content/70">
-            Spread ({@details.spread_basis_points} bps / {@details.spread_percentage})
+            Spread ({@details.spread_basis_points} bps)
           </span>
           <span class="font-medium tabular-nums">
             {format_currency_amount(@details.spread_amount, @details.spread_currency)}
@@ -601,7 +699,6 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
       destination_currency: quote.counterparty_currency_code,
       customer_rate: quote.customer_fx_rate,
       spread_basis_points: quote.spread_basis_points,
-      spread_percentage: format_basis_points_as_percentage(quote.spread_basis_points),
       spread_amount: quote.spread_amount,
       spread_currency: quote.originator_currency_code,
       fx_fee: fee_line && fee_line["amount"],
@@ -631,7 +728,6 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         destination_currency: to_code,
         customer_rate: customer_rate,
         spread_basis_points: effective_basis_points,
-        spread_percentage: format_basis_points_as_percentage(effective_basis_points),
         spread_amount: spread_amount,
         spread_currency: from_code,
         fx_fee: fx_fee,
@@ -695,7 +791,10 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   defp parse_decimal(value) when is_binary(value), do: Decimal.parse(value)
   defp parse_decimal(value), do: Decimal.parse(to_string(value))
 
-  defp currency_options(currencies),
+  defp currency_options(currencies, true),
+    do: for(currency <- currencies, do: {currency.code, currency.code})
+
+  defp currency_options(currencies, false),
     do: for(currency <- currencies, do: {"#{currency.code} · #{currency.name}", currency.code})
 
   defp selected_spot_rate(rates, quote_form) do

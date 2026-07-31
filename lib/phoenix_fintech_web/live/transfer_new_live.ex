@@ -33,6 +33,11 @@ defmodule PhoenixFintechWeb.TransferNewLive do
       |> assign(:quote_form, quote_form)
       |> assign(:quote, nil)
       |> assign(:quote_error, nil)
+      |> assign(
+        :reusable_quotes,
+        Transfers.list_active_reusable_quotes_for_user(socket.assigns.current_scope.user.id)
+      )
+      |> assign(:selected_reusable_quote_id, nil)
       |> assign(:spot_rates, spot_rate_snapshot.rates)
       |> assign(:spot_rates_updated_at, spot_rate_snapshot.updated_at)
 
@@ -69,6 +74,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
      |> assign(:selected_originator_id, party_id)
      |> assign(:selected_counterparty_ids, selected_counterparty_ids)
      |> assign(:quote_form, quote_form)
+     |> assign(:selected_reusable_quote_id, nil)
      |> assign(:step, :counterparties)
      |> clear_quote()}
   end
@@ -80,6 +86,11 @@ defmodule PhoenixFintechWeb.TransferNewLive do
       {:noreply,
        socket
        |> assign(:selected_counterparty_ids, [party_id])
+       |> assign(
+         :reusable_quotes,
+         Transfers.list_active_reusable_quotes_for_user(socket.assigns.current_user.id)
+       )
+       |> assign(:selected_reusable_quote_id, nil)
        |> assign(:step, :quote)
        |> clear_quote()}
     end
@@ -101,7 +112,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
 
     case validate_quote_params(attrs) do
       :ok ->
-        case Transfers.quote_transfer(socket.assigns.current_user.id, attrs) do
+        case generate_transfer_quote(socket.assigns, attrs) do
           {:ok, quote} ->
             {:noreply,
              socket
@@ -126,10 +137,36 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   end
 
   def handle_event("quote_changed", %{"quote" => quote_params}, socket) do
+    selected_reusable_quote_id =
+      if selected_reusable_quote_matches?(socket.assigns, quote_params),
+        do: socket.assigns.selected_reusable_quote_id,
+        else: nil
+
     {:noreply,
      socket
      |> assign(:quote_form, to_form(quote_params, as: :quote))
+     |> assign(:selected_reusable_quote_id, selected_reusable_quote_id)
      |> clear_quote()}
+  end
+
+  def handle_event("choose_reusable_quote", %{"id" => quote_id}, socket) do
+    case Enum.find(socket.assigns.reusable_quotes, &(&1.id == quote_id)) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "That Day Quote is no longer available.")}
+
+      quote ->
+        params =
+          socket.assigns.quote_form.params
+          |> Map.put("originator_currency_code", quote.originator_currency_code)
+          |> Map.put("counterparty_currency_code", quote.counterparty_currency_code)
+          |> Map.put("spread_basis_points", Integer.to_string(quote.spread_basis_points))
+
+        {:noreply,
+         socket
+         |> assign(:quote_form, to_form(params, as: :quote))
+         |> assign(:selected_reusable_quote_id, quote.id)
+         |> clear_quote()}
+    end
   end
 
   def handle_event("finish_wizard", _params, %{assigns: %{quote: nil}} = socket) do
@@ -223,6 +260,8 @@ defmodule PhoenixFintechWeb.TransferNewLive do
               currencies={@currencies}
               spot_rates={@spot_rates}
               spot_rates_updated_at={@spot_rates_updated_at}
+              reusable_quotes={@reusable_quotes}
+              selected_reusable_quote_id={@selected_reusable_quote_id}
             />
             <.review_step
               panel_class={panel_classes(@step, :review)}
@@ -311,6 +350,9 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   defp quote_error_message(:missing_fx_rate),
     do: "Unable to generate an FX rate for that currency pair."
 
+  defp quote_error_message(:reusable_quote_unavailable),
+    do: "That Day Quote has expired or is no longer available. Choose another quote."
+
   defp quote_error_message(reason), do: "Unable to generate quote: #{inspect(reason)}"
 
   defp live_spot_rate(assigns, quote_params) do
@@ -318,6 +360,32 @@ defmodule PhoenixFintechWeb.TransferNewLive do
       Map.get(quote_params, "originator_currency_code"),
       Map.get(quote_params, "counterparty_currency_code")
     })
+  end
+
+  defp generate_transfer_quote(%{selected_reusable_quote_id: nil} = assigns, attrs) do
+    Transfers.quote_transfer(assigns.current_user.id, attrs)
+  end
+
+  defp generate_transfer_quote(assigns, attrs) do
+    Transfers.quote_transfer_from_reusable(
+      assigns.current_user.id,
+      assigns.selected_reusable_quote_id,
+      attrs
+    )
+  end
+
+  defp selected_reusable_quote_matches?(%{selected_reusable_quote_id: nil}, _params), do: false
+
+  defp selected_reusable_quote_matches?(assigns, params) do
+    case Enum.find(assigns.reusable_quotes, &(&1.id == assigns.selected_reusable_quote_id)) do
+      nil ->
+        false
+
+      quote ->
+        Map.get(params, "originator_currency_code") == quote.originator_currency_code and
+          Map.get(params, "counterparty_currency_code") == quote.counterparty_currency_code and
+          Map.get(params, "spread_basis_points") == Integer.to_string(quote.spread_basis_points)
+    end
   end
 
   defp default_currency_code([currency | _]), do: currency.code

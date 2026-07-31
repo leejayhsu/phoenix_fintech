@@ -341,10 +341,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                       checked={@duplicate_form[:spread_option].value == "same"}
                       phx-click="choose_template_spread"
                       phx-value-option="same"
-                    />
-                    Same spread: {@duplicate_transfer.transfer_quote.spread_basis_points} bps ({format_basis_points_as_percentage(
-                      @duplicate_transfer.transfer_quote.spread_basis_points
-                    )})
+                    /> Same spread: {@duplicate_transfer.transfer_quote.spread_basis_points} bps
                   </label>
                   <label class="label cursor-pointer justify-start gap-3">
                     <input
@@ -530,9 +527,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                       <div>
                         <dt class="text-base-content/60">Spread</dt>
                         <dd class="font-medium">
-                          {@pending_template.spread_basis_points} bps ({format_basis_points_as_percentage(
-                            @pending_template.spread_basis_points
-                          )})
+                          {@pending_template.spread_basis_points} bps
                         </dd>
                       </div>
                     </dl>

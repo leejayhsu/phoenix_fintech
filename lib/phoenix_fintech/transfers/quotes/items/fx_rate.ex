@@ -27,12 +27,7 @@ defmodule PhoenixFintech.Transfers.Quotes.Items.FXRate do
     if is_nil(spot_rate) do
       {:error, :missing_fx_rate}
     else
-      spread_ratio = Decimal.div(input.spread_basis_points, 10_000)
-
-      customer_rate =
-        spot_rate
-        |> Decimal.mult(Decimal.sub(1, spread_ratio))
-        |> Decimal.round(6)
+      {customer_rate, spread_ratio} = calculate_rate(spot_rate, input.spread_basis_points)
 
       spread_amount =
         input.amount_in_originator_currency
@@ -79,5 +74,16 @@ defmodule PhoenixFintech.Transfers.Quotes.Items.FXRate do
 
       {:ok, ctx}
     end
+  end
+
+  def calculate_rate(spot_rate, spread_basis_points) do
+    spread_ratio = Decimal.div(spread_basis_points, 10_000)
+
+    customer_rate =
+      spot_rate
+      |> Decimal.mult(Decimal.sub(1, spread_ratio))
+      |> Decimal.round(6)
+
+    {customer_rate, spread_ratio}
   end
 end

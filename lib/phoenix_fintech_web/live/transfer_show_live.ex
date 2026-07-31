@@ -187,9 +187,7 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                     <div>
                       <dt class="text-base-content/60">Spread</dt>
                       <dd class="mt-1 font-medium">
-                        {@transfer.transfer_quote.spread_basis_points} bps ({format_basis_points_as_percentage(
-                          @transfer.transfer_quote.spread_basis_points
-                        )})
+                        {@transfer.transfer_quote.spread_basis_points} bps
                       </dd>
                     </div>
                     <div>
