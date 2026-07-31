@@ -296,6 +296,7 @@ custom classes must fully style the input
 
 - Remember anytime you use `phx-hook="MyHook"` and that JS hook manages its own DOM, you **must** also set the `phx-update="ignore"` attribute
 - **Always** provide an unique DOM id alongside `phx-hook` otherwise a compiler error will be raised
+- Do not track a native `<dialog>` element's open/closed state in LiveView assigns. Let the browser own that UI state through `showModal()` and `close()`; LiveView should track only application state such as the selected record, form data, and wizard step. When server-rendered content must be assigned before opening, use a one-shot `push_event/3` handled by a dialog hook after the patch. Native dismissals should call `close()` and notify LiveView from the dialog's `close` event so application state can be cleared.
 
 LiveView hooks come in two flavors, 1) colocated js hooks for "inline" scripts defined inside HEEx,
 and 2) external `phx-hook` annotations where JavaScript object literals are defined and passed to the `LiveSocket` constructor.
