@@ -71,25 +71,6 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
     end
   end
 
-  def handle_event("recreate_quote", %{"id" => quote_id}, socket) do
-    quote = Transfers.get_reusable_quote_for_user(socket.assigns.current_user.id, quote_id)
-    fx_rate = quote && rate_for_pair(socket.assigns.spot_rates, quote)
-
-    case Transfers.recreate_reusable_quote(socket.assigns.current_user.id, quote_id, fx_rate) do
-      {:ok, quote} ->
-        {:noreply,
-         socket
-         |> stream_insert(:quotes, quote, at: 0)
-         |> put_flash(:info, "Day Quote recreated using the current market rate.")}
-
-      {:error, :missing_fx_rate} ->
-        {:noreply, put_flash(socket, :error, "A live rate is not available for that pair.")}
-
-      _error ->
-        {:noreply, put_flash(socket, :error, "That Day Quote could not be recreated.")}
-    end
-  end
-
   @impl true
   def handle_info({:spot_rates, rates, updated_at}, socket) do
     {:noreply,
@@ -192,16 +173,15 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
                   <thead>
                     <tr>
                       <th>Pair</th>
-                      <th>Customer rate</th>
-                      <th>Spread</th>
+                      <th>Spot Rate</th>
+                      <th>Spread (bps)</th>
                       <th>Status</th>
                       <th>Created</th>
-                      <th><span class="sr-only">Actions</span></th>
                     </tr>
                   </thead>
                   <tbody id="day-quotes-table" phx-update="stream">
                     <tr id="day-quotes-empty" class="hidden only:table-row">
-                      <td colspan="6" class="py-10 text-center text-base-content/60">
+                      <td colspan="5" class="py-10 text-center text-base-content/60">
                         No Day Quotes yet. Create your first one using the form.
                       </td>
                     </tr>
@@ -210,23 +190,12 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
                         {quote.originator_currency_code}/{quote.counterparty_currency_code}
                       </td>
                       <td class="font-mono text-sm">{format_rate(quote.customer_fx_rate)}</td>
-                      <td>{quote.spread_basis_points} bps</td>
+                      <td>{quote.spread_basis_points}</td>
                       <td>
                         <span class={status_badge_classes(quote)}>{quote_status(quote)}</span>
                       </td>
                       <td class="whitespace-nowrap text-sm text-base-content/70">
-                        {format_datetime(quote.inserted_at)}
-                      </td>
-                      <td class="text-right">
-                        <button
-                          id={"recreate-day-quote-#{quote.id}"}
-                          type="button"
-                          phx-click="recreate_quote"
-                          phx-value-id={quote.id}
-                          class="btn btn-ghost btn-sm"
-                        >
-                          <.icon name="hero-arrow-path" class="size-4" /> Recreate
-                        </button>
+                        {format_date(quote.inserted_at)}
                       </td>
                     </tr>
                   </tbody>
@@ -268,10 +237,6 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
     })
   end
 
-  defp rate_for_pair(rates, quote) do
-    Map.get(rates, {quote.originator_currency_code, quote.counterparty_currency_code})
-  end
-
   defp assign_current_user(socket) do
     assign(socket, :current_user, socket.assigns.current_scope.user)
   end
@@ -288,7 +253,7 @@ defmodule PhoenixFintechWeb.QuoteIndexLive do
 
   defp format_rate(rate), do: Decimal.to_string(rate, :normal)
 
-  defp format_datetime(datetime), do: Calendar.strftime(datetime, "%b %-d, %Y %H:%M UTC")
+  defp format_date(datetime), do: Calendar.strftime(datetime, "%b %-d, %Y")
 
   defp changeset_error(changeset) do
     changeset.errors

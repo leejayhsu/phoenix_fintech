@@ -229,21 +229,6 @@ defmodule PhoenixFintech.Transfers do
     end
   end
 
-  def recreate_reusable_quote(user_id, quote_id, fx_rate \\ nil) do
-    case get_reusable_quote_for_user(user_id, quote_id) do
-      nil ->
-        {:error, :not_found}
-
-      quote ->
-        create_reusable_quote(user_id, %{
-          "originator_currency_code" => quote.originator_currency_code,
-          "counterparty_currency_code" => quote.counterparty_currency_code,
-          "spread_basis_points" => quote.spread_basis_points,
-          "fx_rate" => fx_rate
-        })
-    end
-  end
-
   def list_reusable_quotes_for_user(user_id) do
     Repo.all(
       from quote in TransferQuote,
