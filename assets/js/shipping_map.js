@@ -1,5 +1,27 @@
 import * as maplibregl from "maplibre-gl"
 
+const unwrapRoute = route => {
+  const geometry = route.geometry.reduce((coordinates, [longitude, latitude]) => {
+    const previousLongitude = coordinates.at(-1)?.[0]
+
+    if (previousLongitude !== undefined) {
+      while (longitude - previousLongitude > 180) longitude -= 360
+      while (longitude - previousLongitude < -180) longitude += 360
+    }
+
+    return [...coordinates, [longitude, latitude]]
+  }, [])
+
+  return {
+    ...route,
+    geometry,
+    ports: route.ports.map((port, index) => ({
+      ...port,
+      coordinates: geometry[index],
+    })),
+  }
+}
+
 const routeFeature = route => ({
   type: "Feature",
   properties: {},
@@ -61,7 +83,7 @@ const arrowImage = color => {
 
 const ShippingMap = {
   mounted() {
-    this.route = JSON.parse(this.el.dataset.route)
+    this.route = unwrapRoute(JSON.parse(this.el.dataset.route))
     this.map = new maplibregl.Map({
       container: this.el,
       style: {
@@ -102,8 +124,8 @@ const ShippingMap = {
     })
 
     this.handleEvent("route_changed", route => {
-      this.route = route
-      if (this.map.getSource("freight-route")) this.drawRoute(route)
+      this.route = unwrapRoute(route)
+      if (this.map.getSource("freight-route")) this.drawRoute(this.route)
     })
   },
 
