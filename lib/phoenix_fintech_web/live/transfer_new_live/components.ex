@@ -181,9 +181,6 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
       <div class="card-body gap-6">
         <div>
           <h2 class="card-title">4. Generate FX quote</h2>
-          <p class="text-sm text-base-content/70">
-            Enter the amount and currencies. The generated quote is binding once you continue.
-          </p>
         </div>
 
         <div :if={@quote_error} role="alert" class="alert alert-error alert-soft">
@@ -418,6 +415,8 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :selected_counterparty_ids, :list, required: true
 
   def review_step(assigns) do
+    assigns = assign(assigns, review_summary(assigns))
+
     ~H"""
     <section class={@panel_class} inert={!@active}>
       <div class="card-body gap-6">
@@ -428,89 +427,66 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
           </p>
         </div>
 
-        <div :if={@quote} class="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+        <div :if={@quote} class="grid gap-4 lg:grid-cols-[1.4fr_0.6fr]">
           <div class="card card-border bg-base-200">
-            <div class="card-body p-4">
-              <h3 class="font-medium">Transfer summary</h3>
-              <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-                <div>
-                  <dt class="text-base-content/60">Direction</dt>
-                  <dd class="mt-1 font-medium">{format_direction(@direction)}</dd>
+            <div class="card-body gap-4 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <h3 class="font-medium">Transfer summary</h3>
+                <span class="badge badge-soft badge-primary">{format_direction(@direction)}</span>
+              </div>
+
+              <div class="grid items-stretch gap-3 md:grid-cols-[1fr_auto_1fr] md:gap-4">
+                <div class="rounded-box bg-base-100 p-4">
+                  <div class="flex items-center gap-2 text-sm text-base-content/60">
+                    <span class="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <.icon name="hero-arrow-up-right" class="size-4" />
+                    </span>
+                    Sender
+                  </div>
+                  <p class="mt-3 font-semibold">{@sender.legal_name}</p>
+                  <div class="divider my-2"></div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-base-content/50">
+                    Send amount
+                  </p>
+                  <p class="mt-1 text-xl font-semibold tabular-nums">
+                    {format_currency_amount(@send_amount, @send_currency_code)}
+                  </p>
                 </div>
-                <div>
-                  <dt class="text-base-content/60">Sender</dt>
-                  <dd class="mt-1 font-medium">
-                    {sender(@direction, @parties, @selected_originator_id, @selected_counterparty_ids).legal_name}
-                  </dd>
+
+                <div class="hidden items-center text-primary md:flex">
+                  <.icon name="hero-arrow-right" class="size-6" />
                 </div>
-                <div>
-                  <dt class="text-base-content/60">Recipient</dt>
-                  <dd class="mt-1 font-medium">
-                    {recipient(
-                      @direction,
-                      @parties,
-                      @selected_originator_id,
-                      @selected_counterparty_ids
-                    ).legal_name}
-                  </dd>
+                <div class="flex justify-center text-primary md:hidden">
+                  <.icon name="hero-arrow-down" class="size-6" />
                 </div>
-                <div>
-                  <dt class="text-base-content/60">Originator</dt>
-                  <dd class="mt-1 font-medium">
-                    {selected_originator(@parties, @selected_originator_id).legal_name}
-                  </dd>
+
+                <div class="rounded-box bg-base-100 p-4">
+                  <div class="flex items-center gap-2 text-sm text-base-content/60">
+                    <span class="flex size-8 items-center justify-center rounded-full bg-secondary/10 text-secondary">
+                      <.icon name="hero-arrow-down-left" class="size-4" />
+                    </span>
+                    Recipient
+                  </div>
+                  <p class="mt-3 font-semibold">{@recipient.legal_name}</p>
+                  <div class="divider my-2"></div>
+                  <p class="text-xs font-medium uppercase tracking-wide text-base-content/50">
+                    Destination amount
+                  </p>
+                  <p class="mt-1 text-xl font-semibold tabular-nums">
+                    {format_currency_amount(@destination_amount, @destination_currency_code)}
+                  </p>
                 </div>
-                <div>
-                  <dt class="text-base-content/60">Counterparty</dt>
-                  <dd class="mt-1 font-medium">
-                    {selected_counterparty(@parties, @selected_counterparty_ids).legal_name}
-                  </dd>
-                </div>
-                <div>
-                  <dt class="text-base-content/60">Send amount</dt>
-                  <dd class="mt-1 font-medium">
-                    {format_currency_amount(
-                      @quote.amount_in_originator_currency,
-                      @quote.originator_currency_code
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt class="text-base-content/60">Destination amount</dt>
-                  <dd class="mt-1 font-medium">
-                    {format_currency_amount(
-                      @quote.amount_in_counterparty_currency,
-                      @quote.counterparty_currency_code
-                    )}
-                  </dd>
-                </div>
-              </dl>
+              </div>
             </div>
           </div>
 
-          <div class="card bg-primary text-primary-content">
-            <div class="card-body p-4">
-              <h3 class="font-medium">Locked customer FX rate</h3>
-              <p class="mt-3 text-3xl font-semibold">
-                {@quote.calculation_snapshot["facts"]["fx_rate"]}
-              </p>
-              <p class="text-sm opacity-80">
-                Quote reference {@quote.id}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div :if={@quote} class="space-y-2">
-          <div
-            :for={line <- @quote.calculation_snapshot["lines"]}
-            class="flex items-center justify-between gap-4 rounded-box bg-base-200 px-4 py-3 text-sm"
-          >
-            <span class="font-medium">{line["label"]}</span>
-            <span class="text-base-content/70">
-              {format_currency_amount(line["amount"], line["currency_code"])}
-            </span>
-          </div>
+          <.spot_rate_card
+            rate={@quote.customer_fx_rate}
+            from_currency_code={@quote.originator_currency_code}
+            to_currency_code={@quote.counterparty_currency_code}
+            vertical={true}
+            show_badge={false}
+          />
         </div>
 
         <div :if={@quote_error} role="alert" class="alert alert-error alert-soft">
@@ -584,6 +560,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :updated_at, :any, default: nil
   attr :vertical, :boolean, default: false
   attr :live, :boolean, default: true
+  attr :show_badge, :boolean, default: true
 
   def spot_rate_card(assigns) do
     assigns =
@@ -621,18 +598,21 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
             "flex items-center gap-2",
             @vertical && "flex-col"
           ]}>
-            <span class={[
-              "badge badge-soft",
-              if(@live, do: "badge-success", else: "badge-primary")
-            ]}>
+            <span
+              :if={@show_badge}
+              class={[
+                "badge badge-soft",
+                if(@live, do: "badge-success", else: "badge-primary")
+              ]}
+            >
               {if(@live, do: "Live spot", else: "Day Quote")}
             </span>
-            <span :if={!@vertical} class="flex items-center">
+            <span :if={!@vertical || !@show_badge} class="flex items-center">
               <span class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
                 {@from_currency_code}/{@to_currency_code}
               </span>
               <span
-                :if={@live}
+                :if={@live && @show_badge}
                 class="tooltip tooltip-right text-base-content/60"
                 data-tip="This rate refreshes every 5 seconds and will be locked when you generate the binding quote."
               >
@@ -745,6 +725,61 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
   defp recipient(_direction, parties, _originator_id, counterparty_ids),
     do: selected_counterparty(parties, counterparty_ids)
+
+  defp review_summary(%{quote: nil}) do
+    %{
+      sender: nil,
+      recipient: nil,
+      send_amount: nil,
+      send_currency_code: nil,
+      destination_amount: nil,
+      destination_currency_code: nil
+    }
+  end
+
+  defp review_summary(assigns) do
+    {send_amount, send_currency_code, destination_amount, destination_currency_code} =
+      directional_amounts(assigns.direction, assigns.quote)
+
+    %{
+      sender:
+        sender(
+          assigns.direction,
+          assigns.parties,
+          assigns.selected_originator_id,
+          assigns.selected_counterparty_ids
+        ),
+      recipient:
+        recipient(
+          assigns.direction,
+          assigns.parties,
+          assigns.selected_originator_id,
+          assigns.selected_counterparty_ids
+        ),
+      send_amount: send_amount,
+      send_currency_code: send_currency_code,
+      destination_amount: destination_amount,
+      destination_currency_code: destination_currency_code
+    }
+  end
+
+  defp directional_amounts(:receive, quote) do
+    {
+      quote.amount_in_counterparty_currency,
+      quote.counterparty_currency_code,
+      quote.amount_in_originator_currency,
+      quote.originator_currency_code
+    }
+  end
+
+  defp directional_amounts(_direction, quote) do
+    {
+      quote.amount_in_originator_currency,
+      quote.originator_currency_code,
+      quote.amount_in_counterparty_currency,
+      quote.counterparty_currency_code
+    }
+  end
 
   defp selected_party_name(parties, party_id)
        when is_binary(party_id) or is_integer(party_id),

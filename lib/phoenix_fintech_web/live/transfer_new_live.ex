@@ -224,11 +224,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
 
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p class="text-sm font-medium text-primary">Transfer wizard</p>
-            <h1 class="mt-1 text-3xl font-semibold">Create transfer</h1>
-            <p class="mt-2 max-w-2xl text-sm text-base-content/70">
-              Choose the parties, lock a binding FX quote, then submit the transfer for operations and compliance review.
-            </p>
+            <p class="text-sm font-semibold uppercase tracking-wide text-primary">Create Transfer</p>
           </div>
           <progress class="progress progress-primary max-w-xs" value={step_number(@step)} max="5">
           </progress>

@@ -135,13 +135,7 @@ defmodule PhoenixFintechWeb.OriginatorOnboardingLive do
         <div class="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p class="text-sm font-semibold uppercase tracking-wide text-primary">
-              Originator onboarding
-            </p>
-            <h1 class="mt-2 text-3xl font-semibold">
-              Add a business party
-            </h1>
-            <p class="mt-3 max-w-2xl text-sm leading-6 text-base-content/70">
-              Capture the business identity, ownership representative, and tax identifiers needed before transfers can reference this originator.
+              Create Party
             </p>
           </div>
 
