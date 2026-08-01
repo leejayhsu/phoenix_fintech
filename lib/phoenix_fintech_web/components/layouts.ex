@@ -126,6 +126,11 @@ defmodule PhoenixFintechWeb.Layouts do
           </.link>
         </li>
         <li>
+          <.link navigate={~p"/app/routes"} class="gap-2 rounded-lg px-2 py-2 font-medium">
+            <.icon name="hero-globe-asia-australia" class="size-4" /> Freight Routing
+          </.link>
+        </li>
+        <li>
           <.link
             navigate={~p"/app/notifications"}
             class="flex items-center justify-between gap-2 rounded-lg px-2 py-2 font-medium"
