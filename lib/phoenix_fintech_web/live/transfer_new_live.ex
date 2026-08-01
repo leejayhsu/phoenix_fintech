@@ -106,7 +106,7 @@ defmodule PhoenixFintechWeb.TransferNewLive do
   def handle_event("generate_quote", %{"quote" => quote_params}, socket) do
     attrs =
       quote_params
-      |> Map.put("fx_rate", live_spot_rate(socket.assigns, quote_params))
+      |> Map.put("fx_rate", effective_spot_rate(socket.assigns, quote_params))
       |> Map.put("originator_party_id", socket.assigns.selected_originator_id)
       |> Map.put("counterparty_party_id", selected_counterparty_id(socket.assigns))
 
@@ -155,17 +155,24 @@ defmodule PhoenixFintechWeb.TransferNewLive do
         {:noreply, put_flash(socket, :error, "That Day Quote is no longer available.")}
 
       quote ->
-        params =
-          socket.assigns.quote_form.params
-          |> Map.put("originator_currency_code", quote.originator_currency_code)
-          |> Map.put("counterparty_currency_code", quote.counterparty_currency_code)
-          |> Map.put("spread_basis_points", Integer.to_string(quote.spread_basis_points))
+        if socket.assigns.selected_reusable_quote_id == quote.id do
+          {:noreply,
+           socket
+           |> assign(:selected_reusable_quote_id, nil)
+           |> clear_quote()}
+        else
+          params =
+            socket.assigns.quote_form.params
+            |> Map.put("originator_currency_code", quote.originator_currency_code)
+            |> Map.put("counterparty_currency_code", quote.counterparty_currency_code)
+            |> Map.put("spread_basis_points", Integer.to_string(quote.spread_basis_points))
 
-        {:noreply,
-         socket
-         |> assign(:quote_form, to_form(params, as: :quote))
-         |> assign(:selected_reusable_quote_id, quote.id)
-         |> clear_quote()}
+          {:noreply,
+           socket
+           |> assign(:quote_form, to_form(params, as: :quote))
+           |> assign(:selected_reusable_quote_id, quote.id)
+           |> clear_quote()}
+        end
     end
   end
 
@@ -360,6 +367,16 @@ defmodule PhoenixFintechWeb.TransferNewLive do
       Map.get(quote_params, "originator_currency_code"),
       Map.get(quote_params, "counterparty_currency_code")
     })
+  end
+
+  defp effective_spot_rate(%{selected_reusable_quote_id: nil} = assigns, quote_params),
+    do: live_spot_rate(assigns, quote_params)
+
+  defp effective_spot_rate(assigns, quote_params) do
+    case Enum.find(assigns.reusable_quotes, &(&1.id == assigns.selected_reusable_quote_id)) do
+      nil -> live_spot_rate(assigns, quote_params)
+      quote -> quote.spot_fx_rate
+    end
   end
 
   defp generate_transfer_quote(%{selected_reusable_quote_id: nil} = assigns, attrs) do

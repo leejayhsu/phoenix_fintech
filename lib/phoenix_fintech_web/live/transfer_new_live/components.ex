@@ -169,6 +169,13 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :selected_reusable_quote_id, :string, default: nil
 
   def quote_step(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :selected_reusable_quote,
+        selected_reusable_quote(assigns.reusable_quotes, assigns.selected_reusable_quote_id)
+      )
+
     ~H"""
     <section class={@panel_class} inert={!@active}>
       <div class="card-body gap-6">
@@ -187,9 +194,8 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         <div class="rounded-box border border-base-300 bg-base-200/50 p-4">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 class="font-semibold">Use a Day Quote</h3>
-              <p class="text-sm text-base-content/60">
-                Apply terms you locked earlier today, or continue with a fresh live quote below.
+              <p class="text-sm text-base-content/70">
+                Apply a Day Quote, or continue with a fresh quote below.
               </p>
             </div>
             <.link navigate={~p"/app/quotes"} class="btn btn-ghost btn-sm shrink-0">
@@ -200,7 +206,6 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
           <div
             :if={@reusable_quotes != []}
             id="reusable-quote-options"
-            role="radiogroup"
             aria-label="Available Day Quotes"
             class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
           >
@@ -208,8 +213,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
               :for={quote <- @reusable_quotes}
               id={"choose-day-quote-#{quote.id}"}
               type="button"
-              role="radio"
-              aria-checked={to_string(@selected_reusable_quote_id == quote.id)}
+              aria-pressed={to_string(@selected_reusable_quote_id == quote.id)}
               phx-click="choose_reusable_quote"
               phx-value-id={quote.id}
               class={[
@@ -279,15 +283,25 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
                 label="Amount to send"
               />
 
-              <.quote_terms_fields form={@quote_form} currencies={@currencies} />
+              <.quote_terms_fields
+                form={@quote_form}
+                currencies={@currencies}
+                disabled={not is_nil(@selected_reusable_quote)}
+              />
             </div>
 
             <div class="space-y-4">
               <.spot_rate_card
-                rate={selected_spot_rate(@spot_rates, @quote_form)}
+                rate={
+                  if(@selected_reusable_quote,
+                    do: @selected_reusable_quote.customer_fx_rate,
+                    else: selected_spot_rate(@spot_rates, @quote_form)
+                  )
+                }
                 from_currency_code={quote_form_value(@quote_form, :originator_currency_code)}
                 to_currency_code={quote_form_value(@quote_form, :counterparty_currency_code)}
                 updated_at={@spot_rates_updated_at}
+                live={is_nil(@selected_reusable_quote)}
               />
 
               <% details = fx_details(assigns) %>
@@ -327,6 +341,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :currency_codes_only, :boolean, default: false
   attr :stacked, :boolean, default: false
   attr :split, :boolean, default: false
+  attr :disabled, :boolean, default: false
 
   def quote_terms_fields(assigns) do
     ~H"""
@@ -341,6 +356,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         max="9999"
         step="1"
         label="Spread (bps)"
+        disabled={@disabled}
       />
 
       <div class={[
@@ -357,6 +373,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
           label="Send currency"
           prompt={@currency_prompt}
           options={currency_options(@currencies, @currency_codes_only)}
+          disabled={@disabled}
         />
         <.input
           field={@form[:counterparty_currency_code]}
@@ -364,6 +381,27 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
           label="Destination currency"
           prompt={@currency_prompt}
           options={currency_options(@currencies, @currency_codes_only)}
+          disabled={@disabled}
+        />
+      </div>
+      <div :if={@disabled}>
+        <input
+          id="locked-spread-basis-points"
+          type="hidden"
+          name={@form[:spread_basis_points].name}
+          value={@form[:spread_basis_points].value}
+        />
+        <input
+          id="locked-originator-currency-code"
+          type="hidden"
+          name={@form[:originator_currency_code].name}
+          value={@form[:originator_currency_code].value}
+        />
+        <input
+          id="locked-counterparty-currency-code"
+          type="hidden"
+          name={@form[:counterparty_currency_code].name}
+          value={@form[:counterparty_currency_code].value}
         />
       </div>
     </div>
@@ -545,6 +583,7 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   attr :to_currency_code, :string, required: true
   attr :updated_at, :any, default: nil
   attr :vertical, :boolean, default: false
+  attr :live, :boolean, default: true
 
   def spot_rate_card(assigns) do
     assigns =
@@ -582,12 +621,18 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
             "flex items-center gap-2",
             @vertical && "flex-col"
           ]}>
-            <span class="badge badge-success badge-soft">Live spot</span>
+            <span class={[
+              "badge badge-soft",
+              if(@live, do: "badge-success", else: "badge-primary")
+            ]}>
+              {if(@live, do: "Live spot", else: "Day Quote")}
+            </span>
             <span :if={!@vertical} class="flex items-center">
               <span class="text-xs font-semibold uppercase tracking-wide text-base-content/60">
                 {@from_currency_code}/{@to_currency_code}
               </span>
               <span
+                :if={@live}
                 class="tooltip tooltip-right text-base-content/60"
                 data-tip="This rate refreshes every 5 seconds and will be locked when you generate the binding quote."
               >
@@ -734,6 +779,13 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
   end
 
   defp fx_details(assigns) do
+    case selected_reusable_quote(assigns.reusable_quotes, assigns.selected_reusable_quote_id) do
+      nil -> live_fx_details(assigns)
+      quote -> reusable_quote_fx_details(quote)
+    end
+  end
+
+  defp live_fx_details(assigns) do
     amount = quote_form_value(assigns.quote_form, :amount_in_originator_currency)
     rate = selected_spot_rate(assigns.spot_rates, assigns.quote_form)
     spread_basis_points = quote_form_value(assigns.quote_form, :spread_basis_points)
@@ -761,6 +813,19 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
         fx_fee_currency: from_code
       }
     end
+  end
+
+  defp reusable_quote_fx_details(quote) do
+    %{
+      destination_amount: quote.amount_in_counterparty_currency,
+      destination_currency: quote.counterparty_currency_code,
+      customer_rate: quote.customer_fx_rate,
+      spread_basis_points: quote.spread_basis_points,
+      spread_amount: quote.spread_amount,
+      spread_currency: quote.originator_currency_code,
+      fx_fee: nil,
+      fx_fee_currency: quote.originator_currency_code
+    }
   end
 
   defp preview_destination_amount(amount, rate) do
@@ -830,6 +895,9 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
 
     Map.get(rates, {from_currency_code, to_currency_code})
   end
+
+  defp selected_reusable_quote(reusable_quotes, quote_id),
+    do: Enum.find(reusable_quotes, &(&1.id == quote_id))
 
   defp quote_form_value(quote_form, field) do
     Phoenix.HTML.Form.input_value(quote_form, field)
