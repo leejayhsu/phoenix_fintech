@@ -225,9 +225,11 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
                     {quote.originator_currency_code}/{quote.counterparty_currency_code}
                   </span>
                   <.icon
-                    :if={@selected_reusable_quote_id == quote.id}
                     name="hero-check-circle"
-                    class="size-5 text-primary"
+                    class={[
+                      "size-5 text-primary",
+                      @selected_reusable_quote_id != quote.id && "invisible"
+                    ]}
                   />
                 </span>
                 <span class="font-mono text-sm">
@@ -346,6 +348,27 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
       "[&_.fieldset]:mb-0",
       if(@split, do: "grid grid-cols-2 items-start gap-4", else: "space-y-4")
     ]}>
+      <div :if={@disabled} class="hidden">
+        <input
+          id="locked-spread-basis-points"
+          type="hidden"
+          name={@form[:spread_basis_points].name}
+          value={@form[:spread_basis_points].value}
+        />
+        <input
+          id="locked-originator-currency-code"
+          type="hidden"
+          name={@form[:originator_currency_code].name}
+          value={@form[:originator_currency_code].value}
+        />
+        <input
+          id="locked-counterparty-currency-code"
+          type="hidden"
+          name={@form[:counterparty_currency_code].name}
+          value={@form[:counterparty_currency_code].value}
+        />
+      </div>
+
       <.input
         field={@form[:spread_basis_points]}
         type="number"
@@ -379,26 +402,6 @@ defmodule PhoenixFintechWeb.TransferNewLive.Components do
           prompt={@currency_prompt}
           options={currency_options(@currencies, @currency_codes_only)}
           disabled={@disabled}
-        />
-      </div>
-      <div :if={@disabled}>
-        <input
-          id="locked-spread-basis-points"
-          type="hidden"
-          name={@form[:spread_basis_points].name}
-          value={@form[:spread_basis_points].value}
-        />
-        <input
-          id="locked-originator-currency-code"
-          type="hidden"
-          name={@form[:originator_currency_code].name}
-          value={@form[:originator_currency_code].value}
-        />
-        <input
-          id="locked-counterparty-currency-code"
-          type="hidden"
-          name={@form[:counterparty_currency_code].name}
-          value={@form[:counterparty_currency_code].value}
         />
       </div>
     </div>
