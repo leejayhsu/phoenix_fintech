@@ -17,59 +17,50 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
       |> assign(:page_title, "Transfers")
       |> assign(:transfers, list_transfers_for_current_user(current_user))
       |> assign(:templates, list_templates_for_current_user(current_user))
-      |> assign(:duplicate_transfer, nil)
+      |> assign(:transfer_template_source, nil)
       |> assign(:pending_template, nil)
       |> assign(:pending_amount, nil)
       |> assign(:template_step, :amount)
-      |> assign(:duplicate_error, nil)
+      |> assign(:transfer_template_creation_error, nil)
       |> assign(:template_error, nil)
-      |> assign(:duplicate_form, duplicate_form())
+      |> assign(:transfer_template_creation_form, transfer_template_creation_form())
       |> assign(:template_transfer_form, template_transfer_form(current_user))
 
     {:ok, socket}
   end
 
   @impl true
-  def handle_event("open_duplicate", %{"id" => id}, socket) do
+  def handle_event("open_transfer_template_creation", %{"id" => id}, socket) do
     transfer = Enum.find(socket.assigns.transfers, &(&1.id == id and &1.status == "completed"))
 
     if transfer && transfer.transfer_quote do
       {:noreply,
        socket
-       |> assign(:duplicate_transfer, transfer)
-       |> assign(:duplicate_form, duplicate_form())
-       |> assign(:duplicate_error, nil)
-       |> push_event("open_dialog", %{id: "duplicate-transfer-dialog"})}
+       |> assign(:transfer_template_source, transfer)
+       |> assign(:transfer_template_creation_form, transfer_template_creation_form())
+       |> assign(:transfer_template_creation_error, nil)
+       |> push_event("open_dialog", %{id: "transfer-template-creation-dialog"})}
     else
-      {:noreply, put_flash(socket, :error, "Only completed quoted transfers can be duplicated.")}
+      {:noreply,
+       put_flash(socket, :error, "Only completed quoted transfers can be used as templates.")}
     end
   end
 
-  def handle_event("close_duplicate", _params, socket) do
+  def handle_event("close_transfer_template_creation", _params, socket) do
     {:noreply,
      socket
-     |> assign(:duplicate_transfer, nil)
-     |> assign(:duplicate_error, nil)}
-  end
-
-  def handle_event("choose_template_spread", %{"option" => option}, socket)
-      when option in ["same", "new"] do
-    params = Map.put(socket.assigns.duplicate_form.params, "spread_option", option)
-
-    {:noreply,
-     socket
-     |> assign(:duplicate_form, to_form(params, as: :template))
-     |> assign(:duplicate_error, nil)}
+     |> assign(:transfer_template_source, nil)
+     |> assign(:transfer_template_creation_error, nil)}
   end
 
   def handle_event("save_template", %{"template" => params}, socket) do
-    spread = selected_spread(params, socket.assigns.duplicate_transfer)
+    spread = selected_spread(params, socket.assigns.transfer_template_source)
 
     case spread do
       {:ok, spread_basis_points} ->
         case Transfers.create_transfer_template(
                socket.assigns.current_user.id,
-               socket.assigns.duplicate_transfer.id,
+               socket.assigns.transfer_template_source.id,
                spread_basis_points
              ) do
           {:ok, _template} ->
@@ -79,23 +70,28 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
              socket
              |> assign(:templates, templates)
              |> assign(:template_transfer_form, template_transfer_form(templates))
-             |> assign(:duplicate_transfer, nil)
-             |> push_event("close_dialog", %{id: "duplicate-transfer-dialog"})
+             |> assign(:transfer_template_source, nil)
+             |> push_event("close_dialog", %{id: "transfer-template-creation-dialog"})
              |> put_flash(:info, "Transfer template created.")}
 
           {:error, :invalid_source_transfer} ->
             {:noreply,
-             assign(socket, :duplicate_error, "This transfer can no longer be duplicated.")}
+             assign(
+               socket,
+               :transfer_template_creation_error,
+               "This transfer can no longer be used as a template."
+             )}
 
           {:error, changeset} ->
-            {:noreply, assign(socket, :duplicate_error, changeset_error(changeset))}
+            {:noreply,
+             assign(socket, :transfer_template_creation_error, changeset_error(changeset))}
         end
 
       {:error, message} ->
         {:noreply,
          socket
-         |> assign(:duplicate_form, to_form(params, as: :template))
-         |> assign(:duplicate_error, message)}
+         |> assign(:transfer_template_creation_form, to_form(params, as: :template))
+         |> assign(:transfer_template_creation_error, message)}
     end
   end
 
@@ -267,7 +263,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                         <button
                           id={"create-template-#{transfer.id}"}
                           type="button"
-                          phx-click="open_duplicate"
+                          phx-click="open_transfer_template_creation"
                           phx-value-id={transfer.id}
                         >
                           <.icon name="hero-document-duplicate" class="size-4" /> Create template
@@ -282,22 +278,22 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
         </div>
 
         <dialog
-          id="duplicate-transfer-dialog"
+          id="transfer-template-creation-dialog"
           class="modal"
           phx-hook=".LiveDialog"
-          data-close-event="close_duplicate"
+          data-close-event="close_transfer_template_creation"
         >
           <div class="modal-box relative max-w-lg">
             <button
-              id="close-duplicate-transfer-dialog"
+              id="close-transfer-template-creation-dialog"
               type="button"
-              phx-click={JS.dispatch("phx:close-dialog", to: "#duplicate-transfer-dialog")}
+              phx-click={JS.dispatch("phx:close-dialog", to: "#transfer-template-creation-dialog")}
               class="btn btn-circle btn-ghost btn-sm absolute top-4 right-4"
               aria-label="Close dialog"
             >
               <.icon name="hero-x-mark" class="size-5" />
             </button>
-            <%= if @duplicate_transfer do %>
+            <%= if @transfer_template_source do %>
               <h2 class="text-lg font-semibold">Create transfer template</h2>
               <p class="mt-1 text-sm text-base-content/70">
                 Save the parties, currencies, direction, and spread. Transfer amounts are never saved.
@@ -306,29 +302,31 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
               <dl class="mt-4 grid grid-cols-2 gap-3 rounded-box bg-base-200 p-4 text-sm">
                 <div>
                   <dt class="text-base-content/60">Originator</dt>
-                  <dd class="font-medium">{@duplicate_transfer.originator_party.legal_name}</dd>
+                  <dd class="font-medium">{@transfer_template_source.originator_party.legal_name}</dd>
                 </div>
                 <div>
                   <dt class="text-base-content/60">Counterparty</dt>
-                  <dd class="font-medium">{@duplicate_transfer.counterparty_party.legal_name}</dd>
+                  <dd class="font-medium">
+                    {@transfer_template_source.counterparty_party.legal_name}
+                  </dd>
                 </div>
                 <div>
                   <dt class="text-base-content/60">Currencies</dt>
                   <dd class="font-medium">
-                    {@duplicate_transfer.originator_currency_code} to {@duplicate_transfer.counterparty_currency_code}
+                    {@transfer_template_source.originator_currency_code} to {@transfer_template_source.counterparty_currency_code}
                   </dd>
                 </div>
                 <div>
                   <dt class="text-base-content/60">Direction</dt>
-                  <dd class="font-medium">{humanize(@duplicate_transfer.direction)}</dd>
+                  <dd class="font-medium">{humanize(@transfer_template_source.direction)}</dd>
                 </div>
               </dl>
 
               <.form
-                for={@duplicate_form}
-                id="duplicate-transfer-form"
+                for={@transfer_template_creation_form}
+                id="transfer-template-creation-form"
                 phx-submit="save_template"
-                class="mt-4 space-y-3"
+                class="group mt-4 space-y-3"
               >
                 <fieldset class="fieldset">
                   <legend class="fieldset-legend">Template spread</legend>
@@ -339,10 +337,8 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                       name="template[spread_option]"
                       value="same"
                       class="radio radio-sm"
-                      checked={@duplicate_form[:spread_option].value == "same"}
-                      phx-click="choose_template_spread"
-                      phx-value-option="same"
-                    /> Same spread: {@duplicate_transfer.transfer_quote.spread_basis_points} bps
+                      checked={@transfer_template_creation_form[:spread_option].value == "same"}
+                    /> Same spread: {@transfer_template_source.transfer_quote.spread_basis_points} bps
                   </label>
                   <label class="label cursor-pointer justify-start gap-3">
                     <input
@@ -351,29 +347,34 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                       name="template[spread_option]"
                       value="new"
                       class="radio radio-sm"
-                      checked={@duplicate_form[:spread_option].value == "new"}
-                      phx-click="choose_template_spread"
-                      phx-value-option="new"
+                      checked={@transfer_template_creation_form[:spread_option].value == "new"}
                     /> Use a new spread
                   </label>
                 </fieldset>
-                <.input
-                  :if={@duplicate_form[:spread_option].value == "new"}
-                  field={@duplicate_form[:spread_basis_points]}
-                  type="number"
-                  label="New spread (basis points)"
-                  min="0"
-                  max="9999"
-                  step="1"
-                  placeholder="For example, 125"
-                />
-                <div :if={@duplicate_error} role="alert" class="alert alert-error alert-soft text-sm">
-                  {@duplicate_error}
+                <div class="hidden group-has-[#template-spread-new:checked]:block">
+                  <.input
+                    field={@transfer_template_creation_form[:spread_basis_points]}
+                    type="number"
+                    label="New spread (basis points)"
+                    min="0"
+                    max="9999"
+                    step="1"
+                    placeholder="For example, 125"
+                  />
+                </div>
+                <div
+                  :if={@transfer_template_creation_error}
+                  role="alert"
+                  class="alert alert-error alert-soft text-sm"
+                >
+                  {@transfer_template_creation_error}
                 </div>
                 <div class="modal-action">
                   <button
                     type="button"
-                    phx-click={JS.dispatch("phx:close-dialog", to: "#duplicate-transfer-dialog")}
+                    phx-click={
+                      JS.dispatch("phx:close-dialog", to: "#transfer-template-creation-dialog")
+                    }
                     class="btn btn-ghost"
                   >
                     Cancel
@@ -385,7 +386,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
           </div>
           <button
             type="button"
-            phx-click={JS.dispatch("phx:close-dialog", to: "#duplicate-transfer-dialog")}
+            phx-click={JS.dispatch("phx:close-dialog", to: "#transfer-template-creation-dialog")}
             class="modal-backdrop"
             aria-label="Close dialog"
           >
@@ -413,7 +414,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
               <div class="flex h-full flex-col p-6">
                 <h2 class="text-lg font-semibold">No transfer templates yet</h2>
                 <p class="mt-2 text-sm text-base-content/70">
-                  Complete a transfer, then use its Duplicate action to save your first template.
+                  Complete a transfer, then use its Create template action to save your first template.
                 </p>
                 <div class="modal-action mt-auto">
                   <button
@@ -631,7 +632,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
 
   defp list_templates_for_current_user(_), do: []
 
-  defp duplicate_form do
+  defp transfer_template_creation_form do
     to_form(%{"spread_option" => "same", "spread_basis_points" => ""}, as: :template)
   end
 

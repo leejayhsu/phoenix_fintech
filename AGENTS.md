@@ -297,7 +297,16 @@ custom classes must fully style the input
 
 - Remember anytime you use `phx-hook="MyHook"` and that JS hook manages its own DOM, you **must** also set the `phx-update="ignore"` attribute
 - **Always** provide an unique DOM id alongside `phx-hook` otherwise a compiler error will be raised
-- Do not track a native `<dialog>` element's open/closed state in LiveView assigns. Let the browser own that UI state through `showModal()` and `close()`; LiveView should track only application state such as the selected record, form data, and wizard step. When server-rendered content must be assigned before opening, use a one-shot `push_event/3` handled by a dialog hook after the patch. Native dismissals should call `close()` and notify LiveView from the dialog's `close` event so application state can be cleared.
+
+#### Native dialogs
+
+- Do not track a native `<dialog>` element's open/closed state in LiveView assigns. Let the browser own `showModal()`, `close()`, focus, Escape, and backdrop dismissal.
+- LiveView should own application state and consequential actions: selected records, form data, validation, authorization, persistence, and wizard steps. Confirmation forms should still use `phx-submit`; close the dialog only after a successful server result, while validation errors leave it open.
+- When server-rendered content must be assigned before opening, assign it first and send a one-shot `push_event/3`. Handle that event in a dialog hook after the DOM patch, then call `showModal()`.
+- Keep purely presentational interactions local to the browser when the server does not need them yet. For example, radio-controlled conditional fields can use CSS or a hook and submit their values with the form instead of causing a LiveView patch on every click.
+- A LiveView patch can remove the client-owned `open` attribute and make `showModal()` autofocus the first control again. Avoid unnecessary patches while a dialog is open. If an open dialog must be patched, its hook must preserve the open state and restore the previously focused element by stable DOM ID.
+- Native dismissals should call `close()` and notify LiveView from the dialog's `close` event so application state can be cleared.
+- Do not put `phx-update="ignore"` on a dialog whose server-rendered contents must update. Use it only for an isolated subtree that JavaScript fully owns.
 
 LiveView hooks come in two flavors, 1) colocated js hooks for "inline" scripts defined inside HEEx,
 and 2) external `phx-hook` annotations where JavaScript object literals are defined and passed to the `LiveSocket` constructor.
