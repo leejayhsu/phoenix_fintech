@@ -293,7 +293,7 @@ defmodule PhoenixFintechWeb.TransferShowLive do
                   <article
                     :for={event <- @transfer.events}
                     id={"transfer-event-#{event.id}"}
-                    class="rounded-box border border-base-300 bg-base-100 p-3"
+                    class="rounded-box border border-base-300 bg-base-200 p-3"
                   >
                     <div class="flex flex-wrap items-start justify-between gap-2">
                       <div>

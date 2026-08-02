@@ -334,6 +334,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                   <legend class="fieldset-legend">Template spread</legend>
                   <label class="label cursor-pointer justify-start gap-3">
                     <input
+                      id="template-spread-same"
                       type="radio"
                       name="template[spread_option]"
                       value="same"
@@ -345,6 +346,7 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
                   </label>
                   <label class="label cursor-pointer justify-start gap-3">
                     <input
+                      id="template-spread-new"
                       type="radio"
                       name="template[spread_option]"
                       value="new"
@@ -587,9 +589,17 @@ defmodule PhoenixFintechWeb.TransferIndexLive do
             },
             beforeUpdate() {
               this.wasOpen = this.el.open
+              this.focusedElementId = this.el.contains(document.activeElement)
+                ? document.activeElement.id
+                : null
             },
             updated() {
               if (this.wasOpen && !this.el.open) this.el.showModal()
+
+              const focusedElement = document.getElementById(this.focusedElementId)
+              if (focusedElement && this.el.contains(focusedElement)) {
+                focusedElement.focus({preventScroll: true})
+              }
             }
           }
         </script>
