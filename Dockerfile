@@ -7,7 +7,7 @@ ARG RUNNER_IMAGE="alpine:${ALPINE_VERSION}"
 
 FROM ${BUILDER_IMAGE} AS builder
 
-RUN apk add --no-cache build-base git
+RUN apk add --no-cache build-base git nodejs npm
 
 WORKDIR /app
 
@@ -18,6 +18,9 @@ ENV MIX_ENV=prod
 
 COPY mix.exs mix.lock ./
 RUN mix deps.get --only prod
+
+COPY assets/package.json assets/package-lock.json ./assets/
+RUN npm ci --prefix assets
 
 RUN mkdir config
 COPY config/config.exs config/prod.exs config/runtime.exs config/
