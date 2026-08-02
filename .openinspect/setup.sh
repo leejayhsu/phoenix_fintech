@@ -12,6 +12,8 @@ info()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn()  { printf '\033[1;33mWARN:\033[0m %s\n' "$*"; }
 error() { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; }
 
+trap 'status=$?; error "Setup failed at line ${LINENO}: ${BASH_COMMAND} (exit ${status})"; exit "${status}"' ERR
+
 check_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     error "$1 is not installed."
@@ -25,9 +27,29 @@ run_as_root() {
   elif command -v sudo >/dev/null 2>&1; then
     sudo "$@"
   else
-    error "Root privileges are required to install PostgreSQL."
+    error "Root privileges are required to install system packages."
     exit 1
   fi
+}
+
+install_system_packages() {
+  if ! command -v apt-get >/dev/null 2>&1; then
+    error "apt-get is required to install the development dependencies."
+    exit 1
+  fi
+
+  info "Installing system dependencies..."
+  run_as_root env DEBIAN_FRONTEND=noninteractive apt-get update
+  run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    nodejs \
+    npm \
+    openssl \
+    postgresql \
+    postgresql-client
 }
 
 elixir_compatible() {
@@ -84,16 +106,6 @@ postgres_ready() {
 }
 
 install_postgres() {
-  if ! command -v pg_isready >/dev/null 2>&1 || ! command -v psql >/dev/null 2>&1; then
-    info "Installing PostgreSQL..."
-    run_as_root env DEBIAN_FRONTEND=noninteractive apt-get update
-    run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      openssl \
-      postgresql \
-      postgresql-client
-    run_as_root rm -rf /var/lib/apt/lists
-  fi
-
   if ! postgres_ready; then
     info "Starting PostgreSQL..."
     run_as_root /usr/sbin/service postgresql start
@@ -120,6 +132,8 @@ install_postgres() {
 }
 
 info "Checking prerequisites..."
+install_system_packages
+
 check_cmd curl
 check_cmd node
 check_cmd npm
