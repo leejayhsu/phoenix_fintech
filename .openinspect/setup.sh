@@ -126,7 +126,7 @@ info "Checking prerequisites..."
 install_system_packages
 
 install_postgres
-# install_elixir
+install_elixir
 #
 # info "Elixir $(elixir -e 'IO.write(System.version())')"
 #
