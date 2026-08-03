@@ -4,8 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-ELIXIR_VERSION="${ELIXIR_VERSION:-1.20.1}"
-OTP_VERSION="${OTP_VERSION:-28.4}"
+ELIXIR_VERSION="${ELIXIR_VERSION:-1.18.4}"
 INSTALLS_DIR="${HOME}/.elixir-install/installs"
 
 info()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -37,6 +36,7 @@ install_system_packages() {
     build-essential \
     ca-certificates \
     curl \
+    erlang \
     git \
     openssl \
     postgresql \
@@ -56,39 +56,33 @@ elixir_compatible() {
 }
 
 install_elixir() {
-  local otp_major otp_bin elixir_bin executable source_path temp_dir
+  local elixir_dir executable temp_dir
 
   if elixir_compatible && command -v mix >/dev/null 2>&1; then
     return
   fi
 
-  info "Installing Elixir ${ELIXIR_VERSION} and Erlang/OTP ${OTP_VERSION}..."
+  info "Building Elixir ${ELIXIR_VERSION} against the system Erlang/OTP..."
   temp_dir="$(mktemp -d)"
-  curl -fsSL https://elixir-lang.org/install.sh --output "${temp_dir}/install.sh"
-  sh "${temp_dir}/install.sh" "elixir@${ELIXIR_VERSION}" "otp@${OTP_VERSION}"
+  elixir_dir="${INSTALLS_DIR}/elixir/${ELIXIR_VERSION}"
+
+  curl -fsSL \
+    "https://github.com/elixir-lang/elixir/archive/refs/tags/v${ELIXIR_VERSION}.tar.gz" \
+    --output "${temp_dir}/elixir.tar.gz"
+  mkdir -p "$elixir_dir"
+  tar -xzf "${temp_dir}/elixir.tar.gz" --strip-components=1 -C "$elixir_dir"
+  make -C "$elixir_dir"
   rm -rf "$temp_dir"
 
-  otp_major="${OTP_VERSION%%.*}"
-  otp_bin="${INSTALLS_DIR}/otp/${OTP_VERSION}/bin"
-  elixir_bin="${INSTALLS_DIR}/elixir/${ELIXIR_VERSION}-otp-${otp_major}/bin"
-
-  if [ ! -x "${otp_bin}/erl" ] || [ ! -x "${elixir_bin}/elixir" ]; then
+  if [ ! -x "${elixir_dir}/bin/elixir" ]; then
     error "Elixir installation did not produce the expected binaries."
     exit 1
   fi
 
-  export PATH="${otp_bin}:${elixir_bin}:${PATH}"
+  export PATH="${elixir_dir}/bin:${PATH}"
 
-  for executable in erl erlc epmd escript dialyzer elixir elixirc iex mix; do
-    if [ -x "${elixir_bin}/${executable}" ]; then
-      source_path="${elixir_bin}/${executable}"
-    elif [ -x "${otp_bin}/${executable}" ]; then
-      source_path="${otp_bin}/${executable}"
-    else
-      continue
-    fi
-
-    run_as_root ln -sf "$source_path" "/usr/local/bin/${executable}"
+  for executable in elixir elixirc iex mix; do
+    run_as_root ln -sf "${elixir_dir}/bin/${executable}" "/usr/local/bin/${executable}"
   done
 }
 
