@@ -134,46 +134,46 @@ install_postgres() {
 info "Checking prerequisites..."
 install_system_packages
 
-check_cmd curl
-check_cmd node
-check_cmd npm
-check_cmd git
-check_cmd make
-check_cmd cc
-
-install_postgres
-install_elixir
-
-check_cmd elixir
-check_cmd mix
-
-info "Elixir $(elixir -e 'IO.write(System.version())')"
-
-NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
-if (( NODE_MAJOR < 18 )); then
-  error "Node.js >= 18 is required (found $(node --version))."
-  exit 1
-fi
-info "Node $(node --version)"
-
-info "Installing Hex and Rebar..."
-mix local.hex --force
-mix local.rebar --force
-
-info "Installing Elixir dependencies..."
-mix deps.get
-
-info "Installing npm dependencies..."
-npm ci --prefix assets
-
-info "Setting up the development database and assets..."
-mix setup
-
-info "Verifying compilation..."
-mix compile --warnings-as-errors
-
-printf '\n'
-info "Setup complete. You can now:"
-info "  mix phx.server      # Start the development server"
-info "  iex -S mix phx.server # Start the server inside IEx"
-info "  mix precommit       # Run project checks"
+# check_cmd curl
+# check_cmd node
+# check_cmd npm
+# check_cmd git
+# check_cmd make
+# check_cmd cc
+#
+# install_postgres
+# install_elixir
+#
+# check_cmd elixir
+# check_cmd mix
+#
+# info "Elixir $(elixir -e 'IO.write(System.version())')"
+#
+# NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
+# if (( NODE_MAJOR < 18 )); then
+#   error "Node.js >= 18 is required (found $(node --version))."
+#   exit 1
+# fi
+# info "Node $(node --version)"
+#
+# info "Installing Hex and Rebar..."
+# mix local.hex --force
+# mix local.rebar --force
+#
+# info "Installing Elixir dependencies..."
+# mix deps.get
+#
+# info "Installing npm dependencies..."
+# npm ci --prefix assets
+#
+# info "Setting up the development database and assets..."
+# mix setup
+#
+# info "Verifying compilation..."
+# mix compile --warnings-as-errors
+#
+# printf '\n'
+# info "Setup complete. You can now:"
+# info "  mix phx.server      # Start the development server"
+# info "  iex -S mix phx.server # Start the server inside IEx"
+# info "  mix precommit       # Run project checks"
