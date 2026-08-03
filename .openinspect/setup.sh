@@ -144,6 +144,9 @@ mix setup
 info "Verifying compilation..."
 mix compile --warnings-as-errors
 
+info "Building Dialyzer PLT..."
+mix dialyzer --plt
+
 printf '\n'
 info "Setup complete. You can now:"
 info "  mix phx.server      # Start the development server"
