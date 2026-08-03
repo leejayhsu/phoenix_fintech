@@ -44,6 +44,3 @@ else
   info "PostgreSQL is ready on localhost:5432"
 fi
 
-info "Starting Phoenix development server..."
-cd "$REPO_ROOT"
-exec mix phx.server
