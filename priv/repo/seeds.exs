@@ -13,6 +13,34 @@
 alias PhoenixFintech.Ledger.Currency
 alias PhoenixFintech.Repo
 
+if Mix.env() == :dev do
+  alias PhoenixFintech.Accounts
+
+  email = "leejayhsu@gmail.com"
+
+  user =
+    case Accounts.get_user_by_email(email) do
+      nil ->
+        {:ok, user} =
+          Accounts.register_user(%{
+            email: email,
+            name: "Leejay Hsu",
+            password: "asdfasdf"
+          })
+
+        user
+
+      user ->
+        user
+    end
+
+  unless user.is_admin do
+    user
+    |> Ecto.Changeset.change(is_admin: true)
+    |> Repo.update!()
+  end
+end
+
 utc_now = DateTime.utc_now(:second)
 
 currencies = [
