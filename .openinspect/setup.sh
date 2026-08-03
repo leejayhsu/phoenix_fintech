@@ -14,13 +14,6 @@ error() { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; }
 
 trap 'status=$?; error "Setup failed at line ${LINENO}: ${BASH_COMMAND} (exit ${status})"; exit "${status}"' ERR
 
-check_cmd() {
-  if ! command -v "$1" >/dev/null 2>&1; then
-    error "$1 is not installed."
-    return 1
-  fi
-}
-
 run_as_root() {
   if [ "$(id -u)" -eq 0 ]; then
     "$@"
@@ -132,18 +125,8 @@ install_postgres() {
 info "Checking prerequisites..."
 install_system_packages
 
-# check_cmd curl
-# check_cmd node
-# check_cmd npm
-# check_cmd git
-# check_cmd make
-# check_cmd cc
-#
-# install_postgres
+install_postgres
 # install_elixir
-#
-# check_cmd elixir
-# check_cmd mix
 #
 # info "Elixir $(elixir -e 'IO.write(System.version())')"
 #
