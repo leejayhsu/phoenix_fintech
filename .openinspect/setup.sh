@@ -40,16 +40,14 @@ install_system_packages() {
 
   info "Installing system dependencies..."
   run_as_root env DEBIAN_FRONTEND=noninteractive apt-get update
-  # run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  #   build-essential \
-  #   ca-certificates \
-  #   curl \
-  #   git \
-  #   nodejs \
-  #   npm \
-  #   openssl \
-  #   postgresql \
-  #   postgresql-client
+  run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    openssl \
+    postgresql \
+    postgresql-client
 }
 
 elixir_compatible() {
