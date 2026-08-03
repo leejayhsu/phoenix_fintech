@@ -5,6 +5,8 @@ START_LOG="${HOME}/start.log"
 : > "$START_LOG"
 exec > >(tee -a "$START_LOG") 2>&1
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 info() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 error() { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; }
 
@@ -25,20 +27,23 @@ postgres_ready() {
 
 if postgres_ready; then
   info "PostgreSQL is already running on localhost:5432"
-  exit 0
+else
+  info "Starting PostgreSQL..."
+  run_as_root /usr/sbin/service postgresql start
+
+  for _attempt in {1..30}; do
+    postgres_ready && break
+    sleep 1
+  done
+
+  if ! postgres_ready; then
+    error "PostgreSQL did not become ready within 30 seconds."
+    exit 1
+  fi
+
+  info "PostgreSQL is ready on localhost:5432"
 fi
 
-info "Starting PostgreSQL..."
-run_as_root /usr/sbin/service postgresql start
-
-for _attempt in {1..30}; do
-  postgres_ready && break
-  sleep 1
-done
-
-if ! postgres_ready; then
-  error "PostgreSQL did not become ready within 30 seconds."
-  exit 1
-fi
-
-info "PostgreSQL is ready on localhost:5432"
+info "Starting Phoenix development server..."
+cd "$REPO_ROOT"
+exec mix phx.server
