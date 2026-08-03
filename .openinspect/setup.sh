@@ -128,24 +128,24 @@ install_elixir
 
 info "Elixir $(elixir -e 'IO.write(System.version())')"
 
-# info "Installing Hex and Rebar..."
+info "Installing Hex and Rebar..."
 mix local.hex --force
 mix local.rebar --force
 
-# info "Installing Elixir dependencies..."
+info "Installing Elixir dependencies..."
 mix deps.get
 
-# info "Installing npm dependencies..."
-# npm ci --prefix assets
-#
-# info "Setting up the development database and assets..."
-# mix setup
-#
-# info "Verifying compilation..."
-# mix compile --warnings-as-errors
-#
-# printf '\n'
-# info "Setup complete. You can now:"
-# info "  mix phx.server      # Start the development server"
-# info "  iex -S mix phx.server # Start the server inside IEx"
-# info "  mix precommit       # Run project checks"
+info "Installing npm dependencies..."
+npm ci --prefix assets
+
+info "Setting up the development database and assets..."
+mix setup
+
+info "Verifying compilation..."
+mix compile --warnings-as-errors
+
+printf '\n'
+info "Setup complete. You can now:"
+info "  mix phx.server      # Start the development server"
+info "  iex -S mix phx.server # Start the server inside IEx"
+info "  mix precommit       # Run project checks"
