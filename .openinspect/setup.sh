@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SETUP_LOG="${HOME}/setup.log"
+: > "$SETUP_LOG"
+exec > >(tee -a "$SETUP_LOG") 2>&1
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
@@ -121,16 +125,9 @@ install_system_packages
 
 install_postgres
 install_elixir
-#
-# info "Elixir $(elixir -e 'IO.write(System.version())')"
-#
-# NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
-# if (( NODE_MAJOR < 18 )); then
-#   error "Node.js >= 18 is required (found $(node --version))."
-#   exit 1
-# fi
-# info "Node $(node --version)"
-#
+
+info "Elixir $(elixir -e 'IO.write(System.version())')"
+
 # info "Installing Hex and Rebar..."
 # mix local.hex --force
 # mix local.rebar --force
