@@ -129,12 +129,12 @@ install_elixir
 info "Elixir $(elixir -e 'IO.write(System.version())')"
 
 # info "Installing Hex and Rebar..."
-# mix local.hex --force
-# mix local.rebar --force
-#
+mix local.hex --force
+mix local.rebar --force
+
 # info "Installing Elixir dependencies..."
-# mix deps.get
-#
+mix deps.get
+
 # info "Installing npm dependencies..."
 # npm ci --prefix assets
 #
